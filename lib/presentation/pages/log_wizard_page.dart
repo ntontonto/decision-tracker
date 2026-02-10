@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/app_providers.dart';
 import '../widgets/wizard_step_indicator.dart';
@@ -16,13 +17,58 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   int _currentStep = 0;
+  bool _showErrorGlow = false;
+  Timer? _idleTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startIdleTimer();
+  }
 
   @override
   void dispose() {
+    _stopIdleTimer();
     _pageController.dispose();
     _textController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  void _startIdleTimer() {
+    _stopIdleTimer();
+    _idleTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      final state = ref.read(logWizardProvider);
+      if (_isStepValid(_currentStep, state) && _currentStep < 5) {
+        _peekNextPage();
+      } else {
+        _startIdleTimer(); // Re-schedule if not valid yet
+      }
+    });
+  }
+
+  void _stopIdleTimer() {
+    _idleTimer?.cancel();
+  }
+
+  void _peekNextPage() async {
+    if (!_pageController.hasClients) return;
+    const double peekDistance = 40.0;
+    final currentOffset = _pageController.offset;
+    
+    await _pageController.animateTo(
+      currentOffset + peekDistance,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
+    if (!mounted) return;
+    await _pageController.animateTo(
+      currentOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeIn,
+    );
+    _startIdleTimer();
   }
 
   void _nextStep() {
@@ -36,15 +82,54 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
     }
   }
 
-  void _prevStep() {
+  void _prevStep() async {
     if (_currentStep > 0) {
       _pageController.previousPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.of(context).pop();
+      final confirmed = await _confirmDiscard();
+      if (confirmed && mounted) {
+        Navigator.of(context).pop();
+      }
     }
+  }
+
+  bool _isStepValid(int step, LogWizardState state) {
+    if (step == 0) return state.text.trim().isNotEmpty;
+    if (step == 1) return state.driver != null;
+    if (step == 5) return state.retroOffset != null;
+    return true; // Q3-Q5 are optional
+  }
+
+  void _triggerErrorGlow() {
+    setState(() => _showErrorGlow = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _showErrorGlow = false);
+    });
+  }
+
+  Future<bool> _confirmDiscard() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('破棄しますか？'),
+            content: const Text('これまでの入力内容は保存されません。中断してもよろしいですか？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('続ける'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('破棄する'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Future<void> _saveDecision() async {
@@ -61,32 +146,88 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
         title: const Text('New Decision'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () async {
+            if (await _confirmDiscard() && mounted) {
+              Navigator.of(context).pop();
+            }
+          },
         ),
       ),
-      body: Column(
-        children: [
-          WizardStepIndicator(currentStep: _currentStep, totalSteps: 6),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (page) {
-                FocusScope.of(context).unfocus();
-                setState(() => _currentStep = page);
-              },
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildQ1Content(state),
-                _buildQ2Content(state),
-                _buildQ3Content(state),
-                _buildQ4Content(state),
-                _buildQ5Content(state),
-                _buildQ6Content(state),
-              ],
-            ),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Listener(
+          onPointerDown: (_) => _startIdleTimer(),
+          onPointerMove: (_) => _startIdleTimer(),
+          child: Column(
+            children: [
+              WizardStepIndicator(currentStep: _currentStep, totalSteps: 6),
+              Expanded(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onHorizontalDragEnd: (details) {
+                        _startIdleTimer();
+                        final velocity = details.primaryVelocity ?? 0;
+                        if (velocity < -500) {
+                          // Swipe Left -> Next
+                          if (_isStepValid(_currentStep, state)) {
+                            _nextStep();
+                          } else {
+                            _triggerErrorGlow();
+                          }
+                        } else if (velocity > 500) {
+                          // Swipe Right -> Back
+                          _prevStep();
+                        }
+                      },
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (page) {
+                          _startIdleTimer();
+                          FocusScope.of(context).unfocus();
+                          setState(() => _currentStep = page);
+                        },
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildQ1Content(state),
+                          _buildQ2Content(state),
+                          _buildQ3Content(state),
+                          _buildQ4Content(state),
+                          _buildQ5Content(state),
+                          _buildQ6Content(state),
+                        ],
+                      ),
+                    ),
+                    if (_showErrorGlow)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 20,
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [
+                                  Colors.red.withValues(alpha: 0.4),
+                                  Colors.red.withValues(alpha: 0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24), // Bottom spacing instead of buttons
+            ],
           ),
-          _buildNavigationButtons(),
-        ],
+        ),
       ),
     );
   }
@@ -261,7 +402,7 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
     required String subtitle,
     required List<T> items,
     required T? selectedItem,
-    required Function(T) onSelect,
+    required Function(T?) onSelect,
     bool canSkip = false,
   }) {
     return SingleChildScrollView(
@@ -291,6 +432,7 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
                 ),
                 selected: selectedItem == item,
                 onSelected: (selected) {
+                  _startIdleTimer();
                   if (selected) {
                     onSelect(item);
                     // Only auto-advance if it's not a Pro feature (Q6 case)
@@ -298,6 +440,9 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
                     if (!isPro) {
                       _nextStep();
                     }
+                  } else {
+                    // Allow deselection
+                    onSelect(null as dynamic); 
                   }
                 },
               );
@@ -308,36 +453,6 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
     );
   }
 
-  Widget _buildNavigationButtons() {
-    final state = ref.watch(logWizardProvider);
-    bool canGoNext = false;
-    if (_currentStep == 0) {
-      canGoNext = state.text.isNotEmpty;
-    } else if (_currentStep == 1) {
-      canGoNext = state.driver != null;
-    } else if (_currentStep == 2 || _currentStep == 3 || _currentStep == 4) {
-      canGoNext = true;
-    } else if (_currentStep == 5) {
-      canGoNext = state.retroOffset != null;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          TextButton(
-            onPressed: _prevStep,
-            child: Text(_currentStep == 0 ? 'キャンセル' : '戻る'),
-          ),
-          ElevatedButton(
-            onPressed: canGoNext ? _nextStep : null,
-            child: Text(_currentStep == 5 ? '完了' : '次へ'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showProUnlockDialog() {
     showDialog(

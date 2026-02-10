@@ -36,21 +36,21 @@ class LogWizardState {
 
   LogWizardState copyWith({
     String? text,
-    DriverType? driver,
-    GainType? gain,
-    LoseType? lose,
-    String? note,
-    RetroOffsetType? retroOffset,
-    Decision? previousDecision,
+    DriverType? Function()? driver,
+    GainType? Function()? gain,
+    LoseType? Function()? lose,
+    String? Function()? note,
+    RetroOffsetType? Function()? retroOffset,
+    Decision? Function()? previousDecision,
   }) {
     return LogWizardState(
       text: text ?? this.text,
-      driver: driver ?? this.driver,
-      gain: gain ?? this.gain,
-      lose: lose ?? this.lose,
-      note: note ?? this.note,
-      retroOffset: retroOffset ?? this.retroOffset,
-      previousDecision: previousDecision ?? this.previousDecision,
+      driver: driver != null ? driver() : this.driver,
+      gain: gain != null ? gain() : this.gain,
+      lose: lose != null ? lose() : this.lose,
+      note: note != null ? note() : this.note,
+      retroOffset: retroOffset != null ? retroOffset() : this.retroOffset,
+      previousDecision: previousDecision != null ? previousDecision() : this.previousDecision,
     );
   }
 }
@@ -68,20 +68,20 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
   void selectSuggestion(Decision decision) {
     state = state.copyWith(
       text: decision.textContent,
-      driver: decision.driver,
-      gain: decision.gain,
-      lose: decision.lose,
-      note: decision.note,
-      retroOffset: decision.retroOffsetType,
-      previousDecision: decision,
+      driver: () => decision.driver,
+      gain: () => decision.gain,
+      lose: () => decision.lose,
+      note: () => decision.note,
+      retroOffset: () => decision.retroOffsetType,
+      previousDecision: () => decision,
     );
   }
 
-  void updateDriver(DriverType driver) => state = state.copyWith(driver: driver);
-  void updateGain(GainType? gain) => state = state.copyWith(gain: gain);
-  void updateLose(LoseType? lose) => state = state.copyWith(lose: lose);
-  void updateNote(String? note) => state = state.copyWith(note: note);
-  void updateRetroOffset(RetroOffsetType offset) => state = state.copyWith(retroOffset: offset);
+  void updateDriver(DriverType? driver) => state = state.copyWith(driver: () => driver);
+  void updateGain(GainType? gain) => state = state.copyWith(gain: () => gain);
+  void updateLose(LoseType? lose) => state = state.copyWith(lose: () => lose);
+  void updateNote(String? note) => state = state.copyWith(note: () => note);
+  void updateRetroOffset(RetroOffsetType? offset) => state = state.copyWith(retroOffset: () => offset);
 
   Future<void> save() async {
     if (state.text.isEmpty || state.driver == null || state.retroOffset == null) return;
