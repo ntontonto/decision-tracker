@@ -27,8 +27,8 @@ class SimConfig {
   static const double alignStrengthNear = 0.15;
   static const double alignStrengthFar = 0.02;
   static const double alignSmoothing = 0.1;
-  static const double eccentricityNear = 1.0; // Circular
-  static const double eccentricityFar = 0.4;  // Oval
+  static const double eccentricityNear = 0.8; // Slightly oval even when close
+  static const double eccentricityFar = 0.15; // Sharper (was 0.4)
   
   // Breathing
   static const double breathAmplitude = 0.2;
@@ -98,7 +98,6 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   Offset _targetPos = Offset.zero;
   Offset _cursorPos = Offset.zero;
   bool _isInteracting = false;
-  bool _isLongPress = false;
   
   late Ticker _ticker;
   double _time = 0;
@@ -194,48 +193,42 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         p.pos += p.vel;
 
         // 5. Alignment & Appearance logic
-        Offset toCursor = _cursorPos - p.pos;
-        double distToCursor = toCursor.distance;
+        Offset toTargetCenter = _targetPos - p.pos;
+        double distToCenter = toTargetCenter.distance;
         
-        // "徐々に" 向く方向の計算
-        double targetAngle;
-        if (_isInteracting && distToCursor < SimConfig.cursorInfluenceRadius) {
-          targetAngle = math.atan2(toCursor.dy, toCursor.dx);
-          double influence = 1.0 - (distToCursor / SimConfig.cursorInfluenceRadius);
-          double strength = lerpDouble(SimConfig.alignStrengthFar, SimConfig.alignStrengthNear, influence)!;
-          if (_isLongPress) {
-            strength *= 3.0;
-          }
+        // Always face the current wandering or dragged target
+        double targetAngle = math.atan2(toTargetCenter.dy, toTargetCenter.dx);
+        
+        // Alignment strength based on distance (closer = faster/stronger, far = slow/lazy)
+        // We use a curve that is stable near center and decays gracefully
+        double baseStrength = 0.15;
+        double alignmentStrength = 0.01;
+        
+        if (distToCenter < 600) {
+          // Use a smooth curve: 1.0 at center, decaying to 0.0 at 600px
+          double t = (distToCenter / 600.0).clamp(0.0, 1.0);
+          // (1-t)^2 gives a nice smooth decay
+          alignmentStrength = baseStrength * math.pow(1.0 - t, 2.0).toDouble();
+          alignmentStrength = alignmentStrength.clamp(0.005, baseStrength);
           
-          // Smoothly rotate
-          double diff = targetAngle - p.angle;
-          while (diff > math.pi) {
-            diff -= math.pi * 2;
+          if (_isInteracting) {
+            alignmentStrength *= 1.5; // Slightly faster when dragging
           }
-          while (diff < -math.pi) {
-            diff += math.pi * 2;
-          }
-          p.angle += diff * strength;
-          
-          // Proximity visuals: become circle and smaller
-          p.eccentricity = lerpDouble(SimConfig.eccentricityFar, SimConfig.eccentricityNear, influence)!;
-          p.size = lerpDouble(SimConfig.baseSize, SimConfig.minSize, influence)!;
-        } else {
-          // Default: follow velocity or drift
-          if (p.vel.distance > 0.1) {
-            targetAngle = math.atan2(p.vel.dy, p.vel.dx);
-            double diff = targetAngle - p.angle;
-            while (diff > math.pi) {
-              diff -= math.pi * 2;
-            }
-            while (diff < -math.pi) {
-              diff += math.pi * 2;
-            }
-            p.angle += diff * SimConfig.alignSmoothing;
-          }
-          p.eccentricity = SimConfig.eccentricityFar;
-          p.size = SimConfig.baseSize;
         }
+
+        // Smoothly rotate towards target angle
+        double diff = targetAngle - p.angle;
+        while (diff > math.pi) {
+          diff -= math.pi * 2;
+        }
+        while (diff < -math.pi) {
+          diff += math.pi * 2;
+        }
+        p.angle += diff * alignmentStrength;
+        
+        // Eccentricity: Circular near target, Sharper Oval far away (relative to target distance)
+        double eccInfluence = (1.0 - (distToCenter / 200.0)).clamp(0.0, 1.0);
+        p.eccentricity = lerpDouble(SimConfig.eccentricityFar, SimConfig.eccentricityNear, eccInfluence)!;
 
         // Breathing cycle
         double breath = math.sin(_time / SimConfig.breathPeriod * math.pi * 2 + p.phase) * SimConfig.breathAmplitude;
@@ -253,7 +246,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
           sizeFactor = 0.05;
         }
 
-        p.size *= (1.0 + breath) * sizeFactor;
+        p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor;
       }
     });
   }
@@ -281,7 +274,6 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   void _handleInteractionEnd() {
     setState(() {
       _isInteracting = false;
-      _isLongPress = false;
     });
   }
 
@@ -316,7 +308,6 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
             onLongPressStart: (d) {
               _cursorPos = d.localPosition;
               _isInteracting = true;
-              _isLongPress = true;
             },
             onLongPressEnd: (_) => _handleInteractionEnd(),
             child: CustomPaint(
