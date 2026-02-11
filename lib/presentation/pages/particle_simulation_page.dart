@@ -30,9 +30,10 @@ class SimConfig {
   static const double eccentricityNear = 0.8; // Slightly oval even when close
   static const double eccentricityFar = 0.15; // Sharper (was 0.4)
   
-  // Breathing
+  // Breathing & Instability
   static const double breathAmplitude = 0.2;
   static const double breathPeriod = 3000.0; // ms
+  static const double breathInstability = 0.1; // Master knob (0.0 to 1.0)
   
   // Constraints
   static const double targetLerp = 0.08;
@@ -157,8 +158,13 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         // 1. Flow Field (Noisier as it goes outwards)
         double distToTarget = (p.pos - _targetPos).distance;
         double noiseStrength = SimConfig.flowStrength * (0.5 + distToTarget / 400.0);
-        double noiseX = _noise(_time * SimConfig.flowTimeScale, p.pos.dx * SimConfig.flowScale, p.pos.dy * SimConfig.flowScale);
-        double noiseY = _noise(p.pos.dx * SimConfig.flowScale, _time * SimConfig.flowTimeScale, p.pos.dy * SimConfig.flowScale);
+        double centerX = _screenSize.width / 2;
+        double centerY = _screenSize.height / 2;
+        double relX = p.pos.dx - centerX;
+        double relY = p.pos.dy - centerY;
+
+        double noiseX = _noise(_time * SimConfig.flowTimeScale, relX * SimConfig.flowScale, relY * SimConfig.flowScale);
+        double noiseY = _noise(relX * SimConfig.flowScale, _time * SimConfig.flowTimeScale, relY * SimConfig.flowScale);
         Offset flow = Offset(noiseX, noiseY) * noiseStrength;
 
         // 2. Ripple Forces
@@ -188,35 +194,53 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
           }
         }
 
-        // 4. Update velocity and position
-        p.vel = (p.vel + flow + rippleForce) * SimConfig.damping;
+        // Breathing cycle & Dynamic Instability
+        double breathT = (_time / SimConfig.breathPeriod * math.pi * 2 + p.phase);
+        double breathSin = math.sin(breathT);
+        double breath = breathSin * SimConfig.breathAmplitude;
+        
+        // Expansion detection: breathRate is positive when expanding
+        double breathCos = math.cos(breathT);
+        double expansionFactor = breathCos.clamp(0.0, 1.0); // Expansion phase [0, 1]
+        
+        // Unified Instability Side-effects
+        // 1. Turbulence (Noise amplification during expansion)
+        double instNoiseMult = 1.0 + (expansionFactor * SimConfig.breathInstability * 5.0);
+        Offset dynamicFlow = flow * instNoiseMult;
+
+        // 2. Reduced Friction (Slippery movement during expansion)
+        double currentDamping = SimConfig.damping + (expansionFactor * SimConfig.breathInstability * 0.04).clamp(0.0, 0.05);
+
+        // 3. Pulse Force (Outward push during expansion)
+        Offset toTargetCenter = _targetPos - p.pos;
+        Offset pulseDir = toTargetCenter.distance > 0.1 ? -toTargetCenter / (toTargetCenter.distance + 1) : Offset.zero;
+        Offset pulseForce = pulseDir * (expansionFactor * SimConfig.breathInstability * 0.4);
+
+        // 4. Update velocity and position with dynamic instability
+        p.vel = (p.vel + dynamicFlow + rippleForce + pulseForce) * currentDamping;
         p.pos += p.vel;
 
         // 5. Alignment & Appearance logic
-        Offset toTargetCenter = _targetPos - p.pos;
         double distToCenter = toTargetCenter.distance;
         
         // Always face the current wandering or dragged target
         double targetAngle = math.atan2(toTargetCenter.dy, toTargetCenter.dx);
         
-        // Alignment strength based on distance (closer = faster/stronger, far = slow/lazy)
-        // We use a curve that is stable near center and decays gracefully
+        // Alignment strength based on distance
         double baseStrength = 0.15;
         double alignmentStrength = 0.01;
         
         if (distToCenter < 600) {
-          // Use a smooth curve: 1.0 at center, decaying to 0.0 at 600px
           double t = (distToCenter / 600.0).clamp(0.0, 1.0);
-          // (1-t)^2 gives a nice smooth decay
           alignmentStrength = baseStrength * math.pow(1.0 - t, 2.0).toDouble();
           alignmentStrength = alignmentStrength.clamp(0.005, baseStrength);
           
           if (_isInteracting) {
-            alignmentStrength *= 1.5; // Slightly faster when dragging
+            alignmentStrength *= 1.5;
           }
         }
 
-        // Smoothly rotate towards target angle
+        // Smoothly rotate
         double diff = targetAngle - p.angle;
         while (diff > math.pi) {
           diff -= math.pi * 2;
@@ -226,20 +250,14 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         }
         p.angle += diff * alignmentStrength;
         
-        // Eccentricity: Circular near target, Sharper Oval far away (relative to target distance)
+        // Eccentricity
         double eccInfluence = (1.0 - (distToCenter / 200.0)).clamp(0.0, 1.0);
         p.eccentricity = lerpDouble(SimConfig.eccentricityFar, SimConfig.eccentricityNear, eccInfluence)!;
 
-        // Breathing cycle
-        double breath = math.sin(_time / SimConfig.breathPeriod * math.pi * 2 + p.phase) * SimConfig.breathAmplitude;
-        
-        // Distance-based size scaling (Small near center, Small far away, Normal in between)
-        double dist = distToTarget;
+        // Distance-based size scaling
         double sizeFactor = 0.0;
-        if (dist < 500) {
-          // Sharper bell curve: (x/120)^1.5 * e^(1 - (x/120)^1.5) style or similar
-          double normalizedDist = dist / 140.0;
-          // Steepening the falloff by raising to power
+        if (distToCenter < 500) {
+          double normalizedDist = distToCenter / 140.0;
           sizeFactor = math.pow(normalizedDist, 1.2) * math.exp(1.0 - math.pow(normalizedDist, 1.2));
           sizeFactor = sizeFactor.clamp(0.05, 1.0);
         } else {
@@ -251,9 +269,12 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
     });
   }
 
-  // Simple pseudo-noise function for the flow field
+  // Refined pseudo-noise function for better symmetry and less bias
   double _noise(double x, double y, double z) {
-    return math.sin(x + y) * math.cos(y - z) * math.sin(z + x);
+    // Combine multiple periodic functions with different phase offsets to reduce directional bias
+    double n1 = math.sin(x + y) * math.cos(y - z) * math.sin(z + x);
+    double n2 = math.sin(x * 1.5 - y * 1.2) * math.cos(y * 1.1 + z * 0.9);
+    return (n1 + n2 * 0.5) / 1.5;
   }
 
   void _handleTapDown(TapDownDetails details) {
