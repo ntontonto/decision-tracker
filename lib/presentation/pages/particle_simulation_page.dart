@@ -33,14 +33,15 @@ class SimConfig {
   // Breathing & Instability
   static const double breathAmplitude = 0.2;
   static const double breathPeriod = 3000.0; // ms
-  static const double breathInstability = 0.1; // Master knob (0.0 to 1.0)
+  static const double breathInstability = 0.1; // instability of breathing
   
   // Constraints
   static const double targetLerp = 0.08;
   
-  // Refined Attraction (Gaussian style)
+  // Refined Attraction & Vortex
   static const double minAttraction = 0.0005;
   static const double maxAttraction = 0.004;
+  static const double vortexStrength = 0.12; // Swirling force
 
   // Inter-particle Repulsion
   static const double repulsionRadius = 45.0; // Further increased
@@ -178,11 +179,11 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
           }
         }
 
-        // 3. Constant soft attraction to center (Gaussian distribution effect)
-        Offset toCenter = _targetPos - p.pos;
-        p.vel += toCenter * p.attractionStiffness;
+        // 3. Constant soft attraction to center
+        Offset toTargetCenter = _targetPos - p.pos;
+        p.vel += toTargetCenter * p.attractionStiffness;
 
-        // 3b. Inter-particle Repulsion (Naive O(N^2) but fine for N=120)
+        // 3b. Inter-particle Repulsion
         for (var other in _particles) {
           if (p == other) continue;
           Offset diff = p.pos - other.pos;
@@ -199,24 +200,27 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         double breathSin = math.sin(breathT);
         double breath = breathSin * SimConfig.breathAmplitude;
         
-        // Expansion detection: breathRate is positive when expanding
+        // Expansion detection
         double breathCos = math.cos(breathT);
-        double expansionFactor = breathCos.clamp(0.0, 1.0); // Expansion phase [0, 1]
+        double expansionFactor = breathCos.clamp(0.0, 1.0);
         
         // Unified Instability Side-effects
-        // 1. Turbulence (Noise amplification during expansion)
         double instNoiseMult = 1.0 + (expansionFactor * SimConfig.breathInstability * 5.0);
         Offset dynamicFlow = flow * instNoiseMult;
-
-        // 2. Reduced Friction (Slippery movement during expansion)
         double currentDamping = SimConfig.damping + (expansionFactor * SimConfig.breathInstability * 0.04).clamp(0.0, 0.05);
 
-        // 3. Pulse Force (Outward push during expansion)
-        Offset toTargetCenter = _targetPos - p.pos;
+        // 3c. Centripetal Rotation (Vortex Effect)
+        if (toTargetCenter.distance > 10.0) {
+          Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
+          double orbitSpeed = SimConfig.vortexStrength / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
+          p.vel += tangential * orbitSpeed;
+        }
+
+        // 3d. Pulse Force (Outward push during expansion)
         Offset pulseDir = toTargetCenter.distance > 0.1 ? -toTargetCenter / (toTargetCenter.distance + 1) : Offset.zero;
         Offset pulseForce = pulseDir * (expansionFactor * SimConfig.breathInstability * 0.4);
 
-        // 4. Update velocity and position with dynamic instability
+        // 4. Update velocity and position
         p.vel = (p.vel + dynamicFlow + rippleForce + pulseForce) * currentDamping;
         p.pos += p.vel;
 
