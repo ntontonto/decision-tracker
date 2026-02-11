@@ -35,6 +35,10 @@ class SimConfig {
   static const double breathPeriod = 3000.0; // ms
   static const double breathInstability = 0.1; // instability of breathing
   
+  // Heartbeat (Periodic Pulse)
+  static const double heartbeatStrength = 0.4; // Subdued pulse
+  static const double heartbeatInterval = 3000.0; // Synchronized with breathPeriod
+  
   // Constraints
   static const double targetLerp = 0.08;
   
@@ -103,6 +107,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   
   late Ticker _ticker;
   double _time = 0;
+  double _lastHeartbeatTime = 0;
   Size _screenSize = Size.zero;
 
   @override
@@ -145,6 +150,15 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         goal = Offset(_screenSize.width / 2 + driftX, _screenSize.height / 2 + driftY);
       }
       _targetPos = Offset.lerp(_targetPos, goal, SimConfig.targetLerp)!;
+
+      // 0. Periodic Heartbeat
+      if (_time - _lastHeartbeatTime >= SimConfig.heartbeatInterval) {
+        _lastHeartbeatTime = _time;
+        _ripples.add(Ripple(
+          origin: _targetPos,
+          strength: SimConfig.heartbeatStrength,
+        ));
+      }
 
       // Update ripples
       for (int i = _ripples.length - 1; i >= 0; i--) {
