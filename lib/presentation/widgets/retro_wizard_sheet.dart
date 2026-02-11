@@ -17,13 +17,11 @@ class RetroWizardSheet extends ConsumerStatefulWidget {
 
 class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
   late PageController _pageController;
-  late TextEditingController _memoController;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _memoController = TextEditingController();
     
     // Initialize provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -34,7 +32,6 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
   @override
   void dispose() {
     _pageController.dispose();
-    _memoController.dispose();
     super.dispose();
   }
 
@@ -70,7 +67,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (context) => const LogWizardSheet(
-            initialText: '同じシチュエーションが来た時にどうやって後悔を避ける？',
+            initialHint: '次はどんな行動を意識する？',
           ),
         );
       }
@@ -84,7 +81,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final totalSteps = 6; // 0 to 5
+    final totalSteps = 4; // 0 to 3
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: AppDesign.glassBlur, sigmaY: AppDesign.glassBlur),
@@ -125,49 +122,90 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
                     _buildStep0(state),
                     _buildStep1(state),
                     _buildStep2(state),
-                    _buildStep3(state), // Integrated Solutions + Feedback
-                    _buildStep4(state), // Memo
-                    _buildStep5(state), // Bridge
+                    _buildStep3(state), // Final step with dual buttons
                   ],
                 ),
               ),
 
               // Bottom Navigation
               Padding(
-                padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(context).padding.bottom + 16),
+                padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (state.currentStep > 0)
-                      TextButton(
-                        onPressed: _back,
-                        child: const Text('戻る', style: TextStyle(color: Colors.white70)),
-                      )
-                    else
-                      const SizedBox.shrink(),
-                      
-                    if (state.currentStep < 5)
-                      ElevatedButton(
-                        onPressed: _isNextEnabled(state) ? _next : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        child: const Text('次へ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      )
-                    else
-                      ElevatedButton(
-                        onPressed: _complete,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        child: const Text('完了', style: TextStyle(fontWeight: FontWeight.bold)),
+                    // Left: Back button
+                    SizedBox(
+                      width: 60,
+                      child: state.currentStep > 0
+                          ? TextButton(
+                              onPressed: _back,
+                              child: const Text('戻る', style: TextStyle(color: Colors.white70)),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    
+                    // Center: Done button (only at final step)
+                    Expanded(
+                      child: Center(
+                        child: state.currentStep == 3
+                            ? TextButton(
+                                onPressed: _isNextEnabled(state)
+                                    ? () async {
+                                        ref.read(retroWizardProvider.notifier).setRegisterNextAction(false);
+                                        await _complete();
+                                      }
+                                    : null,
+                                child: Text(
+                                  '完了',
+                                  style: TextStyle(
+                                    color: _isNextEnabled(state) ? Colors.white70 : Colors.white24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
+                    ),
+                    
+                    // Right: Next or Highlighted Action
+                    SizedBox(
+                      width: 180,
+                      child: state.currentStep < 3
+                          ? Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton(
+                                onPressed: _isNextEnabled(state) ? _next : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                ),
+                                child: const Text('次へ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            )
+                          : ElevatedButton(
+                              onPressed: _isNextEnabled(state)
+                                  ? () async {
+                                      ref.read(retroWizardProvider.notifier).setRegisterNextAction(true);
+                                      await _complete();
+                                    }
+                                  : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isNextEnabled(state) ? Colors.white : Colors.white10,
+                                foregroundColor: _isNextEnabled(state) ? Colors.black : Colors.white24,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                              ),
+                              child: const Text(
+                                '今すぐ将来の行動を宣言する',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ),
@@ -266,6 +304,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
         selected: state.reproductionStrategy,
         onSelect: (val) => ref.read(retroWizardProvider.notifier).setReproductionStrategy(val),
         labelBuilder: (v) => v,
+        autoAdvance: false, // Last step
       );
     }
 
@@ -276,29 +315,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
       selected: state.solution,
       onSelect: (val) => ref.read(retroWizardProvider.notifier).setSolution(val),
       labelBuilder: (v) => v,
-    );
-  }
-
-  Widget _buildStep4(RetroWizardState state) {
-    return _buildScrollableContent(
-      title: '（任意）短いメモ',
-      child: TextField(
-        controller: _memoController,
-        maxLines: 5,
-        style: const TextStyle(color: Colors.white),
-        decoration: AppDesign.inputDecoration(hintText: '学びや条件メモをここに...', isLarge: true),
-        onChanged: ref.read(retroWizardProvider.notifier).updateMemo,
-      ),
-    );
-  }
-
-  Widget _buildStep5(RetroWizardState state) {
-    return _buildSelectionStep(
-      title: '次に試す行動を登録する？',
-      items: [true, false],
-      selected: state.registerNextAction,
-      onSelect: (val) => ref.read(retroWizardProvider.notifier).setRegisterNextAction(val),
-      labelBuilder: (v) => v ? 'Yes' : 'No',
+      autoAdvance: false, // Last step
     );
   }
 
@@ -324,6 +341,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     required T? selected,
     required Function(T) onSelect,
     required String Function(T) labelBuilder,
+    bool autoAdvance = true,
   }) {
     return _buildScrollableContent(
       title: title,
@@ -345,7 +363,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
               return GestureDetector(
                 onTap: () {
                   onSelect(item);
-                  if (item is! bool) _next();
+                  if (autoAdvance) _next();
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

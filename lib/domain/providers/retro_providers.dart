@@ -54,7 +54,6 @@ class RetroWizardState {
   final String? solution; // chosen solution
   final String? successFactor; // for no regret
   final String? reproductionStrategy; // for no regret
-  final String? memo;
   final bool registerNextAction;
   final RetroMetadata? metadata;
   final bool isLoading;
@@ -67,7 +66,6 @@ class RetroWizardState {
     this.solution,
     this.successFactor,
     this.reproductionStrategy,
-    this.memo,
     this.registerNextAction = false,
     this.metadata,
     this.isLoading = true,
@@ -81,7 +79,6 @@ class RetroWizardState {
     String? solution,
     String? successFactor,
     String? reproductionStrategy,
-    String? memo,
     bool? registerNextAction,
     RetroMetadata? metadata,
     bool? isLoading,
@@ -94,7 +91,6 @@ class RetroWizardState {
       solution: solution ?? this.solution,
       successFactor: successFactor ?? this.successFactor,
       reproductionStrategy: reproductionStrategy ?? this.reproductionStrategy,
-      memo: memo ?? this.memo,
       registerNextAction: registerNextAction ?? this.registerNextAction,
       metadata: metadata ?? this.metadata,
       isLoading: isLoading ?? this.isLoading,
@@ -145,7 +141,7 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
 
   void setSolution(String? sol) {
     state = state.copyWith(solution: sol);
-    nextStep();
+    // Don't auto-advance on the last step
   }
 
   void setSuccessFactor(String? factor) {
@@ -155,14 +151,11 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
 
   void setReproductionStrategy(String? strategy) {
     state = state.copyWith(reproductionStrategy: strategy);
-    nextStep();
+    // Don't auto-advance on the last step
   }
-
-  void updateMemo(String val) => state = state.copyWith(memo: val);
 
   void setRegisterNextAction(bool val) {
     state = state.copyWith(registerNextAction: val);
-    // Don't auto-advance, save is triggered by the button in UI
   }
 
   Future<void> save() async {
@@ -178,7 +171,7 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
       solution: state.solution,
       successFactor: state.successFactor,
       reproductionStrategy: state.reproductionStrategy,
-      memo: state.memo,
+      memo: null, // Removed from UI
     );
 
     // Refresh providers

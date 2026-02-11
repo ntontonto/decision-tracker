@@ -9,7 +9,8 @@ import 'wizard_step_indicator.dart';
 
 class LogWizardSheet extends ConsumerStatefulWidget {
   final String? initialText;
-  const LogWizardSheet({super.key, this.initialText});
+  final String? initialHint;
+  const LogWizardSheet({super.key, this.initialText, this.initialHint});
 
   @override
   ConsumerState<LogWizardSheet> createState() => _LogWizardSheetState();
@@ -23,23 +24,33 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
   bool _showErrorGlow = false;
   bool _isSaving = false;
   Timer? _idleTimer;
+  late FocusNode _q1FocusNode;
+  late FocusNode _q6FocusNode;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _textController = TextEditingController(text: widget.initialText);
+    _textController = TextEditingController(); // Don't auto-fill
     _noteController = TextEditingController();
+    _q1FocusNode = FocusNode();
+    _q6FocusNode = FocusNode();
     
     // Initialize controllers with current state if any
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.initialText != null) {
-        ref.read(logWizardProvider.notifier).updateText(widget.initialText!);
-      } else {
-        final state = ref.read(logWizardProvider);
-        _textController.text = state.text;
-        _noteController.text = state.note ?? '';
+      // Still update text in provider if passed, but not in controller if we want empty input
+      // However user says 'オートフィルは行わない', so we skip that too
+      final state = ref.read(logWizardProvider);
+      _textController.text = state.text;
+      _noteController.text = state.note ?? '';
+      
+      // Explicitly request focus for Q1 if we are starting there
+      if (_currentStep == 0) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _q1FocusNode.requestFocus();
+        });
       }
+      
       _startIdleTimer();
     });
   }
@@ -50,6 +61,8 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     _pageController.dispose();
     _textController.dispose();
     _noteController.dispose();
+    _q1FocusNode.dispose();
+    _q6FocusNode.dispose();
     super.dispose();
   }
 
@@ -206,7 +219,11 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         }
       },
       child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
+        onTap: () {
+          // Only unfocus if not tapping on an input area
+          // In sheet common pattern, we might want to keep it simple but less aggressive
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
         child: DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.4,
@@ -285,8 +302,17 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
                             controller: _pageController,
                             onPageChanged: (page) {
                               _startIdleTimer();
-                              FocusScope.of(context).unfocus();
+                              // Don't unfocus here as it might kill autofocus for the next field
                               setState(() => _currentStep = page);
+                              
+                              // Auto-focus logic for text steps
+                              if (page == 0) {
+                                _q1FocusNode.requestFocus();
+                              } else if (page == 5) {
+                                _q6FocusNode.requestFocus();
+                              } else {
+                                FocusScope.of(context).unfocus();
+                              }
                             },
                             physics: const NeverScrollableScrollPhysics(),
                             children: [
@@ -376,9 +402,11 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
           const SizedBox(height: 16),
           TextField(
             controller: _textController,
-            autofocus: true,
+            focusNode: _q1FocusNode,
             style: const TextStyle(color: Colors.white, fontSize: 18),
-            decoration: AppDesign.inputDecoration(hintText: '例: 30分読書する、新しい靴を買う...'),
+            decoration: AppDesign.inputDecoration(
+              hintText: widget.initialHint ?? '例: 30分読書する、新しい靴を買う...',
+            ),
             onChanged: (val) => ref.read(logWizardProvider.notifier).updateText(val),
             onSubmitted: (_) {
               if (_isStepValid(0, state)) {
@@ -486,6 +514,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
             children: [
               TextField(
                 controller: _noteController,
+                focusNode: _q6FocusNode,
                 maxLines: 4,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
                 decoration: AppDesign.inputDecoration(hintText: '振り返る時の自分にメッセージを...', isLarge: true),
