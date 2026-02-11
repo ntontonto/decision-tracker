@@ -39,6 +39,40 @@ class AppDesign {
     );
   }
 
+  // --- Indicator & Feedback ---
+  static const Color indicatorActiveColor = Colors.white;
+  static final Color indicatorInactiveColor = Colors.white.withValues(alpha: 0.15);
+  static final Color errorGlowColor = Colors.red.withValues(alpha: 0.4);
+
+  // --- Input Styles ---
+  static InputDecoration inputDecoration({
+    required String hintText,
+    bool isLarge = false,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Colors.white24),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.white30, width: 1.5),
+      ),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 16, 
+        vertical: isLarge ? 20 : 12,
+      ),
+    );
+  }
+
   // --- Colors (ChatGPT Style) ---
   static const Color darkBackground = Colors.black;
   static const Color textPrimary = Colors.white;

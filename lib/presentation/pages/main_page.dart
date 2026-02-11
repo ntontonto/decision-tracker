@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'particle_simulation_page.dart';
 import '../widgets/home_overlay_ui.dart';
 import '../widgets/app_sidebar.dart';
+import '../widgets/success_notification.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -19,6 +20,7 @@ class _MainPageState extends State<MainPage> {
       key: _scaffoldKey,
       backgroundColor: Colors.black,
       drawer: const AppSidebar(),
+      resizeToAvoidBottomInset: false, // Prevents elements from jumping when keyboard appears
       body: Stack(
         children: [
           // Background: Particle Simulation
@@ -36,6 +38,9 @@ class _MainPageState extends State<MainPage> {
           
           // Overlay UI: Proposal Card + FAB
           const HomeOverlayUI(),
+
+          // Success Notification Toast (Top Layer)
+          const SuccessNotification(),
         ],
       ),
     );
