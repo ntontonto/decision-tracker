@@ -126,7 +126,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   double _targetActivity = SimConfig.targetActivity;
   double _heartbeatInterval = SimConfig.heartbeatInterval;
   double _heartbeatStrength = SimConfig.heartbeatStrength;
-  bool _showDebugUI = false;
+  final bool _showDebugUI = false;
 
   @override
   void initState() {
@@ -369,71 +369,50 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Dark sleek look
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (_screenSize == Size.zero) {
-            _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
-            _targetPos = Offset(_screenSize.width / 2, _screenSize.height / 2);
-            _cursorPos = _targetPos;
-            // Distribute particles initially
-            final random = math.Random();
-            for (var p in _particles) {
-              double r = random.nextDouble() * 200;
-              double a = random.nextDouble() * math.pi * 2;
-              p.pos = _targetPos + Offset(math.cos(a) * r, math.sin(a) * r);
-            }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_screenSize == Size.zero) {
+          _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
+          _targetPos = Offset(_screenSize.width / 2, _screenSize.height / 2);
+          _cursorPos = _targetPos;
+          // Distribute particles initially
+          final random = math.Random();
+          for (var p in _particles) {
+            double r = random.nextDouble() * 200;
+            double a = random.nextDouble() * math.pi * 2;
+            p.pos = _targetPos + Offset(math.cos(a) * r, math.sin(a) * r);
           }
-          return Stack(
-            children: [
-              GestureDetector(
-                onTapDown: _handleTapDown,
-                onTapUp: (_) => _handleInteractionEnd(),
-                onTapCancel: () => _handleInteractionEnd(),
-                onPanStart: (d) => setState(() {
-                  _cursorPos = d.localPosition;
-                  _isInteracting = true;
-                }),
-                onPanUpdate: _handlePanUpdate,
-                onPanEnd: (_) => _handleInteractionEnd(),
-                onLongPressStart: (d) {
-                  _cursorPos = d.localPosition;
-                  _isInteracting = true;
-                },
-                onLongPressEnd: (_) => _handleInteractionEnd(),
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: ParticlePainter(
-                    particles: _particles,
-                    ripples: _ripples,
-                  ),
+        }
+        return Stack(
+          children: [
+            GestureDetector(
+              onTapDown: _handleTapDown,
+              onTapUp: (_) => _handleInteractionEnd(),
+              onTapCancel: () => _handleInteractionEnd(),
+              onPanStart: (d) => setState(() {
+                _cursorPos = d.localPosition;
+                _isInteracting = true;
+              }),
+              onPanUpdate: _handlePanUpdate,
+              onPanEnd: (_) => _handleInteractionEnd(),
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: ParticlePainter(
+                  particles: _particles,
+                  ripples: _ripples,
                 ),
               ),
-              // Debug UI Toggle Button
+            ),
+            // Debug Panel (Hidden by default, can be toggled via external means if needed)
+            if (_showDebugUI)
               Positioned(
-                bottom: 20,
+                top: 50,
                 right: 20,
-                child: FloatingActionButton.small(
-                  backgroundColor: Colors.white24,
-                  onPressed: () => setState(() => _showDebugUI = !_showDebugUI),
-                  child: Icon(
-                    _showDebugUI ? Icons.close : Icons.tune,
-                    color: Colors.white70,
-                  ),
-                ),
+                child: _buildDebugPanel(),
               ),
-              // Debug Panel
-              if (_showDebugUI)
-                Positioned(
-                  top: 50,
-                  right: 20,
-                  child: _buildDebugPanel(),
-                ),
-            ],
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
   }
 
