@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
 import '../theme/app_design.dart';
 import 'log_wizard_sheet.dart';
-import '../pages/retro_page.dart';
+import '../widgets/retro_wizard_sheet.dart';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
   const HomeOverlayUI({super.key});
@@ -142,7 +142,7 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ReviewWizardSheet(decision: decision),
+      builder: (context) => RetroWizardSheet(decision: decision),
     );
   }
 }

@@ -761,6 +761,68 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
         requiredDuringInsert: false,
       ).withConverter<AdjustmentType?>($ReviewsTable.$converteradjustmentn);
   @override
+  late final GeneratedColumnWithTypeConverter<RegretLevel?, int> regretLevel =
+      GeneratedColumn<int>(
+        'regret_level',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<RegretLevel?>($ReviewsTable.$converterregretLeveln);
+  static const VerificationMeta _reasonKeyMeta = const VerificationMeta(
+    'reasonKey',
+  );
+  @override
+  late final GeneratedColumn<String> reasonKey = GeneratedColumn<String>(
+    'reason_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _solutionMeta = const VerificationMeta(
+    'solution',
+  );
+  @override
+  late final GeneratedColumn<String> solution = GeneratedColumn<String>(
+    'solution',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _successFactorMeta = const VerificationMeta(
+    'successFactor',
+  );
+  @override
+  late final GeneratedColumn<String> successFactor = GeneratedColumn<String>(
+    'success_factor',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reproductionStrategyMeta =
+      const VerificationMeta('reproductionStrategy');
+  @override
+  late final GeneratedColumn<String> reproductionStrategy =
+      GeneratedColumn<String>(
+        'reproduction_strategy',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _memoMeta = const VerificationMeta('memo');
+  @override
+  late final GeneratedColumn<String> memo = GeneratedColumn<String>(
+    'memo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
   List<GeneratedColumn> get $columns => [
     logId,
     reviewedAt,
@@ -768,6 +830,12 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
     convictionScore,
     wouldRepeat,
     adjustment,
+    regretLevel,
+    reasonKey,
+    solution,
+    successFactor,
+    reproductionStrategy,
+    memo,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -819,6 +887,42 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
     } else if (isInserting) {
       context.missing(_wouldRepeatMeta);
     }
+    if (data.containsKey('reason_key')) {
+      context.handle(
+        _reasonKeyMeta,
+        reasonKey.isAcceptableOrUnknown(data['reason_key']!, _reasonKeyMeta),
+      );
+    }
+    if (data.containsKey('solution')) {
+      context.handle(
+        _solutionMeta,
+        solution.isAcceptableOrUnknown(data['solution']!, _solutionMeta),
+      );
+    }
+    if (data.containsKey('success_factor')) {
+      context.handle(
+        _successFactorMeta,
+        successFactor.isAcceptableOrUnknown(
+          data['success_factor']!,
+          _successFactorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reproduction_strategy')) {
+      context.handle(
+        _reproductionStrategyMeta,
+        reproductionStrategy.isAcceptableOrUnknown(
+          data['reproduction_strategy']!,
+          _reproductionStrategyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memo')) {
+      context.handle(
+        _memoMeta,
+        memo.isAcceptableOrUnknown(data['memo']!, _memoMeta),
+      );
+    }
     return context;
   }
 
@@ -856,6 +960,32 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
           data['${effectivePrefix}adjustment'],
         ),
       ),
+      regretLevel: $ReviewsTable.$converterregretLeveln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}regret_level'],
+        ),
+      ),
+      reasonKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason_key'],
+      ),
+      solution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}solution'],
+      ),
+      successFactor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}success_factor'],
+      ),
+      reproductionStrategy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reproduction_strategy'],
+      ),
+      memo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memo'],
+      ),
     );
   }
 
@@ -870,6 +1000,10 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
       const EnumIndexConverter<AdjustmentType>(AdjustmentType.values);
   static JsonTypeConverter2<AdjustmentType?, int?, int?> $converteradjustmentn =
       JsonTypeConverter2.asNullable($converteradjustment);
+  static JsonTypeConverter2<RegretLevel, int, int> $converterregretLevel =
+      const EnumIndexConverter<RegretLevel>(RegretLevel.values);
+  static JsonTypeConverter2<RegretLevel?, int?, int?> $converterregretLeveln =
+      JsonTypeConverter2.asNullable($converterregretLevel);
 }
 
 class Review extends DataClass implements Insertable<Review> {
@@ -879,6 +1013,12 @@ class Review extends DataClass implements Insertable<Review> {
   final int convictionScore;
   final bool wouldRepeat;
   final AdjustmentType? adjustment;
+  final RegretLevel? regretLevel;
+  final String? reasonKey;
+  final String? solution;
+  final String? successFactor;
+  final String? reproductionStrategy;
+  final String? memo;
   const Review({
     required this.logId,
     required this.reviewedAt,
@@ -886,6 +1026,12 @@ class Review extends DataClass implements Insertable<Review> {
     required this.convictionScore,
     required this.wouldRepeat,
     this.adjustment,
+    this.regretLevel,
+    this.reasonKey,
+    this.solution,
+    this.successFactor,
+    this.reproductionStrategy,
+    this.memo,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -904,6 +1050,26 @@ class Review extends DataClass implements Insertable<Review> {
         $ReviewsTable.$converteradjustmentn.toSql(adjustment),
       );
     }
+    if (!nullToAbsent || regretLevel != null) {
+      map['regret_level'] = Variable<int>(
+        $ReviewsTable.$converterregretLeveln.toSql(regretLevel),
+      );
+    }
+    if (!nullToAbsent || reasonKey != null) {
+      map['reason_key'] = Variable<String>(reasonKey);
+    }
+    if (!nullToAbsent || solution != null) {
+      map['solution'] = Variable<String>(solution);
+    }
+    if (!nullToAbsent || successFactor != null) {
+      map['success_factor'] = Variable<String>(successFactor);
+    }
+    if (!nullToAbsent || reproductionStrategy != null) {
+      map['reproduction_strategy'] = Variable<String>(reproductionStrategy);
+    }
+    if (!nullToAbsent || memo != null) {
+      map['memo'] = Variable<String>(memo);
+    }
     return map;
   }
 
@@ -917,6 +1083,22 @@ class Review extends DataClass implements Insertable<Review> {
       adjustment: adjustment == null && nullToAbsent
           ? const Value.absent()
           : Value(adjustment),
+      regretLevel: regretLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(regretLevel),
+      reasonKey: reasonKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasonKey),
+      solution: solution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(solution),
+      successFactor: successFactor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(successFactor),
+      reproductionStrategy: reproductionStrategy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reproductionStrategy),
+      memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
     );
   }
 
@@ -936,6 +1118,16 @@ class Review extends DataClass implements Insertable<Review> {
       adjustment: $ReviewsTable.$converteradjustmentn.fromJson(
         serializer.fromJson<int?>(json['adjustment']),
       ),
+      regretLevel: $ReviewsTable.$converterregretLeveln.fromJson(
+        serializer.fromJson<int?>(json['regretLevel']),
+      ),
+      reasonKey: serializer.fromJson<String?>(json['reasonKey']),
+      solution: serializer.fromJson<String?>(json['solution']),
+      successFactor: serializer.fromJson<String?>(json['successFactor']),
+      reproductionStrategy: serializer.fromJson<String?>(
+        json['reproductionStrategy'],
+      ),
+      memo: serializer.fromJson<String?>(json['memo']),
     );
   }
   @override
@@ -952,6 +1144,14 @@ class Review extends DataClass implements Insertable<Review> {
       'adjustment': serializer.toJson<int?>(
         $ReviewsTable.$converteradjustmentn.toJson(adjustment),
       ),
+      'regretLevel': serializer.toJson<int?>(
+        $ReviewsTable.$converterregretLeveln.toJson(regretLevel),
+      ),
+      'reasonKey': serializer.toJson<String?>(reasonKey),
+      'solution': serializer.toJson<String?>(solution),
+      'successFactor': serializer.toJson<String?>(successFactor),
+      'reproductionStrategy': serializer.toJson<String?>(reproductionStrategy),
+      'memo': serializer.toJson<String?>(memo),
     };
   }
 
@@ -962,6 +1162,12 @@ class Review extends DataClass implements Insertable<Review> {
     int? convictionScore,
     bool? wouldRepeat,
     Value<AdjustmentType?> adjustment = const Value.absent(),
+    Value<RegretLevel?> regretLevel = const Value.absent(),
+    Value<String?> reasonKey = const Value.absent(),
+    Value<String?> solution = const Value.absent(),
+    Value<String?> successFactor = const Value.absent(),
+    Value<String?> reproductionStrategy = const Value.absent(),
+    Value<String?> memo = const Value.absent(),
   }) => Review(
     logId: logId ?? this.logId,
     reviewedAt: reviewedAt ?? this.reviewedAt,
@@ -969,6 +1175,16 @@ class Review extends DataClass implements Insertable<Review> {
     convictionScore: convictionScore ?? this.convictionScore,
     wouldRepeat: wouldRepeat ?? this.wouldRepeat,
     adjustment: adjustment.present ? adjustment.value : this.adjustment,
+    regretLevel: regretLevel.present ? regretLevel.value : this.regretLevel,
+    reasonKey: reasonKey.present ? reasonKey.value : this.reasonKey,
+    solution: solution.present ? solution.value : this.solution,
+    successFactor: successFactor.present
+        ? successFactor.value
+        : this.successFactor,
+    reproductionStrategy: reproductionStrategy.present
+        ? reproductionStrategy.value
+        : this.reproductionStrategy,
+    memo: memo.present ? memo.value : this.memo,
   );
   Review copyWithCompanion(ReviewsCompanion data) {
     return Review(
@@ -986,6 +1202,18 @@ class Review extends DataClass implements Insertable<Review> {
       adjustment: data.adjustment.present
           ? data.adjustment.value
           : this.adjustment,
+      regretLevel: data.regretLevel.present
+          ? data.regretLevel.value
+          : this.regretLevel,
+      reasonKey: data.reasonKey.present ? data.reasonKey.value : this.reasonKey,
+      solution: data.solution.present ? data.solution.value : this.solution,
+      successFactor: data.successFactor.present
+          ? data.successFactor.value
+          : this.successFactor,
+      reproductionStrategy: data.reproductionStrategy.present
+          ? data.reproductionStrategy.value
+          : this.reproductionStrategy,
+      memo: data.memo.present ? data.memo.value : this.memo,
     );
   }
 
@@ -997,7 +1225,13 @@ class Review extends DataClass implements Insertable<Review> {
           ..write('execution: $execution, ')
           ..write('convictionScore: $convictionScore, ')
           ..write('wouldRepeat: $wouldRepeat, ')
-          ..write('adjustment: $adjustment')
+          ..write('adjustment: $adjustment, ')
+          ..write('regretLevel: $regretLevel, ')
+          ..write('reasonKey: $reasonKey, ')
+          ..write('solution: $solution, ')
+          ..write('successFactor: $successFactor, ')
+          ..write('reproductionStrategy: $reproductionStrategy, ')
+          ..write('memo: $memo')
           ..write(')'))
         .toString();
   }
@@ -1010,6 +1244,12 @@ class Review extends DataClass implements Insertable<Review> {
     convictionScore,
     wouldRepeat,
     adjustment,
+    regretLevel,
+    reasonKey,
+    solution,
+    successFactor,
+    reproductionStrategy,
+    memo,
   );
   @override
   bool operator ==(Object other) =>
@@ -1020,7 +1260,13 @@ class Review extends DataClass implements Insertable<Review> {
           other.execution == this.execution &&
           other.convictionScore == this.convictionScore &&
           other.wouldRepeat == this.wouldRepeat &&
-          other.adjustment == this.adjustment);
+          other.adjustment == this.adjustment &&
+          other.regretLevel == this.regretLevel &&
+          other.reasonKey == this.reasonKey &&
+          other.solution == this.solution &&
+          other.successFactor == this.successFactor &&
+          other.reproductionStrategy == this.reproductionStrategy &&
+          other.memo == this.memo);
 }
 
 class ReviewsCompanion extends UpdateCompanion<Review> {
@@ -1030,6 +1276,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
   final Value<int> convictionScore;
   final Value<bool> wouldRepeat;
   final Value<AdjustmentType?> adjustment;
+  final Value<RegretLevel?> regretLevel;
+  final Value<String?> reasonKey;
+  final Value<String?> solution;
+  final Value<String?> successFactor;
+  final Value<String?> reproductionStrategy;
+  final Value<String?> memo;
   final Value<int> rowid;
   const ReviewsCompanion({
     this.logId = const Value.absent(),
@@ -1038,6 +1290,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
     this.convictionScore = const Value.absent(),
     this.wouldRepeat = const Value.absent(),
     this.adjustment = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.reasonKey = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.successFactor = const Value.absent(),
+    this.reproductionStrategy = const Value.absent(),
+    this.memo = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ReviewsCompanion.insert({
@@ -1047,6 +1305,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
     required int convictionScore,
     required bool wouldRepeat,
     this.adjustment = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.reasonKey = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.successFactor = const Value.absent(),
+    this.reproductionStrategy = const Value.absent(),
+    this.memo = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : logId = Value(logId),
        reviewedAt = Value(reviewedAt),
@@ -1060,6 +1324,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
     Expression<int>? convictionScore,
     Expression<bool>? wouldRepeat,
     Expression<int>? adjustment,
+    Expression<int>? regretLevel,
+    Expression<String>? reasonKey,
+    Expression<String>? solution,
+    Expression<String>? successFactor,
+    Expression<String>? reproductionStrategy,
+    Expression<String>? memo,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1069,6 +1339,13 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
       if (convictionScore != null) 'conviction_score': convictionScore,
       if (wouldRepeat != null) 'would_repeat': wouldRepeat,
       if (adjustment != null) 'adjustment': adjustment,
+      if (regretLevel != null) 'regret_level': regretLevel,
+      if (reasonKey != null) 'reason_key': reasonKey,
+      if (solution != null) 'solution': solution,
+      if (successFactor != null) 'success_factor': successFactor,
+      if (reproductionStrategy != null)
+        'reproduction_strategy': reproductionStrategy,
+      if (memo != null) 'memo': memo,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1080,6 +1357,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
     Value<int>? convictionScore,
     Value<bool>? wouldRepeat,
     Value<AdjustmentType?>? adjustment,
+    Value<RegretLevel?>? regretLevel,
+    Value<String?>? reasonKey,
+    Value<String?>? solution,
+    Value<String?>? successFactor,
+    Value<String?>? reproductionStrategy,
+    Value<String?>? memo,
     Value<int>? rowid,
   }) {
     return ReviewsCompanion(
@@ -1089,6 +1372,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
       convictionScore: convictionScore ?? this.convictionScore,
       wouldRepeat: wouldRepeat ?? this.wouldRepeat,
       adjustment: adjustment ?? this.adjustment,
+      regretLevel: regretLevel ?? this.regretLevel,
+      reasonKey: reasonKey ?? this.reasonKey,
+      solution: solution ?? this.solution,
+      successFactor: successFactor ?? this.successFactor,
+      reproductionStrategy: reproductionStrategy ?? this.reproductionStrategy,
+      memo: memo ?? this.memo,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1118,6 +1407,28 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
         $ReviewsTable.$converteradjustmentn.toSql(adjustment.value),
       );
     }
+    if (regretLevel.present) {
+      map['regret_level'] = Variable<int>(
+        $ReviewsTable.$converterregretLeveln.toSql(regretLevel.value),
+      );
+    }
+    if (reasonKey.present) {
+      map['reason_key'] = Variable<String>(reasonKey.value);
+    }
+    if (solution.present) {
+      map['solution'] = Variable<String>(solution.value);
+    }
+    if (successFactor.present) {
+      map['success_factor'] = Variable<String>(successFactor.value);
+    }
+    if (reproductionStrategy.present) {
+      map['reproduction_strategy'] = Variable<String>(
+        reproductionStrategy.value,
+      );
+    }
+    if (memo.present) {
+      map['memo'] = Variable<String>(memo.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1133,6 +1444,12 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
           ..write('convictionScore: $convictionScore, ')
           ..write('wouldRepeat: $wouldRepeat, ')
           ..write('adjustment: $adjustment, ')
+          ..write('regretLevel: $regretLevel, ')
+          ..write('reasonKey: $reasonKey, ')
+          ..write('solution: $solution, ')
+          ..write('successFactor: $successFactor, ')
+          ..write('reproductionStrategy: $reproductionStrategy, ')
+          ..write('memo: $memo, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1583,6 +1900,12 @@ typedef $$ReviewsTableCreateCompanionBuilder =
       required int convictionScore,
       required bool wouldRepeat,
       Value<AdjustmentType?> adjustment,
+      Value<RegretLevel?> regretLevel,
+      Value<String?> reasonKey,
+      Value<String?> solution,
+      Value<String?> successFactor,
+      Value<String?> reproductionStrategy,
+      Value<String?> memo,
       Value<int> rowid,
     });
 typedef $$ReviewsTableUpdateCompanionBuilder =
@@ -1593,6 +1916,12 @@ typedef $$ReviewsTableUpdateCompanionBuilder =
       Value<int> convictionScore,
       Value<bool> wouldRepeat,
       Value<AdjustmentType?> adjustment,
+      Value<RegretLevel?> regretLevel,
+      Value<String?> reasonKey,
+      Value<String?> solution,
+      Value<String?> successFactor,
+      Value<String?> reproductionStrategy,
+      Value<String?> memo,
       Value<int> rowid,
     });
 
@@ -1654,6 +1983,37 @@ class $$ReviewsTableFilterComposer
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnWithTypeConverterFilters<RegretLevel?, RegretLevel, int>
+  get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get reasonKey => $composableBuilder(
+    column: $table.reasonKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memo => $composableBuilder(
+    column: $table.memo,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$DecisionsTableFilterComposer get logId {
     final $$DecisionsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -1709,6 +2069,36 @@ class $$ReviewsTableOrderingComposer
 
   ColumnOrderings<int> get adjustment => $composableBuilder(
     column: $table.adjustment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reasonKey => $composableBuilder(
+    column: $table.reasonKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memo => $composableBuilder(
+    column: $table.memo,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -1769,6 +2159,31 @@ class $$ReviewsTableAnnotationComposer
         builder: (column) => column,
       );
 
+  GeneratedColumnWithTypeConverter<RegretLevel?, int> get regretLevel =>
+      $composableBuilder(
+        column: $table.regretLevel,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get reasonKey =>
+      $composableBuilder(column: $table.reasonKey, builder: (column) => column);
+
+  GeneratedColumn<String> get solution =>
+      $composableBuilder(column: $table.solution, builder: (column) => column);
+
+  GeneratedColumn<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memo =>
+      $composableBuilder(column: $table.memo, builder: (column) => column);
+
   $$DecisionsTableAnnotationComposer get logId {
     final $$DecisionsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -1827,6 +2242,12 @@ class $$ReviewsTableTableManager
                 Value<int> convictionScore = const Value.absent(),
                 Value<bool> wouldRepeat = const Value.absent(),
                 Value<AdjustmentType?> adjustment = const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<String?> reasonKey = const Value.absent(),
+                Value<String?> solution = const Value.absent(),
+                Value<String?> successFactor = const Value.absent(),
+                Value<String?> reproductionStrategy = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReviewsCompanion(
                 logId: logId,
@@ -1835,6 +2256,12 @@ class $$ReviewsTableTableManager
                 convictionScore: convictionScore,
                 wouldRepeat: wouldRepeat,
                 adjustment: adjustment,
+                regretLevel: regretLevel,
+                reasonKey: reasonKey,
+                solution: solution,
+                successFactor: successFactor,
+                reproductionStrategy: reproductionStrategy,
+                memo: memo,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1845,6 +2272,12 @@ class $$ReviewsTableTableManager
                 required int convictionScore,
                 required bool wouldRepeat,
                 Value<AdjustmentType?> adjustment = const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<String?> reasonKey = const Value.absent(),
+                Value<String?> solution = const Value.absent(),
+                Value<String?> successFactor = const Value.absent(),
+                Value<String?> reproductionStrategy = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReviewsCompanion.insert(
                 logId: logId,
@@ -1853,6 +2286,12 @@ class $$ReviewsTableTableManager
                 convictionScore: convictionScore,
                 wouldRepeat: wouldRepeat,
                 adjustment: adjustment,
+                regretLevel: regretLevel,
+                reasonKey: reasonKey,
+                solution: solution,
+                successFactor: successFactor,
+                reproductionStrategy: reproductionStrategy,
+                memo: memo,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

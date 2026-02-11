@@ -107,6 +107,12 @@ class DecisionRepository {
     required int convictionScore,
     required bool wouldRepeat,
     AdjustmentType? adjustment,
+    RegretLevel? regretLevel,
+    String? reasonKey,
+    String? solution,
+    String? successFactor,
+    String? reproductionStrategy,
+    String? memo,
   }) async {
     await db.transaction(() async {
       await db.into(db.reviews).insert(
@@ -117,6 +123,12 @@ class DecisionRepository {
               convictionScore: convictionScore,
               wouldRepeat: wouldRepeat,
               adjustment: Value(adjustment),
+              regretLevel: Value(regretLevel),
+              reasonKey: Value(reasonKey),
+              solution: Value(solution),
+              successFactor: Value(successFactor),
+              reproductionStrategy: Value(reproductionStrategy),
+              memo: Value(memo),
             ),
           );
 

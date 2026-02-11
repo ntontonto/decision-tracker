@@ -128,3 +128,17 @@ enum AdjustmentType {
     }
   }
 }
+
+enum RegretLevel {
+  none,
+  aLittle,
+  much;
+
+  String get label {
+    switch (this) {
+      case RegretLevel.none: return 'ない';
+      case RegretLevel.aLittle: return '少しある';
+      case RegretLevel.much: return 'ある';
+    }
+  }
+}

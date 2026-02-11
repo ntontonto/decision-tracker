@@ -33,6 +33,14 @@ class Reviews extends Table {
   BoolColumn get wouldRepeat => boolean()();
   IntColumn get adjustment => intEnum<AdjustmentType>().nullable()();
 
+  // New learning loop columns
+  IntColumn get regretLevel => intEnum<RegretLevel>().nullable()();
+  TextColumn get reasonKey => text().nullable()();
+  TextColumn get solution => text().nullable()();
+  TextColumn get successFactor => text().nullable()();
+  TextColumn get reproductionStrategy => text().nullable()();
+  TextColumn get memo => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {logId};
 }
@@ -42,7 +50,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onUpgrade: (m, from, to) async {
+        if (from < 2) {
+          // Add new columns to Reviews
+          await m.addColumn(reviews, reviews.regretLevel);
+          await m.addColumn(reviews, reviews.reasonKey);
+          await m.addColumn(reviews, reviews.solution);
+          await m.addColumn(reviews, reviews.successFactor);
+          await m.addColumn(reviews, reviews.reproductionStrategy);
+          await m.addColumn(reviews, reviews.memo);
+        }
+      },
+    );
+  }
 }
 
 LazyDatabase _openConnection() {
