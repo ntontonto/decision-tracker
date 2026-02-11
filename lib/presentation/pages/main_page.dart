@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'retro_page.dart';
 import 'log_wizard_page.dart';
 import 'decision_list_page.dart';
+import 'particle_simulation_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -41,6 +42,10 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.list),
             label: 'List',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.bubble_chart),
+            label: 'Sim',
+          ),
         ],
       ),
     );
@@ -52,6 +57,8 @@ class _MainPageState extends State<MainPage> {
         return const RetroPage();
       case 2:
         return const DecisionListPage();
+      case 3:
+        return const ParticleSimulationPage();
       default:
         return const SizedBox.shrink();
     }
