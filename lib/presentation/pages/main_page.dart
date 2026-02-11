@@ -25,7 +25,7 @@ class _MainPageState extends State<MainPage> {
         children: [
           // Background: Particle Simulation
           const ParticleSimulationPage(),
-          
+
           // Floating Hamburger Menu Button
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
@@ -39,7 +39,8 @@ class _MainPageState extends State<MainPage> {
           // Overlay UI: Proposal Card + FAB
           const HomeOverlayUI(),
 
-          // Success Notification Toast (Top Layer)
+          // Success Notification Toast (TOPMOST Layer)
+          // Moved to the end to ensure it covers the hamburger menu and other overlays
           const SuccessNotification(),
         ],
       ),
