@@ -131,12 +131,10 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
 
   void setRegretLevel(RegretLevel? level) {
     state = state.copyWith(regretLevel: level);
-    nextStep();
   }
 
   void setReasonKey(String? key) {
     state = state.copyWith(reasonKey: key);
-    nextStep();
   }
 
   void setSolution(String? sol) {
@@ -146,7 +144,6 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
 
   void setSuccessFactor(String? factor) {
     state = state.copyWith(successFactor: factor);
-    nextStep();
   }
 
   void setReproductionStrategy(String? strategy) {

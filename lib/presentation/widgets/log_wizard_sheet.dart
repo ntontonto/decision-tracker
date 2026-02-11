@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/app_providers.dart';
 import '../theme/app_design.dart';
-import 'wizard_step_indicator.dart';
+import 'wizard_scaffold.dart';
+import 'wizard_selection_step.dart';
 
 class LogWizardSheet extends ConsumerStatefulWidget {
   final String? initialText;
@@ -210,7 +211,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     final state = ref.watch(logWizardProvider);
 
     return PopScope(
-      canPop: _isSaving, // Allow pop if we are in saving process
+      canPop: _isSaving,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _isSaving) return;
         final confirmed = await _confirmDiscard();
@@ -218,180 +219,90 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
           Navigator.of(context).pop();
         }
       },
-      child: GestureDetector(
-        onTap: () {
-          // Only unfocus if not tapping on an input area
-          // In sheet common pattern, we might want to keep it simple but less aggressive
-          FocusManager.instance.primaryFocus?.unfocus();
+      child: WizardScaffold(
+        totalSteps: 6,
+        currentStep: _currentStep,
+        onBack: _prevStep,
+        onNext: () {
+          if (_isStepValid(_currentStep, state)) {
+            _nextStep();
+          } else {
+            _triggerErrorGlow();
+          }
         },
-        child: DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.4,
-      maxChildSize: 1.0,
-      snap: true,
-      snapSizes: const [0.85, 1.0],
-      builder: (context, scrollController) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: AppDesign.glassBlur, sigmaY: AppDesign.glassBlur),
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              decoration: BoxDecoration(
-                color: AppDesign.glassBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border.all(color: AppDesign.glassBorderColor, width: AppDesign.glassBorderWidth),
-              ),
-              child: Column(
-                children: [
-                  // Top Bar / Handle (Wrap in scrollable to enable sheet drag from top)
-                  SizedBox(
-                    height: 32,
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  WizardStepIndicator(currentStep: _currentStep, totalSteps: 6),
-                  
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onTapUp: (details) {
-                            _startIdleTimer();
-                            final x = details.localPosition.dx;
-                            final width = MediaQuery.of(context).size.width;
-                            if (x < width * 0.15) {
-                              _prevStep();
-                            } else if (x > width * 0.85) {
-                              if (_isStepValid(_currentStep, state)) {
-                                _nextStep();
-                              } else {
-                                _triggerErrorGlow();
-                              }
-                            }
-                          },
-                          onHorizontalDragEnd: (details) {
-                            _startIdleTimer();
-                            final velocity = details.primaryVelocity ?? 0;
-                            if (velocity < -500) {
-                              if (_isStepValid(_currentStep, state)) {
-                                _nextStep();
-                              } else {
-                                _triggerErrorGlow();
-                              }
-                            } else if (velocity > 500) {
-                              _prevStep();
-                            }
-                          },
-                          child: PageView(
-                            controller: _pageController,
-                            onPageChanged: (page) {
-                              _startIdleTimer();
-                              // Don't unfocus here as it might kill autofocus for the next field
-                              setState(() => _currentStep = page);
-                              
-                              // Auto-focus logic for text steps
-                              if (page == 0) {
-                                _q1FocusNode.requestFocus();
-                              } else if (page == 5) {
-                                _q6FocusNode.requestFocus();
-                              } else {
-                                FocusScope.of(context).unfocus();
-                              }
-                            },
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              _buildQ1Content(state, scrollController), 
-                              _buildSelectionStep<DriverType>(
-                                'Q2: なぜそれをした？',
-                                '動機を選択してください',
-                                DriverType.values,
-                                state.driver,
-                                (val) => ref.read(logWizardProvider.notifier).updateDriver(val),
-                                scrollController,
-                              ),
-                              _buildSelectionStep<GainType>(
-                                'Q3: 得たものは？',
-                                'ポジティブな変化を選択してください',
-                                GainType.values,
-                                state.gain,
-                                (val) => ref.read(logWizardProvider.notifier).updateGain(val),
-                                scrollController,
-                              ),
-                              _buildSelectionStep<LoseType>(
-                                'Q4: 失ったものは？',
-                                'ネガティブな変化を選択してください',
-                                LoseType.values,
-                                state.lose,
-                                (val) => ref.read(logWizardProvider.notifier).updateLose(val),
-                                scrollController,
-                              ),
-                              _buildSelectionStep<RetroOffsetType>(
-                                'Q5: 効果が感じられるのは？',
-                                '振り返るタイミングを選択してください',
-                                RetroOffsetType.values,
-                                state.retroOffset,
-                                (val) {
-                                  ref.read(logWizardProvider.notifier).updateRetroOffset(val);
-                                  // Simplified: Just update state. _nextStep handles the save logic.
-                                },
-                                scrollController,
-                              ),
-                              _buildQ6Content(state, scrollController),
-                            ],
-                          ),
-                        ),
-                        if (_showErrorGlow)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: 15,
-                            child: IgnorePointer(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerRight,
-                                    end: Alignment.centerLeft,
-                                    colors: [AppDesign.errorGlowColor, Colors.transparent],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
+        onClose: () async {
+          final confirmed = await _confirmDiscard();
+          if (confirmed && mounted) Navigator.pop(context);
+        },
+        pageController: _pageController,
+        showErrorGlow: _showErrorGlow,
+        scrollController: ScrollController(), // We manage individual scroll controllers in steps if needed, or pass one
+        onPageChanged: (page) {
+          _startIdleTimer();
+          setState(() => _currentStep = page);
+          
+          if (page == 0) {
+            _q1FocusNode.requestFocus();
+          } else if (page == 5) {
+            _q6FocusNode.requestFocus();
+          } else {
+            FocusScope.of(context).unfocus();
+          }
+        },
+        children: [
+          _buildQ1Content(state),
+          _buildEnumStep<DriverType>(
+            'Q2: なぜそれをした？',
+            '動機を選択してください',
+            DriverType.values,
+            state.driver,
+            (val) => ref.read(logWizardProvider.notifier).updateDriver(val),
           ),
-        );
-      },
-    ),
-    ),
+          _buildEnumStep<GainType>(
+            'Q3: 得たものは？',
+            'ポジティブな変化を選択してください',
+            GainType.values,
+            state.gain,
+            (val) => ref.read(logWizardProvider.notifier).updateGain(val),
+          ),
+          _buildEnumStep<LoseType>(
+            'Q4: 失ったものは？',
+            'ネガティブな変化を選択してください',
+            LoseType.values,
+            state.lose,
+            (val) => ref.read(logWizardProvider.notifier).updateLose(val),
+          ),
+          _buildEnumStep<RetroOffsetType>(
+            'Q5: 効果が感じられるのは？',
+            '振り返るタイミングを選択してください',
+            RetroOffsetType.values,
+            state.retroOffset,
+            (val) => ref.read(logWizardProvider.notifier).updateRetroOffset(val),
+          ),
+          _buildQ6Content(state),
+        ],
+      ),
     );
   }
 
-  Widget _buildQ1Content(LogWizardState state, ScrollController sc) {
+  // Wrapper for WizardSelectionStep
+  Widget _buildEnumStep<T extends Enum>(String title, String subtitle, List<T> items, T? selected, Function(T?) onSelect) {
+    return WizardSelectionStep<T>(
+      title: title,
+      subtitle: subtitle,
+      items: items,
+      selected: selected,
+      onSelect: (val) {
+        onSelect(val);
+        if (val != null) _nextStep();
+      },
+      labelBuilder: (item) => (item as dynamic).label,
+      scrollController: ScrollController(),
+    );
+  }
+
+  Widget _buildQ1Content(LogWizardState state) {
     return SingleChildScrollView(
-      controller: sc,
       physics: const AlwaysScrollableScrollPhysics(), // Enable expansion even if content is short
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -417,91 +328,17 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
             },
           ),
           const SizedBox(height: 12),
-          _buildSuggestions(state.text),
-          const SizedBox(height: 200), // Extra space to ensure we can scroll/expand
+          _buildSuggestions(state),
+          const SizedBox(height: 200),
         ],
       ),
     );
   }
 
-  Widget _buildSuggestions(String query) {
-    if (query.trim().isEmpty) return const SizedBox.shrink();
-    final suggestionsAsync = ref.watch(searchSuggestionsProvider(query));
-    
-    return suggestionsAsync.when(
-      data: (list) {
-        if (list.isEmpty) return const SizedBox.shrink();
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: list.map((item) => ListTile(
-              dense: true,
-              title: Text(item.textContent, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-              subtitle: Text(item.driver.label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
-              trailing: const Icon(Icons.history, size: 16, color: Colors.white24),
-              onTap: () {
-                _textController.text = item.textContent;
-                _noteController.text = item.note ?? '';
-                ref.read(logWizardProvider.notifier).selectSuggestion(item);
-                _nextStep();
-              },
-            )).toList(),
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (e, s) => const SizedBox.shrink(),
-    );
-  }
 
-  Widget _buildSelectionStep<T extends Enum>(String title, String subtitle, List<T> items, T? selected, Function(T?) onSelect, ScrollController sc) {
+  Widget _buildQ6Content(LogWizardState state) {
     return SingleChildScrollView(
-      controller: sc,
-      physics: const AlwaysScrollableScrollPhysics(), // Enable expansion
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Text(title, style: AppDesign.titleStyle.copyWith(fontSize: 22)),
-          Text(subtitle, style: AppDesign.subtitleStyle.copyWith(fontSize: 14)),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: items.map((item) {
-              final label = (item as dynamic).label;
-              final isSelected = selected == item;
-              return GestureDetector(
-                onTap: () {
-                  if (isSelected) {
-                    onSelect(null);
-                  } else {
-                    onSelect(item);
-                    _nextStep();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  decoration: AppDesign.actionButtonDecoration(selected: isSelected),
-                  child: Text(label, style: AppDesign.actionButtonTextStyle(selected: isSelected)),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 200), // Extra space
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQ6Content(LogWizardState state, ScrollController sc) {
-    return SingleChildScrollView(
-      controller: sc,
-      physics: const AlwaysScrollableScrollPhysics(), // Enable expansion
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,12 +375,44 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
               ),
             ],
           ),
-          const SizedBox(height: 32),
-          const SizedBox(height: 32),
-          const SizedBox(height: 200), // Extra space
-          const SizedBox(height: 200), // Extra space
+          const SizedBox(height: 150),
+          _buildSuggestions(state),
+          const SizedBox(height: 200),
         ],
       ),
+    );
+  }
+
+  Widget _buildSuggestions(LogWizardState state) {
+    if (state.text.isEmpty) return const SizedBox.shrink();
+    final suggestionsAsync = ref.watch(searchSuggestionsProvider(state.text));
+    
+    return suggestionsAsync.when(
+      data: (list) {
+        if (list.isEmpty) return const SizedBox.shrink();
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: list.map((item) => ListTile(
+              dense: true,
+              title: Text(item.textContent, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              subtitle: Text(item.driver.label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+              trailing: const Icon(Icons.history, size: 16, color: Colors.white24),
+              onTap: () {
+                _textController.text = item.textContent;
+                _noteController.text = item.note ?? '';
+                ref.read(logWizardProvider.notifier).selectSuggestion(item);
+                _nextStep();
+              },
+            )).toList(),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, s) => const SizedBox.shrink(),
     );
   }
 }
