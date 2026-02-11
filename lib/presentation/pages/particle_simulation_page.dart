@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 class SimConfig {
   static const int particleCount = 120;
   static const double baseSize = 6.0;
-  static const double sizeScalingRange = 300.0;
+  static const double sizeScalingRange = 400.0;
   static const double sizeScalingPeak = 140.0;
   static const double sizeScalingExponent = 1.2;
   static const double minSizeFactor = 0.05;
@@ -121,6 +121,13 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   double _nextVortexSwitchTime = 15000.0; // Random switch interval
   Size _screenSize = Size.zero;
 
+  // Live Tuning Parameters
+  double _vortexStrength = SimConfig.vortexStrength;
+  double _targetActivity = SimConfig.targetActivity;
+  double _heartbeatInterval = SimConfig.heartbeatInterval;
+  double _heartbeatStrength = SimConfig.heartbeatStrength;
+  bool _showDebugUI = false;
+
   @override
   void initState() {
     super.initState();
@@ -160,8 +167,8 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
       } else {
         // Soft wandering when idle
         // Base frequencies/amplitudes scaled by activity
-        double freqScale = SimConfig.targetActivity;
-        double ampScale = math.sqrt(SimConfig.targetActivity); // Milder growth for amplitude to keep flock together
+        double freqScale = _targetActivity;
+        double ampScale = math.sqrt(_targetActivity); // Milder growth for amplitude to keep flock together
         
         double driftX = math.sin(_time * 0.0005 * freqScale) * 40.0 * ampScale + 
                         math.cos(_time * 0.0003 * freqScale) * 20.0 * ampScale;
@@ -181,11 +188,11 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
       _currentVortexDir = lerpDouble(_currentVortexDir, _targetVortexDir, 0.005)!;
 
       // 0. Periodic Heartbeat
-      if (_time - _lastHeartbeatTime >= SimConfig.heartbeatInterval) {
+      if (_time - _lastHeartbeatTime >= _heartbeatInterval) {
         _lastHeartbeatTime = _time;
         _ripples.add(Ripple(
           origin: _targetPos,
-          strength: SimConfig.heartbeatStrength,
+          strength: _heartbeatStrength,
         ));
       }
 
@@ -255,7 +262,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         // 3c. Centripetal Rotation (Vortex Effect)
         if (toTargetCenter.distance > 10.0) {
           Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
-          double orbitSpeed = (SimConfig.vortexStrength * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
+          double orbitSpeed = (_vortexStrength * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
           p.vel += tangential * orbitSpeed;
         }
 
@@ -378,31 +385,110 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
               p.pos = _targetPos + Offset(math.cos(a) * r, math.sin(a) * r);
             }
           }
-          return GestureDetector(
-            onTapDown: _handleTapDown,
-            onTapUp: (_) => _handleInteractionEnd(),
-            onTapCancel: () => _handleInteractionEnd(),
-            onPanStart: (d) => setState(() {
-              _cursorPos = d.localPosition;
-              _isInteracting = true;
-            }),
-            onPanUpdate: _handlePanUpdate,
-            onPanEnd: (_) => _handleInteractionEnd(),
-            onLongPressStart: (d) {
-              _cursorPos = d.localPosition;
-              _isInteracting = true;
-            },
-            onLongPressEnd: (_) => _handleInteractionEnd(),
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: ParticlePainter(
-                particles: _particles,
-                ripples: _ripples,
+          return Stack(
+            children: [
+              GestureDetector(
+                onTapDown: _handleTapDown,
+                onTapUp: (_) => _handleInteractionEnd(),
+                onTapCancel: () => _handleInteractionEnd(),
+                onPanStart: (d) => setState(() {
+                  _cursorPos = d.localPosition;
+                  _isInteracting = true;
+                }),
+                onPanUpdate: _handlePanUpdate,
+                onPanEnd: (_) => _handleInteractionEnd(),
+                onLongPressStart: (d) {
+                  _cursorPos = d.localPosition;
+                  _isInteracting = true;
+                },
+                onLongPressEnd: (_) => _handleInteractionEnd(),
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: ParticlePainter(
+                    particles: _particles,
+                    ripples: _ripples,
+                  ),
+                ),
               ),
-            ),
+              // Debug UI Toggle Button
+              Positioned(
+                bottom: 20,
+                right: 20,
+                child: FloatingActionButton.small(
+                  backgroundColor: Colors.white24,
+                  onPressed: () => setState(() => _showDebugUI = !_showDebugUI),
+                  child: Icon(
+                    _showDebugUI ? Icons.close : Icons.tune,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+              // Debug Panel
+              if (_showDebugUI)
+                Positioned(
+                  top: 50,
+                  right: 20,
+                  child: _buildDebugPanel(),
+                ),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildDebugPanel() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 250,
+          padding: const EdgeInsets.all(16),
+          color: Colors.white.withOpacity(0.1),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSlider("Vortex", _vortexStrength, 0.0, 0.6, (v) => setState(() => _vortexStrength = v)),
+              _buildSlider("Activity", _targetActivity, 0.0, 3.0, (v) => setState(() => _targetActivity = v)),
+              _buildSlider("Pulse Interval", _heartbeatInterval, 1000.0, 60000.0, (v) => setState(() => _heartbeatInterval = v)),
+              _buildSlider("Pulse Power", _heartbeatStrength, 0.0, 0.5, (v) => setState(() => _heartbeatStrength = v)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlider(String label, double value, double min, double max, ValueChanged<double> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            Text(value.toStringAsFixed(2), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 2,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+          ),
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            activeColor: Colors.white70,
+            inactiveColor: Colors.white12,
+            onChanged: onChanged,
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
