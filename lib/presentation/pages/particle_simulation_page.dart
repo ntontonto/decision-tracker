@@ -17,9 +17,9 @@ class SimConfig {
   static const double damping = 0.94;
   
   // Ripple constants
-  static const double rippleStrength = 15.0;
+  static const double rippleStrength = 0.7; // Ultra-subtle sway (was 1.8)
   static const double rippleSpeed = 8.0;
-  static const double rippleDecay = 0.97;
+  static const double rippleDecay = 0.99; // Lingers much longer as a faint wave (was 0.985)
   static const double rippleWavelength = 100.0;
   
   // Cursor & Alignment
