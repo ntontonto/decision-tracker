@@ -48,6 +48,7 @@ class SimConfig {
   
   // Constraints
   static const double targetLerp = 0.08;
+  static const double targetActivity = 2.0; // Master control for wander speed/amplitude
   
   // Refined Attraction & Vortex
   static const double minAttraction = 0.0005;
@@ -152,8 +153,14 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         goal = _cursorPos;
       } else {
         // Soft wandering when idle
-        double driftX = math.sin(_time * 0.0005) * 40.0 + math.cos(_time * 0.0003) * 20.0;
-        double driftY = math.cos(_time * 0.0004) * 40.0 + math.sin(_time * 0.0002) * 20.0;
+        // Base frequencies/amplitudes scaled by activity
+        double freqScale = SimConfig.targetActivity;
+        double ampScale = math.sqrt(SimConfig.targetActivity); // Milder growth for amplitude to keep flock together
+        
+        double driftX = math.sin(_time * 0.0005 * freqScale) * 40.0 * ampScale + 
+                        math.cos(_time * 0.0003 * freqScale) * 20.0 * ampScale;
+        double driftY = math.cos(_time * 0.0004 * freqScale) * 40.0 * ampScale + 
+                        math.sin(_time * 0.0002 * freqScale) * 20.0 * ampScale;
         goal = Offset(_screenSize.width / 2 + driftX, _screenSize.height / 2 + driftY);
       }
       _targetPos = Offset.lerp(_targetPos, goal, SimConfig.targetLerp)!;
