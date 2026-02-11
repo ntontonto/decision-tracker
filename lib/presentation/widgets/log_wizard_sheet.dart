@@ -166,10 +166,10 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> {
       // Show Home Toast
       ref.read(successNotificationProvider.notifier).show(
         message: '入力が完了しました。',
-        onFix: (BuildContext shellContext) {
-          // Restore state with editingId to avoid duplicates
+        onFix: (BuildContext shellContext, WidgetRef activeRef) {
+          // Restore state using the activeRef (which is still alive)
           if (savedId != null) {
-            ref.read(logWizardProvider.notifier).restore(snapshot.copyWith(editingId: () => savedId));
+            activeRef.read(logWizardProvider.notifier).restore(snapshot.copyWith(editingId: () => savedId));
           }
           
           showModalBottomSheet(

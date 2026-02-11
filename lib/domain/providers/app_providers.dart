@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
@@ -191,7 +190,7 @@ final reviewForLogProvider = FutureProvider.family<Review?, String>((ref, id) {
 class SuccessNotificationState {
   final bool isVisible;
   final String message;
-  final void Function(BuildContext)? onFix;
+  final void Function(BuildContext, WidgetRef)? onFix;
 
   SuccessNotificationState({
     this.isVisible = false,
@@ -205,7 +204,7 @@ class SuccessNotificationNotifier extends StateNotifier<SuccessNotificationState
 
   SuccessNotificationNotifier() : super(SuccessNotificationState());
 
-  void show({required String message, void Function(BuildContext)? onFix}) {
+  void show({required String message, void Function(BuildContext, WidgetRef)? onFix}) {
     _timer?.cancel();
     state = SuccessNotificationState(isVisible: true, message: message, onFix: onFix);
     

@@ -50,9 +50,9 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
       position: _slideAnimation,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Reduced vertical padding
             decoration: BoxDecoration(
               color: AppDesign.glassBackgroundColor,
               borderRadius: BorderRadius.circular(16),
@@ -78,7 +78,7 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
                     padding: const EdgeInsets.only(right: 12.0),
                     child: GestureDetector(
                       onTap: () {
-                        state.onFix?.call(context);
+                        state.onFix?.call(context, ref);
                         ref.read(successNotificationProvider.notifier).hide();
                       },
                       child: const Text(
