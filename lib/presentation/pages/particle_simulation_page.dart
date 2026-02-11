@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 class SimConfig {
   static const int particleCount = 120;
   static const double baseSize = 6.0;
-  static const double sizeScalingRange = 200.0;
+  static const double sizeScalingRange = 300.0;
   static const double sizeScalingPeak = 140.0;
   static const double sizeScalingExponent = 1.2;
   static const double minSizeFactor = 0.05;
@@ -116,6 +116,9 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   late Ticker _ticker;
   double _time = 0;
   double _lastHeartbeatTime = 0;
+  double _targetVortexDir = 1.0;
+  double _currentVortexDir = 1.0;
+  double _nextVortexSwitchTime = 15000.0; // Random switch interval
   Size _screenSize = Size.zero;
 
   @override
@@ -130,6 +133,9 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         color: Colors.white.withValues(alpha: 0.8),
       );
     });
+    
+    // Initial random switch time (5s to 10s)
+    _nextVortexSwitchTime = 5000.0 + random.nextDouble() * 5000.0;
 
     _ticker = createTicker(_update);
     _ticker.start();
@@ -164,6 +170,15 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         goal = Offset(_screenSize.width / 2 + driftX, _screenSize.height / 2 + driftY);
       }
       _targetPos = Offset.lerp(_targetPos, goal, SimConfig.targetLerp)!;
+
+      // 0. Dynamic Vortex Direction Reversal
+      if (_time >= _nextVortexSwitchTime) {
+        _targetVortexDir *= -1.0;
+        // Set next switch time (5s to 10s later)
+        _nextVortexSwitchTime = _time + 5000.0 + math.Random().nextDouble() * 5000.0;
+      }
+      // Extremely smooth transition for reversal (lerp)
+      _currentVortexDir = lerpDouble(_currentVortexDir, _targetVortexDir, 0.005)!;
 
       // 0. Periodic Heartbeat
       if (_time - _lastHeartbeatTime >= SimConfig.heartbeatInterval) {
@@ -240,7 +255,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         // 3c. Centripetal Rotation (Vortex Effect)
         if (toTargetCenter.distance > 10.0) {
           Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
-          double orbitSpeed = SimConfig.vortexStrength / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
+          double orbitSpeed = (SimConfig.vortexStrength * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
           p.vel += tangential * orbitSpeed;
         }
 
