@@ -7,6 +7,13 @@ import 'package:flutter/scheduler.dart';
 class SimConfig {
   static const int particleCount = 120;
   static const double baseSize = 6.0;
+  static const double sizeScalingRange = 200.0;
+  static const double sizeScalingPeak = 140.0;
+  static const double sizeScalingExponent = 1.2;
+  static const double minSizeFactor = 0.05;
+  static const double sizeWobbleStrength = 40.0; // Max deviation of the ring
+  static const double sizeNoiseFrequency = 0.0003; // Speed of the wobble
+  
   static const double minSize = 2.0;
   static const double maxSize = 12.0;
   
@@ -45,7 +52,7 @@ class SimConfig {
   // Refined Attraction & Vortex
   static const double minAttraction = 0.0005;
   static const double maxAttraction = 0.004;
-  static const double vortexStrength = 0.12; // Swirling force
+  static const double vortexStrength = 0.2; // Swirling force
 
   // Inter-particle Repulsion
   static const double repulsionRadius = 45.0; // Further increased
@@ -272,14 +279,29 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         double eccInfluence = (1.0 - (distToCenter / 200.0)).clamp(0.0, 1.0);
         p.eccentricity = lerpDouble(SimConfig.eccentricityFar, SimConfig.eccentricityNear, eccInfluence)!;
 
-        // Distance-based size scaling
-        double sizeFactor = 0.0;
-        if (distToCenter < 500) {
-          double normalizedDist = distToCenter / 140.0;
-          sizeFactor = math.pow(normalizedDist, 1.2) * math.exp(1.0 - math.pow(normalizedDist, 1.2));
-          sizeFactor = sizeFactor.clamp(0.05, 1.0);
-        } else {
-          sizeFactor = 0.05;
+        // Distance-based size scaling (Organic Bubble Ring)
+        double sizeFactor = SimConfig.minSizeFactor;
+        if (distToCenter < SimConfig.sizeScalingRange) {
+          // 1. Wobble the peak radius based on angle and time for a ring-like deformation
+          double angle = math.atan2(toTargetCenter.dy, toTargetCenter.dx);
+          double wobble = _noise(
+            math.cos(angle) * 0.5, 
+            math.sin(angle) * 0.5, 
+            _time * SimConfig.sizeNoiseFrequency
+          );
+          double peakedRadius = SimConfig.sizeScalingPeak + (wobble * SimConfig.sizeWobbleStrength);
+
+          // 2. Add local jitter to the distance calculation for diffuse boundaries
+          double localNoise = _noise(p.pos.dx * 0.01, p.pos.dy * 0.01, _time * 0.001);
+          double jitteredDist = distToCenter + (localNoise * 15.0);
+
+          double normalizedDist = (jitteredDist / peakedRadius).clamp(0.0, 5.0);
+          
+          // Bell curve formula to create the ring effect
+          sizeFactor = math.pow(normalizedDist, SimConfig.sizeScalingExponent) * 
+                       math.exp(1.0 - math.pow(normalizedDist, SimConfig.sizeScalingExponent));
+          
+          sizeFactor = sizeFactor.clamp(SimConfig.minSizeFactor, 1.0);
         }
 
         p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor;
