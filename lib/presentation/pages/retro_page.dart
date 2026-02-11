@@ -133,6 +133,25 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
       child: Column(
         children: [
           Text(widget.decision.textContent, style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRow('動機', widget.decision.driver.label),
+                if (widget.decision.gain != null) _buildInfoRow('得たもの', widget.decision.gain!.label),
+                if (widget.decision.lose != null) _buildInfoRow('失ったもの', widget.decision.lose!.label),
+                if (widget.decision.note != null && widget.decision.note!.isNotEmpty)
+                  _buildInfoRow('メモ', widget.decision.note!),
+              ],
+            ),
+          ),
           const Divider(height: 32),
           Expanded(child: SingleChildScrollView(child: _buildStepContent())),
           const SizedBox(height: 16),
@@ -287,6 +306,24 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
           )).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
     );
   }
 }

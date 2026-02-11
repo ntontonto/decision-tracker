@@ -115,7 +115,9 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
     final today21 = DateTime(now.year, now.month, now.day, 21);
     
     switch (type) {
-      case RetroOffsetType.today:
+      case RetroOffsetType.now:
+        return now;
+      case RetroOffsetType.tonight:
         return today21;
       case RetroOffsetType.tomorrow:
         return today21.add(const Duration(days: 1));
@@ -127,8 +129,8 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
         return today21.add(const Duration(days: 14));
       case RetroOffsetType.plus1month:
         return DateTime(today21.year, today21.month + 1, today21.day, 21);
-      default:
-        return today21;
+      case RetroOffsetType.plus3monthsPlus:
+        return DateTime(today21.year, today21.month + 3, today21.day, 21);
     }
   }
 }

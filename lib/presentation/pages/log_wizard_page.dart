@@ -72,7 +72,11 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
   }
 
   void _nextStep() {
-    if (_currentStep < 5) {
+    final state = ref.read(logWizardProvider);
+    if (_currentStep == 4 && state.retroOffset == RetroOffsetType.now) {
+      // If Q5 is "Now", save directly (effectively skipping Q6)
+      _saveDecision();
+    } else if (_currentStep < 5) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -99,8 +103,10 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
   bool _isStepValid(int step, LogWizardState state) {
     if (step == 0) return state.text.trim().isNotEmpty;
     if (step == 1) return state.driver != null;
-    if (step == 5) return state.retroOffset != null;
-    return true; // Q3-Q5 are optional
+    if (step == 2) return state.gain != null;
+    if (step == 3) return state.lose != null;
+    if (step == 4) return state.retroOffset != null;
+    return true; // Q6 is optional
   }
 
   void _triggerErrorGlow() {
@@ -147,7 +153,8 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () async {
-            if (await _confirmDiscard() && mounted) {
+            final confirmed = await _confirmDiscard();
+            if (confirmed && context.mounted) {
               Navigator.of(context).pop();
             }
           },
@@ -260,7 +267,7 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 12),
-                  Text('Q1: 何を決めましたか？', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Q1: 今日は何をした？', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _textController,
@@ -345,8 +352,8 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
 
   Widget _buildQ2Content(LogWizardState state) {
     return _buildSelectionContent<DriverType>(
-      title: 'Q2: Driver (必須)',
-      subtitle: 'この判断の動機は何ですか？',
+      title: 'Q2: なぜそれをした？',
+      subtitle: '動機を選択してください',
       items: DriverType.values,
       selectedItem: state.driver,
       onSelect: (val) => ref.read(logWizardProvider.notifier).updateDriver(val),
@@ -355,33 +362,42 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
 
   Widget _buildQ3Content(LogWizardState state) {
     return _buildSelectionContent<GainType>(
-      title: 'Q3: Gain (任意)',
-      subtitle: '何が得られると期待していますか？',
+      title: 'Q3: 得たものは？',
+      subtitle: 'ポジティブな変化を選択してください',
       items: GainType.values,
       selectedItem: state.gain,
       onSelect: (val) => ref.read(logWizardProvider.notifier).updateGain(val),
-      canSkip: true,
     );
   }
 
   Widget _buildQ4Content(LogWizardState state) {
     return _buildSelectionContent<LoseType>(
-      title: 'Q4: Lose (任意)',
-      subtitle: '何を失う（またはコストを払う）リスクがありますか？',
+      title: 'Q4: 失ったものは？',
+      subtitle: 'ネガティブな変化を選択してください',
       items: LoseType.values,
       selectedItem: state.lose,
       onSelect: (val) => ref.read(logWizardProvider.notifier).updateLose(val),
-      canSkip: true,
     );
   }
 
   Widget _buildQ5Content(LogWizardState state) {
+    return _buildSelectionContent<RetroOffsetType>(
+      title: 'Q5: 行動の効果が感じられるのはいつごろ？',
+      subtitle: '振り返るタイミングを選択してください',
+      items: RetroOffsetType.values,
+      selectedItem: state.retroOffset,
+      onSelect: (val) => ref.read(logWizardProvider.notifier).updateRetroOffset(val),
+    );
+  }
+
+
+  Widget _buildQ6Content(LogWizardState state) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Q5: 将来の自分への一言 (任意)', style: Theme.of(context).textTheme.titleLarge),
+          Text('Q6: 将来の自分への一言 (任意)', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextField(
             controller: _noteController,
@@ -397,29 +413,12 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
     );
   }
 
-  Widget _buildQ6Content(LogWizardState state) {
-    return _buildSelectionContent<RetroOffsetType>(
-      title: 'Q6: Retro Day (必須)',
-      subtitle: 'いつ振り返りますか？',
-      items: RetroOffsetType.values,
-      selectedItem: state.retroOffset,
-      onSelect: (val) {
-        if (val == RetroOffsetType.custom || val == RetroOffsetType.plus3monthsPlus) {
-          _showProUnlockDialog();
-        } else {
-          ref.read(logWizardProvider.notifier).updateRetroOffset(val);
-        }
-      },
-    );
-  }
-
   Widget _buildSelectionContent<T extends Enum>({
     required String title,
     required String subtitle,
     required List<T> items,
     required T? selectedItem,
     required Function(T?) onSelect,
-    bool canSkip = false,
   }) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -434,7 +433,8 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
             runSpacing: 12,
             children: items.map((item) {
               final label = (item as dynamic).label;
-              final isPro = item.name == 'custom' || item.name == 'plus3monthsPlus';
+              final isPro = item is RetroOffsetType && item == RetroOffsetType.plus3monthsPlus;
+              
               return ChoiceChip(
                 label: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -449,16 +449,15 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
                 selected: selectedItem == item,
                 onSelected: (selected) {
                   _startIdleTimer();
+                  if (isPro && selected) {
+                    _showProUnlockDialog();
+                    return;
+                  }
                   if (selected) {
                     onSelect(item);
-                    // Only auto-advance if it's not a Pro feature (Q6 case)
-                    final isPro = item.name == 'custom' || item.name == 'plus3monthsPlus';
-                    if (!isPro) {
-                      _nextStep();
-                    }
+                    _nextStep();
                   } else {
-                    // Allow deselection
-                    onSelect(null as dynamic); 
+                    onSelect(null);
                   }
                 },
               );
