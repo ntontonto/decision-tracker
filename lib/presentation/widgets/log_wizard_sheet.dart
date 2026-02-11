@@ -501,18 +501,8 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> {
             ],
           ),
           const SizedBox(height: 32),
-          Center(
-            child: ElevatedButton(
-              onPressed: _saveDecision,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-              ),
-              child: const Text('保存する', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ),
-          ),
+          const SizedBox(height: 32),
+          const SizedBox(height: 200), // Extra space
           const SizedBox(height: 200), // Extra space
         ],
       ),
