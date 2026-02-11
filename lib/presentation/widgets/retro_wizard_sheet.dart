@@ -155,54 +155,66 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     // Navigation on previous steps is handled by gestures & taps.
     if (state.currentStep < 3) return const SizedBox.shrink();
 
+    final isEnabled = _isNextEnabled(state);
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(context).padding.bottom + 24),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(context).padding.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Center: Done button
-          Expanded(
-            child: TextButton(
-              onPressed: _isNextEnabled(state)
-                  ? () async {
-                      ref.read(retroWizardProvider.notifier).setRegisterNextAction(false);
-                      await _complete();
-                    }
-                  : null,
-              child: Text(
-                '完了',
-                style: TextStyle(
-                  color: _isNextEnabled(state) ? Colors.white70 : Colors.white10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          
-          const SizedBox(width: 16),
-          
-          // Right: Highlighted Action
-          Expanded(
-            flex: 2,
+          // Primary Action: Declare
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isNextEnabled(state)
+              onPressed: isEnabled
                   ? () async {
                       ref.read(retroWizardProvider.notifier).setRegisterNextAction(true);
                       await _complete();
                     }
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isNextEnabled(state) ? Colors.white : Colors.white10,
-                foregroundColor: _isNextEnabled(state) ? Colors.black : Colors.white24,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: isEnabled ? Colors.white : Colors.white10,
+                foregroundColor: isEnabled ? Colors.black : Colors.white24,
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
               child: const Text(
                 '将来の行動を宣言する',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Secondary Action: Simple Done (Text Link)
+          GestureDetector(
+            onTap: isEnabled
+                ? () async {
+                    ref.read(retroWizardProvider.notifier).setRegisterNextAction(false);
+                    await _complete();
+                  }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    color: isEnabled ? Colors.white70 : Colors.white10,
+                    fontSize: 14,
+                  ),
+                  children: [
+                    const TextSpan(text: 'もしくは　'),
+                    TextSpan(
+                      text: 'このまま完了',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        decoration: isEnabled ? TextDecoration.underline : TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
