@@ -8,16 +8,17 @@ import '../theme/app_design.dart';
 import 'wizard_step_indicator.dart';
 
 class LogWizardSheet extends ConsumerStatefulWidget {
-  const LogWizardSheet({super.key});
+  final String? initialText;
+  const LogWizardSheet({super.key, this.initialText});
 
   @override
   ConsumerState<LogWizardSheet> createState() => _LogWizardSheetState();
 }
 
-class _LogWizardSheetState extends ConsumerState<LogWizardSheet> {
-  final PageController _pageController = PageController();
-  final TextEditingController _textController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
+class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTickerProviderStateMixin {
+  late PageController _pageController;
+  late TextEditingController _textController;
+  late TextEditingController _noteController;
   int _currentStep = 0;
   bool _showErrorGlow = false;
   bool _isSaving = false;
@@ -26,11 +27,19 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
+    _textController = TextEditingController(text: widget.initialText);
+    _noteController = TextEditingController();
+    
     // Initialize controllers with current state if any
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = ref.read(logWizardProvider);
-      _textController.text = state.text;
-      _noteController.text = state.note ?? '';
+      if (widget.initialText != null) {
+        ref.read(logWizardProvider.notifier).updateText(widget.initialText!);
+      } else {
+        final state = ref.read(logWizardProvider);
+        _textController.text = state.text;
+        _noteController.text = state.note ?? '';
+      }
       _startIdleTimer();
     });
   }
