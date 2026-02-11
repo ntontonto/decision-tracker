@@ -167,6 +167,22 @@ class _LogWizardPageState extends ConsumerState<LogWizardPage> {
                   children: [
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
+                      onTapUp: (details) {
+                        _startIdleTimer();
+                        final x = details.localPosition.dx;
+                        final width = MediaQuery.of(context).size.width;
+                        if (x < width * 0.15) {
+                          // Tap Left -> Back
+                          _prevStep();
+                        } else if (x > width * 0.85) {
+                          // Tap Right -> Next
+                          if (_isStepValid(_currentStep, state)) {
+                            _nextStep();
+                          } else {
+                            _triggerErrorGlow();
+                          }
+                        }
+                      },
                       onHorizontalDragEnd: (details) {
                         _startIdleTimer();
                         final velocity = details.primaryVelocity ?? 0;
