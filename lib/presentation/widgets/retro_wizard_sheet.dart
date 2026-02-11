@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/retro_providers.dart';
+import '../../domain/providers/app_providers.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
 import 'log_wizard_sheet.dart';
@@ -104,8 +105,16 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     if (mounted) {
       Navigator.pop(context); // Close Retro Wizard
       
-      if (state.registerNextAction) {
+      if (state.regretLevel == RegretLevel.none) {
+        // Show the unique success message for no-regret flow
+        ref.read(successNotificationProvider.notifier).show(
+          message: 'いいね！その調子！',
+        );
+      } else if (state.registerNextAction) {
         // Bridge to Log Wizard
+        ref.read(successNotificationProvider.notifier).show(
+          message: '記録しました',
+        );
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -113,6 +122,10 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
           builder: (context) => const LogWizardSheet(
             initialHint: '次はどんな行動を意識する？',
           ),
+        );
+      } else {
+        ref.read(successNotificationProvider.notifier).show(
+          message: '記録しました',
         );
       }
     }
@@ -154,6 +167,10 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     // Only show the action buttons on the final step.
     // Navigation on previous steps is handled by gestures & taps.
     if (state.currentStep < 3) return const SizedBox.shrink();
+
+    // Hide buttons for No-Regret route at the final step as reproduction strategy 
+    // selection triggers auto-complete.
+    if (state.regretLevel == RegretLevel.none) return const SizedBox.shrink();
 
     final isEnabled = _isNextEnabled(state);
 
@@ -323,9 +340,12 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
         subtitle: 'うまくいった要因を言語化できると、次も再現しやすくなる。',
         items: strategies,
         selected: state.reproductionStrategy,
-        onSelect: (val) {
+        onSelect: (val) async {
           ref.read(retroWizardProvider.notifier).setReproductionStrategy(val);
           _onInteraction();
+          if (val != null) {
+            await _complete();
+          }
         },
         labelBuilder: (v) => v,
         scrollController: ScrollController(),
