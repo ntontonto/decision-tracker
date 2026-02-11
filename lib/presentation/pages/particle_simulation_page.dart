@@ -445,7 +445,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         child: Container(
           width: 250,
           padding: const EdgeInsets.all(16),
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

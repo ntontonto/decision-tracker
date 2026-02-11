@@ -1,88 +1,94 @@
 enum DriverType {
-  intrinsic,
-  extrinsic,
-  avoidance,
-  maintenance,
-  exploration;
+  pleasure,
+  curiosity,
+  expression,
+  investment,
+  habit,
+  requested,
+  reputation,
+  guilt;
 
   String get label {
     switch (this) {
-      case DriverType.intrinsic: return '内発';
-      case DriverType.extrinsic: return '外発';
-      case DriverType.avoidance: return '回避';
-      case DriverType.maintenance: return '維持';
-      case DriverType.exploration: return '探索';
+      case DriverType.pleasure: return '快楽';
+      case DriverType.curiosity: return '好奇心';
+      case DriverType.expression: return '自分らしさ表現';
+      case DriverType.investment: return '自己投資';
+      case DriverType.habit: return 'いつもの流れで';
+      case DriverType.requested: return '周囲に命令やお願いされたから';
+      case DriverType.reputation: return '周囲の評価を気にして';
+      case DriverType.guilt: return '罪悪感を減らすため';
     }
   }
 }
 
 enum GainType {
-  growth,
-  progress,
+  skills,
   money,
+  time,
+  relationships,
   reputation,
-  peaceOfMind,
   fun,
   rest,
-  relationship;
+  peace,
+  mentalMargine;
 
   String get label {
     switch (this) {
-      case GainType.growth: return '成長';
-      case GainType.progress: return '進捗';
+      case GainType.skills: return '知識・スキル';
       case GainType.money: return 'お金';
-      case GainType.reputation: return '評判';
-      case GainType.peaceOfMind: return '安心';
+      case GainType.time: return '時間';
+      case GainType.relationships: return '人間関係';
+      case GainType.reputation: return '評判・信用';
       case GainType.fun: return '楽しさ';
       case GainType.rest: return '休息';
-      case GainType.relationship: return '関係性';
+      case GainType.peace: return '安心';
+      case GainType.mentalMargine: return '精神的余裕';
     }
   }
 }
 
 enum LoseType {
   time,
-  focus,
-  energy,
-  freedom,
-  certainty,
   money,
-  reputation,
-  relationship;
+  freedom,
+  energy,
+  health,
+  relationships,
+  mentalMargine;
 
   String get label {
     switch (this) {
       case LoseType.time: return '時間';
-      case LoseType.focus: return '集中';
-      case LoseType.energy: return '体力';
-      case LoseType.freedom: return '自由';
-      case LoseType.certainty: return '確実性';
       case LoseType.money: return 'お金';
-      case LoseType.reputation: return '評判';
-      case LoseType.relationship: return '関係性';
+      case LoseType.freedom: return '自由';
+      case LoseType.energy: return '体力';
+      case LoseType.health: return '健康';
+      case LoseType.relationships: return '人間関係';
+      case LoseType.mentalMargine: return '精神的余裕';
     }
   }
 }
 
 enum RetroOffsetType {
-  today,
+  now,
+  tonight,
   tomorrow,
   plus3days,
   plus1week,
   plus2weeks,
   plus1month,
-  custom, // Pro
   plus3monthsPlus; // Pro
 
   String get label {
     switch (this) {
-      case RetroOffsetType.today: return '今日';
+      case RetroOffsetType.now: return '今';
+      case RetroOffsetType.tonight: return '今日の夜';
       case RetroOffsetType.tomorrow: return '明日';
       case RetroOffsetType.plus3days: return '3日後';
       case RetroOffsetType.plus1week: return '1週間後';
       case RetroOffsetType.plus2weeks: return '2週間後';
       case RetroOffsetType.plus1month: return '1ヶ月後';
-      case RetroOffsetType.custom: return 'カスタム日付';
       case RetroOffsetType.plus3monthsPlus: return '3ヶ月以上';
     }
   }
