@@ -126,7 +126,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   double _targetActivity = SimConfig.targetActivity;
   double _heartbeatInterval = SimConfig.heartbeatInterval;
   double _heartbeatStrength = SimConfig.heartbeatStrength;
-  bool _showDebugUI = false;
+  final bool _showDebugUI = false;
 
   @override
   void initState() {

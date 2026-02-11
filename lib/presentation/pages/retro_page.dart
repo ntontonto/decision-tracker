@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../data/local/database.dart';
 import '../../domain/models/enums.dart';
+import '../theme/app_design.dart';
 
 class RetroPage extends ConsumerWidget {
   const RetroPage({super.key});
@@ -127,45 +129,96 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Text(widget.decision.textContent, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow('動機', widget.decision.driver.label),
-                if (widget.decision.gain != null) _buildInfoRow('得たもの', widget.decision.gain!.label),
-                if (widget.decision.lose != null) _buildInfoRow('失ったもの', widget.decision.lose!.label),
-                if (widget.decision.note != null && widget.decision.note!.isNotEmpty)
-                  _buildInfoRow('メモ', widget.decision.note!),
-              ],
-            ),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: AppDesign.glassBlur, sigmaY: AppDesign.glassBlur),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          decoration: BoxDecoration(
+            color: AppDesign.glassBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: AppDesign.glassBorderColor, width: AppDesign.glassBorderWidth),
           ),
-          const Divider(height: 32),
-          Expanded(child: SingleChildScrollView(child: _buildStepContent())),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('あとで')),
-              ElevatedButton(
-                onPressed: _isNextEnabled() ? _next : null,
-                child: Text(_step == (_wouldRepeat == false ? 3 : 2) ? '完了' : '次へ'),
+              // Decision Text Content
+              Text(
+                widget.decision.textContent,
+                style: const TextStyle(
+                  color: AppDesign.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Context Info Area (Frosted Glass Style)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppDesign.glassBorderColor.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('動機', widget.decision.driver.label),
+                    if (widget.decision.gain != null) _buildInfoRow('得たもの', widget.decision.gain!.label),
+                    if (widget.decision.lose != null) _buildInfoRow('失ったもの', widget.decision.lose!.label),
+                    if (widget.decision.note != null && widget.decision.note!.isNotEmpty)
+                      _buildInfoRow('メモ', widget.decision.note!),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 16),
+              
+              // Wizard Steps
+              Expanded(
+                child: SingleChildScrollView(
+                  child: DefaultTextStyle(
+                    style: const TextStyle(color: AppDesign.textPrimary, fontSize: 18),
+                    child: _buildStepContent(),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Bottom Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'あとで',
+                      style: TextStyle(color: AppDesign.textMuted, fontSize: 16),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _isNextEnabled() ? _next : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: Text(
+                      _step == (_wouldRepeat == false ? 3 : 2) ? '完了' : '次へ',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -201,7 +254,6 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
     if (mounted) {
       Navigator.pop(context);
       if (_adjustment != null && _adjustment != AdjustmentType.hold) {
-        //导线 to create new decision logic here
         _showNewDecisionGuide();
       }
     }
@@ -229,48 +281,40 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
         );
       case 1:
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('R2: 納得度は？ (0-10)'),
-            const SizedBox(height: 16),
+            const Text('R2: 納得度は？ (0-10)', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             Slider(
               value: _conviction,
               min: 0,
               max: 10,
               divisions: 10,
               label: _conviction.toInt().toString(),
+              activeColor: Colors.white,
+              inactiveColor: Colors.white24,
               onChanged: (v) => setState(() => _conviction = v),
             ),
           ],
         );
       case 2:
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('R3: 今の自分なら同じ判断をする？'),
-            const SizedBox(height: 16),
+            const Text('R3: 今の自分なら同じ判断をする？', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                ChoiceChip(
-                  label: const Text('Yes'),
-                  selected: _wouldRepeat == true,
-                  onSelected: (s) {
-                    if (s) {
-                      setState(() => _wouldRepeat = true);
-                      _next();
-                    }
-                  },
-                ),
+                _buildChoiceChip('Yes', _wouldRepeat == true, () {
+                  setState(() => _wouldRepeat = true);
+                  _next();
+                }),
                 const SizedBox(width: 16),
-                ChoiceChip(
-                  label: const Text('No'),
-                  selected: _wouldRepeat == false,
-                  onSelected: (s) {
-                    if (s) {
-                      setState(() => _wouldRepeat = false);
-                      _next();
-                    }
-                  },
-                ),
+                _buildChoiceChip('No', _wouldRepeat == false, () {
+                  setState(() => _wouldRepeat = false);
+                  _next();
+                }),
               ],
             ),
           ],
@@ -289,19 +333,19 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
 
   Widget _buildSelectionStep<T extends Enum>(String title, List<T> items, T? selected, Function(T) onSelect) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title),
-        const SizedBox(height: 16),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 24),
         Wrap(
           spacing: 12,
-          children: items.map((item) => ChoiceChip(
-            label: Text((item as dynamic).label),
-            selected: selected == item,
-            onSelected: (s) {
-              if (s) {
-                onSelect(item);
-                _next();
-              }
+          runSpacing: 12,
+          children: items.map((item) => _buildChoiceChip(
+            (item as dynamic).label,
+            selected == item,
+            () {
+              onSelect(item);
+              // Small delay for visual feedback before auto-advance
             },
           )).toList(),
         ),
@@ -309,18 +353,32 @@ class _ReviewWizardSheetState extends ConsumerState<ReviewWizardSheet> {
     );
   }
 
+  Widget _buildChoiceChip(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: AppDesign.actionButtonDecoration(selected: isSelected),
+        child: Text(
+          label,
+          style: AppDesign.actionButtonTextStyle(selected: isSelected),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 70,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+            width: 80,
+            child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.white38, fontWeight: FontWeight.bold)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 12)),
+            child: Text(value, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.normal)),
           ),
         ],
       ),

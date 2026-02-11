@@ -1,14 +1,45 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
+import '../theme/app_design.dart';
 import '../pages/log_wizard_page.dart';
 import '../pages/retro_page.dart';
 
-class HomeOverlayUI extends ConsumerWidget {
+class HomeOverlayUI extends ConsumerStatefulWidget {
   const HomeOverlayUI({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeOverlayUI> createState() => _HomeOverlayUIState();
+}
+
+class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
+  Timer? _timer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startRotation();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startRotation() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _currentIndex++;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final pendingAsync = ref.watch(pendingDecisionsProvider);
 
     return SafeArea(
@@ -17,60 +48,56 @@ class HomeOverlayUI extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: pendingAsync.when(
-                    data: (decisions) {
-                      if (decisions.isEmpty) {
-                        return _buildEmptyProposal(context);
-                      }
-                      final decision = decisions.first;
-                      final dateStr = '${decision.retroAt.month}/${decision.retroAt.day}';
-                      return InkWell(
+            pendingAsync.when(
+              data: (decisions) {
+                if (decisions.isEmpty) {
+                  return _buildFABOnly();
+                }
+
+                // Ensure index is within bounds
+                final index = _currentIndex % decisions.length;
+                final decision = decisions[index];
+                final dateStr = '${decision.retroAt.month}/${decision.retroAt.day}';
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
                         onTap: () => _startReviewFlow(context, decision),
+                        borderRadius: BorderRadius.circular(40),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          decoration: AppDesign.glassDecoration(
+                            borderRadius: 40,
+                            showBorder: false, // User requested removing outer borders
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 '$dateStr を振り返りませんか？',
-                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                style: AppDesign.subtitleStyle,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 decision.textContent,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: AppDesign.bodyStyle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (e, s) => const SizedBox.shrink(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                FloatingActionButton(
-                  onPressed: () => _showLogWizard(context),
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  child: const Icon(Icons.add, size: 32),
-                ),
-              ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildAddButton(),
+                  ],
+                );
+              },
+              loading: () => _buildFABOnly(),
+              error: (e, s) => _buildFABOnly(),
             ),
           ],
         ),
@@ -78,17 +105,25 @@ class HomeOverlayUI extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyProposal(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: const Text(
-        '振り返る項目はありません。',
-        style: TextStyle(color: Colors.white38, fontSize: 14),
+  Widget _buildFABOnly() {
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: _buildAddButton(),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: FloatingActionButton(
+        onPressed: () => _showLogWizard(context),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        // Ensure perfect circle
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, size: 32),
       ),
     );
   }
