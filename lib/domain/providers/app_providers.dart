@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/decision_repository.dart';
@@ -23,6 +26,7 @@ class LogWizardState {
   final String? note;
   final RetroOffsetType? retroOffset;
   final Decision? previousDecision;
+  final String? editingId;
 
   LogWizardState({
     this.text = '',
@@ -32,6 +36,7 @@ class LogWizardState {
     this.note,
     this.retroOffset,
     this.previousDecision,
+    this.editingId,
   });
 
   LogWizardState copyWith({
@@ -42,6 +47,7 @@ class LogWizardState {
     String? Function()? note,
     RetroOffsetType? Function()? retroOffset,
     Decision? Function()? previousDecision,
+    String? Function()? editingId,
   }) {
     return LogWizardState(
       text: text ?? this.text,
@@ -51,6 +57,7 @@ class LogWizardState {
       note: note != null ? note() : this.note,
       retroOffset: retroOffset != null ? retroOffset() : this.retroOffset,
       previousDecision: previousDecision != null ? previousDecision() : this.previousDecision,
+      editingId: editingId != null ? editingId() : this.editingId,
     );
   }
 }
@@ -83,26 +90,46 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
   void updateNote(String? note) => state = state.copyWith(note: () => note);
   void updateRetroOffset(RetroOffsetType? offset) => state = state.copyWith(retroOffset: () => offset);
 
-  Future<void> save() async {
-    if (state.text.isEmpty || state.driver == null || state.retroOffset == null) return;
+  Future<String?> save() async {
+    if (state.text.isEmpty || state.driver == null || state.retroOffset == null) return null;
 
     final retroAt = _calculateRetroAt(state.retroOffset!);
-    
-    await repository.createDecision(
-      text: state.text,
-      driver: state.driver!,
-      gain: state.gain,
-      lose: state.lose,
-      note: state.note,
-      retroOffset: state.retroOffset!,
-      retroAt: retroAt,
-    );
+    String? id;
+
+    if (state.editingId != null) {
+      await repository.updateDecision(
+        id: state.editingId!,
+        text: state.text,
+        driver: state.driver!,
+        gain: state.gain,
+        lose: state.lose,
+        note: state.note,
+        retroOffset: state.retroOffset!,
+        retroAt: retroAt,
+      );
+      id = state.editingId;
+    } else {
+      id = await repository.createDecision(
+        text: state.text,
+        driver: state.driver!,
+        gain: state.gain,
+        lose: state.lose,
+        note: state.note,
+        retroOffset: state.retroOffset!,
+        retroAt: retroAt,
+      );
+    }
     
     // Invalidate providers to refresh other screens
     ref.invalidate(allDecisionsProvider);
     ref.invalidate(pendingDecisionsProvider);
     
     reset();
+    return id;
+  }
+
+  void restore(LogWizardState status) {
+    state = status;
   }
 
   void reset() {
@@ -157,4 +184,42 @@ final allDecisionsProvider = FutureProvider<List<Decision>>((ref) {
 
 final reviewForLogProvider = FutureProvider.family<Review?, String>((ref, id) {
   return ref.watch(repositoryProvider).getReviewForLog(id);
+});
+
+// --- Success Notification ---
+
+class SuccessNotificationState {
+  final bool isVisible;
+  final String message;
+  final void Function(BuildContext)? onFix;
+
+  SuccessNotificationState({
+    this.isVisible = false,
+    this.message = '',
+    this.onFix,
+  });
+}
+
+class SuccessNotificationNotifier extends StateNotifier<SuccessNotificationState> {
+  Timer? _timer;
+
+  SuccessNotificationNotifier() : super(SuccessNotificationState());
+
+  void show({required String message, void Function(BuildContext)? onFix}) {
+    _timer?.cancel();
+    state = SuccessNotificationState(isVisible: true, message: message, onFix: onFix);
+    
+    _timer = Timer(const Duration(seconds: 5), () {
+      hide();
+    });
+  }
+
+  void hide() {
+    _timer?.cancel();
+    state = SuccessNotificationState(isVisible: false);
+  }
+}
+
+final successNotificationProvider = StateNotifierProvider<SuccessNotificationNotifier, SuccessNotificationState>((ref) {
+  return SuccessNotificationNotifier();
 });

@@ -69,6 +69,30 @@ class DecisionRepository {
     return id;
   }
 
+  Future<void> updateDecision({
+    required String id,
+    required String text,
+    required DriverType driver,
+    GainType? gain,
+    LoseType? lose,
+    String? note,
+    required RetroOffsetType retroOffset,
+    required DateTime retroAt,
+  }) async {
+    await (db.update(db.decisions)..where((t) => t.id.equals(id))).write(
+      DecisionsCompanion(
+        textContent: Value(text),
+        driver: Value(driver),
+        gain: Value(gain),
+        lose: Value(lose),
+        note: Value(note),
+        retroOffsetType: Value(retroOffset),
+        retroAt: Value(retroAt),
+        lastUsedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> updateLastUsed(String id) async {
     await (db.update(db.decisions)..where((t) => t.id.equals(id))).write(
       DecisionsCompanion(lastUsedAt: Value(DateTime.now())),

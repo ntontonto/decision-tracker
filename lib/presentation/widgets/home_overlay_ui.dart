@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
 import '../theme/app_design.dart';
-import '../pages/log_wizard_page.dart';
+import 'log_wizard_sheet.dart';
 import '../pages/retro_page.dart';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
@@ -129,11 +129,11 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
   }
 
   void _showLogWizard(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const LogWizardPage(),
-        fullscreenDialog: true,
-      ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const LogWizardSheet(),
     );
   }
 

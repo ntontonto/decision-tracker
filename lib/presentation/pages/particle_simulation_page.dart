@@ -371,6 +371,7 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // ... (existing code omitted for brevity in thought, but tool needs exact match)
         if (_screenSize == Size.zero) {
           _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
           _targetPos = Offset(_screenSize.width / 2, _screenSize.height / 2);
