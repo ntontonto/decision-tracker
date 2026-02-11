@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'retro_page.dart';
-import 'log_wizard_page.dart';
-import 'decision_list_page.dart';
 import 'particle_simulation_page.dart';
+import '../widgets/home_overlay_ui.dart';
+import '../widgets/app_sidebar.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -12,63 +11,32 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _currentIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _buildBody(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          if (index == 1) {
-            _showLogWizard(context);
-          } else {
-            setState(() {
-              _currentIndex = index;
-            });
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.today),
-            label: 'Today',
+      key: _scaffoldKey,
+      backgroundColor: Colors.black,
+      drawer: const AppSidebar(),
+      body: Stack(
+        children: [
+          // Background: Particle Simulation
+          const ParticleSimulationPage(),
+          
+          // Floating Hamburger Menu Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 16,
+            child: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white, size: 32),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Add',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.list),
-            label: 'List',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bubble_chart),
-            label: 'Sim',
-          ),
+          
+          // Overlay UI: Proposal Card + FAB
+          const HomeOverlayUI(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return const RetroPage();
-      case 2:
-        return const DecisionListPage();
-      case 3:
-        return const ParticleSimulationPage();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  void _showLogWizard(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const LogWizardPage(),
-        fullscreenDialog: true,
       ),
     );
   }
