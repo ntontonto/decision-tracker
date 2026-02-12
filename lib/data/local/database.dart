@@ -45,12 +45,27 @@ class Reviews extends Table {
   Set<Column> get primaryKey => {logId};
 }
 
-@DriftDatabase(tables: [Decisions, Reviews])
+class Declarations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get logId => text().references(Decisions, #id)();
+  
+  // Snapshots for display (to preserve context if log is deleted/changed)
+  TextColumn get originalText => text()();
+  TextColumn get reasonLabel => text()();
+  TextColumn get solutionText => text()();
+  
+  // Declaration content
+  TextColumn get declarationText => text()();
+  DateTimeColumn get reviewAt => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+@DriftDatabase(tables: [Decisions, Reviews, Declarations])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -64,6 +79,10 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(reviews, reviews.successFactor);
           await m.addColumn(reviews, reviews.reproductionStrategy);
           await m.addColumn(reviews, reviews.memo);
+        }
+        if (from < 3) {
+          // Create Declarations table
+          await m.createTable(declarations);
         }
       },
     );

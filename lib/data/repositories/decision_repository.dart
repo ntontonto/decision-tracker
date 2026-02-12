@@ -151,4 +151,27 @@ class DecisionRepository {
       DecisionsCompanion(retroAt: Value(snoozeTo)),
     );
   }
+
+  // --- Declarations ---
+
+  Future<void> createDeclaration({
+    required String logId,
+    required String originalText,
+    required String reasonLabel,
+    required String solutionText,
+    required String declarationText,
+    required DateTime reviewAt,
+  }) async {
+    await db.into(db.declarations).insert(
+          DeclarationsCompanion.insert(
+            logId: logId,
+            originalText: originalText,
+            reasonLabel: reasonLabel,
+            solutionText: solutionText,
+            declarationText: declarationText,
+            reviewAt: reviewAt,
+            createdAt: DateTime.now(),
+          ),
+        );
+  }
 }
