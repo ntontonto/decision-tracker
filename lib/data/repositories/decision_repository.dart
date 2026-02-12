@@ -174,4 +174,12 @@ class DecisionRepository {
           ),
         );
   }
+
+  Stream<List<Declaration>> watchDeclarations() {
+    return (db.select(db.declarations)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.reviewAt, mode: OrderingMode.asc)
+          ]))
+        .watch();
+  }
 }

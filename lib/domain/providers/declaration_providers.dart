@@ -99,3 +99,7 @@ class DeclarationWizardNotifier extends StateNotifier<DeclarationWizardState> {
 final declarationWizardProvider = StateNotifierProvider<DeclarationWizardNotifier, DeclarationWizardState>((ref) {
   return DeclarationWizardNotifier(ref);
 });
+
+final actionGoalsProvider = StreamProvider<List<Declaration>>((ref) {
+  return ref.watch(repositoryProvider).watchDeclarations();
+});
