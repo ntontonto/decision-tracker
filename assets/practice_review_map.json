@@ -1,0 +1,68 @@
+{
+    "blockers": [
+        {
+            "key": "forgot",
+            "label": "忘れてた",
+            "solutions": [
+                {
+                    "key": "schedule_notify",
+                    "label": "予定と通知を先に入れる"
+                },
+                {
+                    "key": "habit_link",
+                    "label": "歯磨き後など、習慣に結びつける"
+                }
+            ]
+        },
+        {
+            "key": "no_bandwidth",
+            "label": "余裕がなかった",
+            "solutions": [
+                {
+                    "key": "shrink_goal",
+                    "label": "目標を小さくする（難易度、量など）"
+                },
+                {
+                    "key": "change_timing",
+                    "label": "余裕のある時間帯に変える"
+                },
+                {
+                    "key": "prioritize_other",
+                    "label": "他のことを優先"
+                }
+            ]
+        },
+        {
+            "key": "prioritized_other",
+            "label": "別のことを優先した",
+            "solutions": [
+                {
+                    "key": "review_priority",
+                    "label": "優先度を見直す"
+                },
+                {
+                    "key": "cap_competitor",
+                    "label": "競合に上限をつける（SNS◯分まで等）"
+                }
+            ]
+        },
+        {
+            "key": "goal_not_good",
+            "label": "目標がいまいちだった",
+            "solutions": [
+                {
+                    "key": "shrink_goal_simple",
+                    "label": "目標を小さくする"
+                },
+                {
+                    "key": "change_method",
+                    "label": "手段を変える"
+                },
+                {
+                    "key": "decide_not_do",
+                    "label": "やらないと決める"
+                }
+            ]
+        }
+    ]
+}

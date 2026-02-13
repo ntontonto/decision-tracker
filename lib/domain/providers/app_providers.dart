@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/decision_repository.dart';
 import '../../domain/models/enums.dart';
+import '../../domain/models/review_proposal.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -175,6 +176,39 @@ final searchSuggestionsProvider = FutureProvider.family<List<Decision>, String>(
 
 final pendingDecisionsProvider = FutureProvider<List<Decision>>((ref) {
   return ref.watch(repositoryProvider).getPendingDecisions();
+});
+
+final pendingDeclarationsProvider = FutureProvider<List<Declaration>>((ref) {
+  return ref.watch(repositoryProvider).getPendingDeclarations();
+});
+
+final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) async {
+  final decisions = await ref.watch(pendingDecisionsProvider.future);
+  final declarations = await ref.watch(pendingDeclarationsProvider.future);
+  
+  final List<ReviewProposal> proposals = [
+    ...decisions.map((d) => ReviewProposal(
+      id: d.id,
+      title: '${d.retroAt.month}/${d.retroAt.day} を振り返りませんか？',
+      description: d.textContent,
+      targetDate: d.retroAt,
+      type: ProposalType.decisionRetro,
+      originalData: d,
+    )),
+    ...declarations.map((d) => ReviewProposal(
+      id: d.id.toString(),
+      title: '実践を確認しますか？',
+      description: d.declarationText,
+      targetDate: d.reviewAt,
+      type: ProposalType.actionReview,
+      originalData: d,
+    )),
+  ];
+
+  // Sort by targetDate (oldest first to ensure they get reviewed)
+  proposals.sort((a, b) => a.targetDate.compareTo(b.targetDate));
+  
+  return proposals;
 });
 
 final allDecisionsProvider = FutureProvider<List<Decision>>((ref) {

@@ -151,4 +151,64 @@ class DecisionRepository {
       DecisionsCompanion(retroAt: Value(snoozeTo)),
     );
   }
+
+  // --- Declarations ---
+
+  Future<void> createDeclaration({
+    required String logId,
+    required String originalText,
+    required String reasonLabel,
+    required String solutionText,
+    required String declarationText,
+    required DateTime reviewAt,
+    String? parentId,
+  }) async {
+    await db.into(db.declarations).insert(
+          DeclarationsCompanion.insert(
+            logId: logId,
+            originalText: originalText,
+            reasonLabel: reasonLabel,
+            solutionText: solutionText,
+            declarationText: declarationText,
+            reviewAt: reviewAt,
+            createdAt: DateTime.now(),
+            parentId: Value(parentId),
+            status: const Value(DeclarationStatus.active),
+          ),
+        );
+  }
+
+  Future<List<Declaration>> getPendingDeclarations() {
+    final now = DateTime.now();
+    return (db.select(db.declarations)
+          ..where((t) => t.status.equals(DeclarationStatus.active.index))
+          ..where((t) => t.reviewAt.isSmallerOrEqualValue(now))
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.reviewAt, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
+  Future<void> completeDeclaration({
+    required int id,
+    required ActionReviewStatus reviewStatus,
+    DeclarationStatus nextStatus = DeclarationStatus.completed,
+  }) async {
+    await (db.update(db.declarations)..where((t) => t.id.equals(id))).write(
+      DeclarationsCompanion(
+        completedAt: Value(DateTime.now()),
+        status: Value(nextStatus),
+        lastReviewStatus: Value(reviewStatus),
+      ),
+    );
+  }
+
+  Stream<List<Declaration>> watchDeclarations() {
+    return (db.select(db.declarations)
+          ..where((t) => t.status.isNotValue(DeclarationStatus.superseded.index))
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.reviewAt, mode: OrderingMode.asc)
+          ]))
+        .watch();
+  }
 }

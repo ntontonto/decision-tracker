@@ -145,6 +145,9 @@ class WizardScaffoldState extends State<WizardScaffold> {
                               widget.onBack?.call();
                             } else if (x > width * 0.85) {
                               widget.onNext?.call();
+                            } else {
+                              // Tapping in the center (background) dismisses keyboard
+                              FocusScope.of(context).unfocus();
                             }
                           },
                           onHorizontalDragEnd: (details) {

@@ -142,3 +142,23 @@ enum RegretLevel {
     }
   }
 }
+
+enum DeclarationStatus {
+  active,
+  completed,
+  superseded;
+}
+
+enum ActionReviewStatus {
+  success,
+  failed,
+  dropped;
+
+  String get label {
+    switch (this) {
+      case ActionReviewStatus.success: return '実践できた';
+      case ActionReviewStatus.failed: return '実践できなかった';
+      case ActionReviewStatus.dropped: return '中断した';
+    }
+  }
+}

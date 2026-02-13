@@ -6,7 +6,8 @@ import '../../domain/providers/retro_providers.dart';
 import '../../domain/providers/app_providers.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
-import 'log_wizard_sheet.dart';
+import 'declaration_wizard_sheet.dart';
+import '../../domain/providers/declaration_providers.dart';
 
 class RetroWizardSheet extends ConsumerStatefulWidget {
   final dynamic decision; // Can be cast to Decision inside
@@ -111,17 +112,23 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
           message: 'いいね！その調子！',
         );
       } else if (state.registerNextAction) {
-        // Bridge to Log Wizard
+        // Bridge to Declaration Wizard
         ref.read(successNotificationProvider.notifier).show(
           message: '記録しました',
         );
+
+        // Initialize the declaration provider with current context
+        ref.read(declarationWizardProvider.notifier).init(
+          decision: state.decision!,
+          reasonLabel: state.selectedReason?.label ?? '',
+          solutionText: state.solution ?? '',
+        );
+
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => const LogWizardSheet(
-            initialHint: '次はどんな行動を意識する？',
-          ),
+          builder: (context) => const DeclarationWizardSheet(),
         );
       } else {
         ref.read(successNotificationProvider.notifier).show(
