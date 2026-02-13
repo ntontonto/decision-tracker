@@ -10,6 +10,7 @@ class DeclarationWizardState {
   final Decision? decision;
   final String? reasonLabel;
   final String? solutionText;
+  final int? parentId;
   
   final int currentStep;
   final String declarationText;
@@ -20,6 +21,7 @@ class DeclarationWizardState {
     this.decision,
     this.reasonLabel,
     this.solutionText,
+    this.parentId,
     this.currentStep = 0,
     this.declarationText = '',
     this.selectedIntervalKey,
@@ -30,6 +32,7 @@ class DeclarationWizardState {
     Decision? decision,
     String? reasonLabel,
     String? solutionText,
+    int? parentId,
     int? currentStep,
     String? declarationText,
     String? selectedIntervalKey,
@@ -39,6 +42,7 @@ class DeclarationWizardState {
       decision: decision ?? this.decision,
       reasonLabel: reasonLabel ?? this.reasonLabel,
       solutionText: solutionText ?? this.solutionText,
+      parentId: parentId ?? this.parentId,
       currentStep: currentStep ?? this.currentStep,
       declarationText: declarationText ?? this.declarationText,
       selectedIntervalKey: selectedIntervalKey ?? this.selectedIntervalKey,
@@ -114,11 +118,13 @@ class DeclarationWizardNotifier extends StateNotifier<DeclarationWizardState> {
     required Decision decision,
     required String reasonLabel,
     required String solutionText,
+    int? parentId,
   }) {
     state = DeclarationWizardState(
       decision: decision,
       reasonLabel: reasonLabel,
       solutionText: solutionText,
+      parentId: parentId,
     );
   }
 
@@ -148,6 +154,7 @@ class DeclarationWizardNotifier extends StateNotifier<DeclarationWizardState> {
       solutionText: state.solutionText ?? '',
       declarationText: state.declarationText,
       reviewAt: state.reviewAt!,
+      parentId: state.parentId,
     );
     
     // Invalidate to refresh the home screen proposals
@@ -229,7 +236,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
         solutionText: declaration.solutionText,
         declarationText: state.nextDeclarationText,
         reviewAt: state.nextReviewAt!,
-        parentId: declaration.id.toString(),
+        parentId: declaration.id,
       );
     } else {
       // Normal completion

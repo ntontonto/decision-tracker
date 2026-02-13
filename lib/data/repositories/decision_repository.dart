@@ -161,7 +161,7 @@ class DecisionRepository {
     required String solutionText,
     required String declarationText,
     required DateTime reviewAt,
-    String? parentId,
+    int? parentId,
   }) async {
     await db.into(db.declarations).insert(
           DeclarationsCompanion.insert(
@@ -208,6 +208,14 @@ class DecisionRepository {
           ..where((t) => t.status.isNotValue(DeclarationStatus.superseded.index))
           ..orderBy([
             (t) => OrderingTerm(expression: t.reviewAt, mode: OrderingMode.asc)
+          ]))
+        .watch();
+  }
+
+  Stream<List<Decision>> watchDecisions() {
+    return (db.select(db.decisions)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
           ]))
         .watch();
   }
