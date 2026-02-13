@@ -19,27 +19,54 @@ class ConstellationPage extends ConsumerStatefulWidget {
 class _ConstellationPageState extends ConsumerState<ConstellationPage> with TickerProviderStateMixin {
   late Ticker _ticker;
   final TransformationController _transformationController = TransformationController();
+
+  // Animation State
+  late AnimationController _revelationController;
+  int _revealedCount = 0;
+  bool _showGalaxy = false;
+  
+  // Navigation State
+  String? _selectedNodeId;
+  String? _focusedChainId;
+  List<ConstellationNode> _focusedChainNodes = [];
+  late PageController _pageController;
+  bool _isAnimatingCamera = false;
   
   // Simulation State
   List<ConstellationNode> _nodes = [];
   List<ConstellationEdge> _edges = [];
-  String? _selectedNodeId;
-  String? _draggedNodeId;
   Size _worldSize = const Size(2000, 2000);
   bool _initialized = false;
-  bool _showGalaxy = false;
+
+  Offset _lastPointerDownPos = Offset.zero;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
     _ticker.start();
+
+    _pageController = PageController();
+    _revelationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
+
+    _revelationController.addListener(() {
+      if (_nodes.isEmpty) return;
+      final count = (Curves.easeIn.transform(_revelationController.value) * _nodes.length).floor();
+      if (count != _revealedCount) {
+        setState(() => _revealedCount = count);
+      }
+    });
   }
 
   @override
   void dispose() {
     _ticker.dispose();
     _transformationController.dispose();
+    _pageController.dispose();
+    _revelationController.dispose();
     super.dispose();
   }
 
@@ -98,11 +125,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     // 3. Update Positions & Boundaries
     for (int i = 0; i < _nodes.length; i++) {
-      if (_nodes[i].id == _draggedNodeId) {
-        // Dragged node doesn't follow normal physics
-        continue;
-      }
-
       var vel = _nodes[i].velocity * friction;
       var pos = _nodes[i].position + vel;
 
@@ -132,7 +154,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     _transformationController.value = Matrix4.identity()
       ..setTranslationRaw(xTranslation, yTranslation, 0)
-      ..scale(0.4);
+      ..scale(0.4, 0.4, 1.0);
 
     _initialized = true;
   }
@@ -146,18 +168,25 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       body: graphAsync.when(
         data: (graph) {
           if (_nodes.isEmpty && graph.nodes.isNotEmpty) {
-            _nodes = List.from(graph.nodes);
+            // Sort nodes by date for sequential revelation
+            final sortedNodes = List<ConstellationNode>.from(graph.nodes)
+              ..sort((a, b) => a.date.compareTo(b.date));
+            
+            _nodes = sortedNodes;
             _edges = List.from(graph.edges);
             _worldSize = graph.totalSize;
 
-            // Warm-up simulation to avoid initial "explosion" or jitter
+            // Warm-up simulation
             for (int i = 0; i < 60; i++) {
               _applyPhysics();
             }
 
-            // Trigger fade in
+            // Trigger sequence
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _showGalaxy = true);
+              if (mounted) {
+                setState(() => _showGalaxy = true);
+                _revelationController.forward(from: 0.0);
+              }
             });
           }
           
@@ -167,8 +196,25 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             children: [
               _buildSpaceBackground(),
               _buildInteractionLayer(),
+              // Passive Interaction Layer: Handle taps without blocking IV scrolls
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (event) => _lastPointerDownPos = event.position,
+                  onPointerUp: (event) {
+                    final distance = (event.position - _lastPointerDownPos).distance;
+                    if (distance < 10) { // Genuine tap, not a scroll
+                      final viewportPos = event.localPosition;
+                      final scenePos = _transformationController.toScene(viewportPos);
+                      _handleTapAt(scenePos, viewportPos);
+                    }
+                  },
+                ),
+              ),
               _buildHeader(),
-              _buildOverlayInstructions(),
+              _buildDetailOverlay(),
+              if (!_showGalaxy || _revelationController.isAnimating) 
+                _buildOverlayInstructions(),
             ],
           );
         },
@@ -197,107 +243,115 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       opacity: _showGalaxy ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 1000),
       curve: Curves.easeIn,
-      child: Listener(
-        onPointerDown: (event) {
-          // Detect node hit early to disable IV panning.
-          // CRITICAL: Listener localPosition is in VIEWPORT space, 
-          // must convert to SCENE space using transformationController.
-          final scenePos = _transformationController.toScene(event.localPosition);
-          final hitNode = _findNodeAt(scenePos);
-          if (hitNode != null) {
-            setState(() {
-              _draggedNodeId = hitNode.id;
-            });
-          }
-        },
-        child: InteractiveViewer(
-          transformationController: _transformationController,
-          boundaryMargin: const EdgeInsets.all(2000),
-          minScale: 0.1,
-          maxScale: 2.5,
-          // Disable panning while dragging a node
-          panEnabled: _draggedNodeId == null,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: (details) => _handlePanStart(details),
-            onPanUpdate: (details) => _handlePanUpdate(details),
-            onPanEnd: (details) => _handlePanEnd(details),
-            onTapDown: (details) => _handleTap(details),
-            child: CustomPaint(
-              size: _worldSize,
-              painter: ConstellationPhysicsPainter(
-                nodes: _nodes,
-                edges: _edges,
-                selectedId: _selectedNodeId,
-                draggedId: _draggedNodeId,
-              ),
-            ),
+      child: InteractiveViewer(
+        transformationController: _transformationController,
+        boundaryMargin: const EdgeInsets.all(2000),
+        minScale: 0.1,
+        maxScale: 2.5,
+        child: CustomPaint(
+          size: _worldSize,
+          painter: ConstellationPhysicsPainter(
+            nodes: _nodes,
+            edges: _edges,
+            selectedId: _selectedNodeId,
+            revealedCount: _revealedCount,
           ),
         ),
       ),
     );
   }
 
-  void _handleTap(TapDownDetails details) {
-    // details.localPosition is already in scene coordinate because GestureDetector 
-    // is a child of InteractiveViewer (the CustomPaint is its size)
-    final worldPos = details.localPosition;
-    final hitNode = _findNodeAt(worldPos);
+  void _handleTapAt(Offset scenePos, Offset viewportPos) {
+    if (_revelationController.isAnimating) return;
+
+    final hitNode = _findNodeAt(scenePos);
+    
     if (hitNode != null) {
-      setState(() => _selectedNodeId = hitNode.id);
-      _showDetail(hitNode);
+      _focusNode(hitNode);
     } else {
-      setState(() => _selectedNodeId = null);
+      // Tap on background - clear focus if not already clear
+      if (_selectedNodeId != null) {
+        _clearFocus();
+      }
     }
   }
 
-  void _handlePanStart(DragStartDetails details) {
-    final worldPos = details.localPosition;
-    final hitNode = _findNodeAt(worldPos);
-    if (hitNode != null) {
-      setState(() {
-        _draggedNodeId = hitNode.id;
-      });
+  void _focusNode(ConstellationNode node) {
+    setState(() {
+      _selectedNodeId = node.id;
+      if (_focusedChainId != node.chainId) {
+        _focusedChainId = node.chainId;
+        _focusedChainNodes = _nodes
+            .where((n) => n.chainId == node.chainId)
+            .toList()
+          ..sort((a, b) => a.generation.compareTo(b.generation));
+      }
+    });
+
+    // Sync PageView
+    final pageIndex = _focusedChainNodes.indexWhere((n) => n.id == node.id);
+    if (pageIndex != -1 && _pageController.hasClients && _pageController.page?.round() != pageIndex) {
+      _pageController.animateToPage(
+        pageIndex, 
+        duration: const Duration(milliseconds: 300), 
+        curve: Curves.easeInOut,
+      );
     }
+
+    _animateCameraToNode(node);
+  }
+
+  void _clearFocus() {
+    setState(() {
+      _selectedNodeId = null;
+      _focusedChainId = null;
+      _focusedChainNodes = [];
+    });
+  }
+
+  void _animateCameraToNode(ConstellationNode node) {
+    _isAnimatingCamera = true;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    const targetScale = 0.8;
+
+    final targetX = screenWidth / 2 - node.position.dx * targetScale;
+    final targetY = screenHeight / 2 - node.position.dy * targetScale;
+
+    final endMatrix = Matrix4.identity()
+      ..setTranslationRaw(targetX, targetY, 0)
+      ..scale(targetScale, targetScale, 1.0);
+
+    final startMatrix = _transformationController.value;
+    final animation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    final matrixTween = Matrix4Tween(begin: startMatrix, end: endMatrix);
+    animation.addListener(() {
+      _transformationController.value = matrixTween.evaluate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.fastOutSlowIn,
+      ));
+    });
+    
+    animation.forward().then((_) {
+      _isAnimatingCamera = false;
+      animation.dispose();
+    });
   }
 
   ConstellationNode? _findNodeAt(Offset scenePos) {
-    // Return the node closest to the position within hit radius
-    for (final node in _nodes) {
-      if ((node.position - scenePos).distance < 70) {
+    // Check revealed nodes only
+    for (int i = 0; i < _revealedCount && i < _nodes.length; i++) {
+      final node = _nodes[i];
+      final distance = (node.position - scenePos).distance;
+      if (distance < 70) {
         return node;
       }
     }
     return null;
-  }
-
-  void _handlePanUpdate(DragUpdateDetails details) {
-    if (_draggedNodeId == null) return;
-    
-    final worldPos = details.localPosition;
-    final idx = _nodes.indexWhere((n) => n.id == _draggedNodeId);
-    if (idx != -1) {
-      setState(() {
-        _nodes[idx] = _nodes[idx].copy(position: worldPos, velocity: Offset.zero);
-      });
-    }
-  }
-
-  void _handlePanEnd(DragEndDetails details) {
-    if (_draggedNodeId != null) {
-      final idx = _nodes.indexWhere((n) => n.id == _draggedNodeId);
-      if (idx != -1) {
-        setState(() {
-          // Pass the release velocity to the node for physical "throw" effect
-          // Note: velocity is in pixels/sec, our simulation uses roughly pixels/frame (friction based)
-          final releaseVel = details.velocity.pixelsPerSecond / 60.0;
-          _nodes[idx] = _nodes[idx].copy(velocity: releaseVel);
-        });
-      }
-    }
-    setState(() {
-      _draggedNodeId = null;
-    });
   }
 
   Widget _buildHeader() {
@@ -308,12 +362,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white70),
+            icon: const Icon(Icons.close, color: Colors.white70),
             onPressed: () => Navigator.pop(context),
           ),
           const Expanded(
             child: Text(
-              'Interactive Galaxy',
+              'CONSTELLATION',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -323,11 +377,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white24, size: 20),
+            icon: const Icon(Icons.auto_awesome, color: Colors.white24, size: 20),
             onPressed: () {
                setState(() {
                   _initialized = false;
-                  _nodes = []; // This will trigger re-fetch from provider state
+                  _revealedCount = 0;
+                  _nodes = [];
                });
             },
           ),
@@ -337,18 +392,118 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   }
 
   Widget _buildOverlayInstructions() {
-    return const Positioned(
-      bottom: 40,
+    return Positioned(
+      bottom: 60,
       left: 0,
       right: 0,
       child: Center(
-        child: Text(
-          'Grab stars to move them • Connections act as springs\nStars bounce off walls',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white38, fontSize: 10, height: 1.5, letterSpacing: 0.5),
+        child: AnimatedOpacity(
+          opacity: _showGalaxy ? 1.0 : 0.0,
+          duration: const Duration(seconds: 1),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(strokeWidth: 1, color: Colors.white24),
+              SizedBox(height: 16),
+              Text(
+                'COLLECTING MEMORIES...',
+                style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 4),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildDetailOverlay() {
+    if (_focusedChainNodes.isEmpty) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 220,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: _focusedChainNodes.length,
+        onPageChanged: (index) {
+          if (!_isAnimatingCamera) {
+            _animateCameraToNode(_focusedChainNodes[index]);
+            setState(() {
+               _selectedNodeId = _focusedChainNodes[index].id;
+            });
+          }
+        },
+        itemBuilder: (context, index) {
+          final node = _focusedChainNodes[index];
+          return _buildNodeCard(node);
+        },
+      ),
+    );
+  }
+
+  Widget _buildNodeCard(ConstellationNode node) {
+    final color = _getNodeColor(node.type);
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  node.type.name.toUpperCase(),
+                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${node.date.month}/${node.date.day}',
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            node.label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: TextButton(
+              onPressed: () => _showDetail(node),
+              child: Text('READ MORE', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getNodeColor(ConstellationNodeType type) {
+    switch (type) {
+      case ConstellationNodeType.decision: return const Color(0xFF38BDF8);
+      case ConstellationNodeType.retro: return const Color(0xFFFB7185);
+      case ConstellationNodeType.declaration: return const Color(0xFFFBBF24);
+      case ConstellationNodeType.check: return const Color(0xFF34D399);
+    }
   }
 
   Future<void> _showDetail(ConstellationNode node) async {
@@ -376,13 +531,13 @@ class ConstellationPhysicsPainter extends CustomPainter {
   final List<ConstellationNode> nodes;
   final List<ConstellationEdge> edges;
   final String? selectedId;
-  final String? draggedId;
+  final int revealedCount;
 
   ConstellationPhysicsPainter({
     required this.nodes,
     required this.edges,
     this.selectedId,
-    this.draggedId,
+    required this.revealedCount,
   });
 
   @override
@@ -417,11 +572,17 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
     // 3. Edges
     for (final edge in edges) {
-      final from = nodes.where((n) => n.id == edge.fromId).firstOrNull;
-      final to = nodes.where((n) => n.id == edge.toId).firstOrNull;
-      if (from == null || to == null) continue;
+      final fromIdx = nodes.indexWhere((n) => n.id == edge.fromId);
+      final toIdx = nodes.indexWhere((n) => n.id == edge.toId);
+      if (fromIdx == -1 || toIdx == -1) continue;
+      
+      // Only draw if both nodes are revealed
+      if (fromIdx >= revealedCount || toIdx >= revealedCount) continue;
 
-      final isHighlighted = (selectedId == from.id || selectedId == to.id || draggedId == from.id || draggedId == to.id);
+      final from = nodes[fromIdx];
+      final to = nodes[toIdx];
+
+      final isHighlighted = (selectedId == from.id || selectedId == to.id);
       
       if (isHighlighted) {
          canvas.drawLine(from.position, to.position, highlightLinePaint);
@@ -432,9 +593,11 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
     // 4. Nodes
     final now = DateTime.now();
-    for (final node in nodes) {
+    for (int i = 0; i < nodes.length; i++) {
+      if (i >= revealedCount) continue;
+
+      final node = nodes[i];
       final isSelected = node.id == selectedId;
-      final isDragged = node.id == draggedId;
       final color = _getNodeColor(node.type);
       
       final ageHours = now.difference(node.date).inHours;
@@ -442,13 +605,13 @@ class ConstellationPhysicsPainter extends CustomPainter {
       
       // Glow
       final glowPaint = Paint()
-        ..color = color.withValues(alpha: (isDragged ? 0.4 : 0.2) * ageFactor)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, (isDragged || isSelected) ? 15 : 8);
-      canvas.drawCircle(node.position, 15 + (isDragged ? 10 : 0), glowPaint);
+        ..color = color.withValues(alpha: (isSelected ? 0.4 : 0.2) * ageFactor)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, isSelected ? 15 : 8);
+      canvas.drawCircle(node.position, 15 + (isSelected ? 5 : 0), glowPaint);
 
       // Core
-      final starPaint = Paint()..color = isSelected || isDragged ? Colors.white : color;
-      canvas.drawCircle(node.position, 4 * ageFactor + (isDragged ? 3 : 0), starPaint);
+      final starPaint = Paint()..color = isSelected ? Colors.white : color;
+      canvas.drawCircle(node.position, (isSelected ? 6 : 4) * ageFactor, starPaint);
       
       // Ring
       final ringPaint = Paint()
