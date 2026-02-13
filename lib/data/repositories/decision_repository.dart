@@ -143,6 +143,10 @@ class DecisionRepository {
         .getSingleOrNull();
   }
 
+  Future<List<Review>> getAllReviews() {
+    return (db.select(db.reviews)).get();
+  }
+
   // --- Retro Logic ---
 
   Future<void> snoozeReviews(List<String> logIds) async {

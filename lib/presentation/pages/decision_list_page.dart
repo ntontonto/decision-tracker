@@ -171,20 +171,20 @@ class _DecisionListPageState extends ConsumerState<DecisionListPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _DecisionDetailSheet(decision: d),
+      builder: (context) => DecisionDetailSheet(decision: d),
     );
   }
 }
 
-class _DecisionDetailSheet extends ConsumerStatefulWidget {
+class DecisionDetailSheet extends ConsumerStatefulWidget {
   final Decision decision;
-  const _DecisionDetailSheet({required this.decision});
+  const DecisionDetailSheet({required this.decision, super.key});
 
   @override
-  ConsumerState<_DecisionDetailSheet> createState() => _DecisionDetailSheetState();
+  ConsumerState<DecisionDetailSheet> createState() => DecisionDetailSheetState();
 }
 
-class _DecisionDetailSheetState extends ConsumerState<_DecisionDetailSheet> {
+class DecisionDetailSheetState extends ConsumerState<DecisionDetailSheet> {
   int _selectedIndex = 0;
 
   @override

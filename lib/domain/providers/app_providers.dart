@@ -223,6 +223,10 @@ final reviewForLogProvider = FutureProvider.family<Review?, String>((ref, id) {
   return ref.watch(repositoryProvider).getReviewForLog(id);
 });
 
+final allReviewsProvider = FutureProvider<List<Review>>((ref) {
+  return ref.watch(repositoryProvider).getAllReviews();
+});
+
 // --- Success Notification ---
 
 class SuccessNotificationState {
