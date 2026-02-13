@@ -61,8 +61,6 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
       );
-    } else {
-      _complete();
     }
   }
 
@@ -81,7 +79,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
 
   int _getTotalSteps(ActionReviewState state) {
     if (state.reviewStatus == ActionReviewStatus.success) return 1;
-    return 4; // Q1 + Q2 (Blocker) + Q3 (Solution) + Q4 (Branch)
+    return 3; // Q1 + Q2 (Blocker) + Q3 (Solution)
   }
 
   bool _isStepValid(ActionReviewState state) {
@@ -188,7 +186,6 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, s) => Center(child: Text('Error context: $e')),
           ),
-          _buildStep4(state),
         ],
       ],
     );
@@ -304,7 +301,6 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
       onSelect: (solution) {
         if (solution != null) {
           ref.read(actionReviewProvider.notifier).updateSolutionKey(solution.key);
-          _next();
         }
       },
       labelBuilder: (s) => s.label,
@@ -312,65 +308,70 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     );
   }
 
-  Widget _buildStep4(ActionReviewState state) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Text(
-            '次はどうしますか？',
-            style: AppDesign.titleStyle.copyWith(fontSize: 22),
-          ),
-          const SizedBox(height: 32),
-          _buildLargeSelectButton(
-            '次の行動宣言を入力する',
-            Icons.edit_note,
-            state.shouldDeclareNextAction,
-            () {
-              ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(true);
-              _complete();
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildLargeSelectButton(
-            'このまま完了する',
-            Icons.done_all,
-            !state.shouldDeclareNextAction && state.currentStep == 3,
-            () {
-              ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(false);
-              _complete();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomNavigation(ActionReviewState state) {
     // Hidden on almost all steps as they auto-advance or auto-complete
-    if (state.currentStep < 4) return const SizedBox.shrink();
+    if (state.currentStep < 2) return const SizedBox.shrink();
+
+    final isEnabled = _isStepValid(state);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(context).padding.bottom + 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Primary Action: Declare
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _skip,
+              onPressed: isEnabled
+                  ? () {
+                      ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(true);
+                      _complete();
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white10,
-                foregroundColor: Colors.white70,
+                backgroundColor: isEnabled ? Colors.white : Colors.white10,
+                foregroundColor: isEnabled ? Colors.black : Colors.white24,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
               child: const Text(
-                '閉じる',
+                '次の行動宣言を入力する',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Secondary Action: Simple Done (Text Link)
+          GestureDetector(
+            onTap: isEnabled
+                ? () {
+                    ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(false);
+                    _complete();
+                  }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    color: isEnabled ? Colors.white70 : Colors.white10,
+                    fontSize: 14,
+                  ),
+                  children: [
+                    const TextSpan(text: 'もしくは　'),
+                    TextSpan(
+                      text: 'このまま完了',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        decoration: isEnabled ? TextDecoration.underline : TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
