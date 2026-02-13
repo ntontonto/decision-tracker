@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/models/review_proposal.dart';
 import '../theme/app_design.dart';
 import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
+import '../widgets/action_review_wizard_sheet.dart';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
   const HomeOverlayUI({super.key});
@@ -40,7 +42,7 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
 
   @override
   Widget build(BuildContext context) {
-    final pendingAsync = ref.watch(pendingDecisionsProvider);
+    final proposalsAsync = ref.watch(unifiedProposalsProvider);
 
     return SafeArea(
       child: Padding(
@@ -48,40 +50,51 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            pendingAsync.when(
-              data: (decisions) {
-                if (decisions.isEmpty) {
+            proposalsAsync.when(
+              data: (proposals) {
+                if (proposals.isEmpty) {
                   return _buildFABOnly();
                 }
 
                 // Ensure index is within bounds
-                final index = _currentIndex % decisions.length;
-                final decision = decisions[index];
-                final dateStr = '${decision.retroAt.month}/${decision.retroAt.day}';
+                final index = _currentIndex % proposals.length;
+                final proposal = proposals[index];
 
                 return Row(
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: () => _startReviewFlow(context, decision),
+                        onTap: () => _startReviewFlow(context, proposal),
                         borderRadius: BorderRadius.circular(40),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                           decoration: AppDesign.glassDecoration(
                             borderRadius: 40,
-                            showBorder: false, // User requested removing outer borders
+                            showBorder: false,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                '$dateStr を振り返りませんか？',
-                                style: AppDesign.subtitleStyle,
+                              Row(
+                                children: [
+                                  Icon(
+                                    proposal.type == ProposalType.decisionRetro 
+                                        ? Icons.history 
+                                        : Icons.check_circle_outline,
+                                    size: 14,
+                                    color: AppDesign.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    proposal.title,
+                                    style: AppDesign.subtitleStyle,
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                decision.textContent,
+                                proposal.description,
                                 style: AppDesign.bodyStyle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -121,7 +134,6 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
-        // Ensure perfect circle
         shape: const CircleBorder(),
         child: const Icon(Icons.add, size: 32),
       ),
@@ -137,12 +149,18 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
     );
   }
 
-  void _startReviewFlow(BuildContext context, dynamic decision) {
+  void _startReviewFlow(BuildContext context, ReviewProposal proposal) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => RetroWizardSheet(decision: decision),
+      builder: (context) {
+        if (proposal.type == ProposalType.decisionRetro) {
+          return RetroWizardSheet(decision: proposal.originalData);
+        } else {
+          return ActionReviewWizardSheet(declaration: proposal.originalData);
+        }
+      },
     );
   }
 }

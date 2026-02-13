@@ -58,6 +58,12 @@ class Declarations extends Table {
   TextColumn get declarationText => text()();
   DateTimeColumn get reviewAt => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
+
+  // Execution & Chaining (Version 4)
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  IntColumn get status => intEnum<DeclarationStatus>().withDefault(Constant(DeclarationStatus.active.index))();
+  TextColumn get parentId => text().nullable()();
+  IntColumn get lastReviewStatus => intEnum<ActionReviewStatus>().nullable()();
 }
 
 @DriftDatabase(tables: [Decisions, Reviews, Declarations])
@@ -65,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -83,6 +89,13 @@ class AppDatabase extends _$AppDatabase {
         if (from < 3) {
           // Create Declarations table
           await m.createTable(declarations);
+        }
+        if (from < 4) {
+          // Update Declarations table for review flow
+          await m.addColumn(declarations, declarations.completedAt);
+          await m.addColumn(declarations, declarations.status);
+          await m.addColumn(declarations, declarations.parentId);
+          await m.addColumn(declarations, declarations.lastReviewStatus);
         }
       },
     );

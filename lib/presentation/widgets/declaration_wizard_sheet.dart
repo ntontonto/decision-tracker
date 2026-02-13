@@ -221,6 +221,7 @@ class _DeclarationWizardSheetState extends ConsumerState<DeclarationWizardSheet>
 
   Widget _buildStep2(DeclarationWizardState state) {
     final intervals = {
+      '今': Duration.zero,
       '1週間後': const Duration(days: 7),
       '2週間後': const Duration(days: 14),
       '1ヶ月後': const Duration(days: 30),

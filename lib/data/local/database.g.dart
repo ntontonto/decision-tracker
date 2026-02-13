@@ -1553,6 +1553,50 @@ class $DeclarationsTable extends Declarations
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DeclarationStatus, int> status =
+      GeneratedColumn<int>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: Constant(DeclarationStatus.active.index),
+      ).withConverter<DeclarationStatus>($DeclarationsTable.$converterstatus);
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ActionReviewStatus?, int>
+  lastReviewStatus =
+      GeneratedColumn<int>(
+        'last_review_status',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<ActionReviewStatus?>(
+        $DeclarationsTable.$converterlastReviewStatusn,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1563,6 +1607,10 @@ class $DeclarationsTable extends Declarations
     declarationText,
     reviewAt,
     createdAt,
+    completedAt,
+    status,
+    parentId,
+    lastReviewStatus,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1647,6 +1695,21 @@ class $DeclarationsTable extends Declarations
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
     return context;
   }
 
@@ -1688,6 +1751,26 @@ class $DeclarationsTable extends Declarations
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      status: $DeclarationsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      lastReviewStatus: $DeclarationsTable.$converterlastReviewStatusn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}last_review_status'],
+        ),
+      ),
     );
   }
 
@@ -1695,6 +1778,17 @@ class $DeclarationsTable extends Declarations
   $DeclarationsTable createAlias(String alias) {
     return $DeclarationsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<DeclarationStatus, int, int> $converterstatus =
+      const EnumIndexConverter<DeclarationStatus>(DeclarationStatus.values);
+  static JsonTypeConverter2<ActionReviewStatus, int, int>
+  $converterlastReviewStatus = const EnumIndexConverter<ActionReviewStatus>(
+    ActionReviewStatus.values,
+  );
+  static JsonTypeConverter2<ActionReviewStatus?, int?, int?>
+  $converterlastReviewStatusn = JsonTypeConverter2.asNullable(
+    $converterlastReviewStatus,
+  );
 }
 
 class Declaration extends DataClass implements Insertable<Declaration> {
@@ -1706,6 +1800,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
   final String declarationText;
   final DateTime reviewAt;
   final DateTime createdAt;
+  final DateTime? completedAt;
+  final DeclarationStatus status;
+  final String? parentId;
+  final ActionReviewStatus? lastReviewStatus;
   const Declaration({
     required this.id,
     required this.logId,
@@ -1715,6 +1813,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     required this.declarationText,
     required this.reviewAt,
     required this.createdAt,
+    this.completedAt,
+    required this.status,
+    this.parentId,
+    this.lastReviewStatus,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1727,6 +1829,22 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     map['declaration_text'] = Variable<String>(declarationText);
     map['review_at'] = Variable<DateTime>(reviewAt);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    {
+      map['status'] = Variable<int>(
+        $DeclarationsTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    if (!nullToAbsent || lastReviewStatus != null) {
+      map['last_review_status'] = Variable<int>(
+        $DeclarationsTable.$converterlastReviewStatusn.toSql(lastReviewStatus),
+      );
+    }
     return map;
   }
 
@@ -1740,6 +1858,16 @@ class Declaration extends DataClass implements Insertable<Declaration> {
       declarationText: Value(declarationText),
       reviewAt: Value(reviewAt),
       createdAt: Value(createdAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      status: Value(status),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      lastReviewStatus: lastReviewStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastReviewStatus),
     );
   }
 
@@ -1757,6 +1885,14 @@ class Declaration extends DataClass implements Insertable<Declaration> {
       declarationText: serializer.fromJson<String>(json['declarationText']),
       reviewAt: serializer.fromJson<DateTime>(json['reviewAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      status: $DeclarationsTable.$converterstatus.fromJson(
+        serializer.fromJson<int>(json['status']),
+      ),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      lastReviewStatus: $DeclarationsTable.$converterlastReviewStatusn.fromJson(
+        serializer.fromJson<int?>(json['lastReviewStatus']),
+      ),
     );
   }
   @override
@@ -1771,6 +1907,14 @@ class Declaration extends DataClass implements Insertable<Declaration> {
       'declarationText': serializer.toJson<String>(declarationText),
       'reviewAt': serializer.toJson<DateTime>(reviewAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'status': serializer.toJson<int>(
+        $DeclarationsTable.$converterstatus.toJson(status),
+      ),
+      'parentId': serializer.toJson<String?>(parentId),
+      'lastReviewStatus': serializer.toJson<int?>(
+        $DeclarationsTable.$converterlastReviewStatusn.toJson(lastReviewStatus),
+      ),
     };
   }
 
@@ -1783,6 +1927,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     String? declarationText,
     DateTime? reviewAt,
     DateTime? createdAt,
+    Value<DateTime?> completedAt = const Value.absent(),
+    DeclarationStatus? status,
+    Value<String?> parentId = const Value.absent(),
+    Value<ActionReviewStatus?> lastReviewStatus = const Value.absent(),
   }) => Declaration(
     id: id ?? this.id,
     logId: logId ?? this.logId,
@@ -1792,6 +1940,12 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     declarationText: declarationText ?? this.declarationText,
     reviewAt: reviewAt ?? this.reviewAt,
     createdAt: createdAt ?? this.createdAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    status: status ?? this.status,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    lastReviewStatus: lastReviewStatus.present
+        ? lastReviewStatus.value
+        : this.lastReviewStatus,
   );
   Declaration copyWithCompanion(DeclarationsCompanion data) {
     return Declaration(
@@ -1811,6 +1965,14 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           : this.declarationText,
       reviewAt: data.reviewAt.present ? data.reviewAt.value : this.reviewAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      status: data.status.present ? data.status.value : this.status,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      lastReviewStatus: data.lastReviewStatus.present
+          ? data.lastReviewStatus.value
+          : this.lastReviewStatus,
     );
   }
 
@@ -1824,7 +1986,11 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           ..write('solutionText: $solutionText, ')
           ..write('declarationText: $declarationText, ')
           ..write('reviewAt: $reviewAt, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('status: $status, ')
+          ..write('parentId: $parentId, ')
+          ..write('lastReviewStatus: $lastReviewStatus')
           ..write(')'))
         .toString();
   }
@@ -1839,6 +2005,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     declarationText,
     reviewAt,
     createdAt,
+    completedAt,
+    status,
+    parentId,
+    lastReviewStatus,
   );
   @override
   bool operator ==(Object other) =>
@@ -1851,7 +2021,11 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           other.solutionText == this.solutionText &&
           other.declarationText == this.declarationText &&
           other.reviewAt == this.reviewAt &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.completedAt == this.completedAt &&
+          other.status == this.status &&
+          other.parentId == this.parentId &&
+          other.lastReviewStatus == this.lastReviewStatus);
 }
 
 class DeclarationsCompanion extends UpdateCompanion<Declaration> {
@@ -1863,6 +2037,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
   final Value<String> declarationText;
   final Value<DateTime> reviewAt;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> completedAt;
+  final Value<DeclarationStatus> status;
+  final Value<String?> parentId;
+  final Value<ActionReviewStatus?> lastReviewStatus;
   const DeclarationsCompanion({
     this.id = const Value.absent(),
     this.logId = const Value.absent(),
@@ -1872,6 +2050,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     this.declarationText = const Value.absent(),
     this.reviewAt = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.lastReviewStatus = const Value.absent(),
   });
   DeclarationsCompanion.insert({
     this.id = const Value.absent(),
@@ -1882,6 +2064,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     required String declarationText,
     required DateTime reviewAt,
     required DateTime createdAt,
+    this.completedAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.lastReviewStatus = const Value.absent(),
   }) : logId = Value(logId),
        originalText = Value(originalText),
        reasonLabel = Value(reasonLabel),
@@ -1898,6 +2084,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Expression<String>? declarationText,
     Expression<DateTime>? reviewAt,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? status,
+    Expression<String>? parentId,
+    Expression<int>? lastReviewStatus,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1908,6 +2098,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       if (declarationText != null) 'declaration_text': declarationText,
       if (reviewAt != null) 'review_at': reviewAt,
       if (createdAt != null) 'created_at': createdAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (status != null) 'status': status,
+      if (parentId != null) 'parent_id': parentId,
+      if (lastReviewStatus != null) 'last_review_status': lastReviewStatus,
     });
   }
 
@@ -1920,6 +2114,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Value<String>? declarationText,
     Value<DateTime>? reviewAt,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? completedAt,
+    Value<DeclarationStatus>? status,
+    Value<String?>? parentId,
+    Value<ActionReviewStatus?>? lastReviewStatus,
   }) {
     return DeclarationsCompanion(
       id: id ?? this.id,
@@ -1930,6 +2128,10 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       declarationText: declarationText ?? this.declarationText,
       reviewAt: reviewAt ?? this.reviewAt,
       createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      status: status ?? this.status,
+      parentId: parentId ?? this.parentId,
+      lastReviewStatus: lastReviewStatus ?? this.lastReviewStatus,
     );
   }
 
@@ -1960,6 +2162,24 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(
+        $DeclarationsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (lastReviewStatus.present) {
+      map['last_review_status'] = Variable<int>(
+        $DeclarationsTable.$converterlastReviewStatusn.toSql(
+          lastReviewStatus.value,
+        ),
+      );
+    }
     return map;
   }
 
@@ -1973,7 +2193,11 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
           ..write('solutionText: $solutionText, ')
           ..write('declarationText: $declarationText, ')
           ..write('reviewAt: $reviewAt, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('status: $status, ')
+          ..write('parentId: $parentId, ')
+          ..write('lastReviewStatus: $lastReviewStatus')
           ..write(')'))
         .toString();
   }
@@ -2998,6 +3222,10 @@ typedef $$DeclarationsTableCreateCompanionBuilder =
       required String declarationText,
       required DateTime reviewAt,
       required DateTime createdAt,
+      Value<DateTime?> completedAt,
+      Value<DeclarationStatus> status,
+      Value<String?> parentId,
+      Value<ActionReviewStatus?> lastReviewStatus,
     });
 typedef $$DeclarationsTableUpdateCompanionBuilder =
     DeclarationsCompanion Function({
@@ -3009,6 +3237,10 @@ typedef $$DeclarationsTableUpdateCompanionBuilder =
       Value<String> declarationText,
       Value<DateTime> reviewAt,
       Value<DateTime> createdAt,
+      Value<DateTime?> completedAt,
+      Value<DeclarationStatus> status,
+      Value<String?> parentId,
+      Value<ActionReviewStatus?> lastReviewStatus,
     });
 
 final class $$DeclarationsTableReferences
@@ -3079,6 +3311,28 @@ class $$DeclarationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DeclarationStatus, DeclarationStatus, int>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ActionReviewStatus?, ActionReviewStatus, int>
+  get lastReviewStatus => $composableBuilder(
+    column: $table.lastReviewStatus,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
   $$DecisionsTableFilterComposer get logId {
     final $$DecisionsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -3147,6 +3401,26 @@ class $$DeclarationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastReviewStatus => $composableBuilder(
+    column: $table.lastReviewStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DecisionsTableOrderingComposer get logId {
     final $$DecisionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3209,6 +3483,23 @@ class $$DeclarationsTableAnnotationComposer
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DeclarationStatus, int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ActionReviewStatus?, int>
+  get lastReviewStatus => $composableBuilder(
+    column: $table.lastReviewStatus,
+    builder: (column) => column,
+  );
+
   $$DecisionsTableAnnotationComposer get logId {
     final $$DecisionsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3269,6 +3560,11 @@ class $$DeclarationsTableTableManager
                 Value<String> declarationText = const Value.absent(),
                 Value<DateTime> reviewAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<DeclarationStatus> status = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<ActionReviewStatus?> lastReviewStatus =
+                    const Value.absent(),
               }) => DeclarationsCompanion(
                 id: id,
                 logId: logId,
@@ -3278,6 +3574,10 @@ class $$DeclarationsTableTableManager
                 declarationText: declarationText,
                 reviewAt: reviewAt,
                 createdAt: createdAt,
+                completedAt: completedAt,
+                status: status,
+                parentId: parentId,
+                lastReviewStatus: lastReviewStatus,
               ),
           createCompanionCallback:
               ({
@@ -3289,6 +3589,11 @@ class $$DeclarationsTableTableManager
                 required String declarationText,
                 required DateTime reviewAt,
                 required DateTime createdAt,
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<DeclarationStatus> status = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<ActionReviewStatus?> lastReviewStatus =
+                    const Value.absent(),
               }) => DeclarationsCompanion.insert(
                 id: id,
                 logId: logId,
@@ -3298,6 +3603,10 @@ class $$DeclarationsTableTableManager
                 declarationText: declarationText,
                 reviewAt: reviewAt,
                 createdAt: createdAt,
+                completedAt: completedAt,
+                status: status,
+                parentId: parentId,
+                lastReviewStatus: lastReviewStatus,
               ),
           withReferenceMapper: (p0) => p0
               .map(
