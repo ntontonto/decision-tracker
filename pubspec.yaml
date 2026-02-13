@@ -71,6 +71,7 @@ flutter:
 
   assets:
     - assets/retro_reason_map.json
+    - assets/practice_review_map.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -4,9 +4,11 @@ import '../../data/local/database.dart';
 import '../../domain/providers/declaration_providers.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/models/enums.dart';
+import '../../domain/models/practice_review_model.dart';
 import '../theme/app_design.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
+import 'declaration_wizard_sheet.dart';
 
 class ActionReviewWizardSheet extends ConsumerStatefulWidget {
   final Declaration declaration;
@@ -79,12 +81,13 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
 
   int _getTotalSteps(ActionReviewState state) {
     if (state.reviewStatus == ActionReviewStatus.success) return 1;
-    return 3;
+    return 4; // Q1 + Q2 (Blocker) + Q3 (Solution) + Q4 (Branch)
   }
 
   bool _isStepValid(ActionReviewState state) {
     if (state.currentStep == 0) return state.reviewStatus != null;
-    if (state.currentStep == 1) return state.failureReason != null;
+    if (state.currentStep == 1) return state.blockerKey != null;
+    if (state.currentStep == 2) return state.solutionKey != null;
     return true;
   }
 
@@ -99,16 +102,55 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     final state = ref.read(actionReviewProvider);
     final isSuccess = state.reviewStatus == ActionReviewStatus.success;
     
+    // Save the review
     await ref.read(actionReviewProvider.notifier).complete(
-      shouldReDeclare: !isSuccess // Temporary simplified logic
+      shouldReDeclare: false // We handle re-declaration branching via Q4
     );
 
     if (mounted) {
       Navigator.pop(context);
-      ref.read(successNotificationProvider.notifier).show(
-        message: isSuccess ? '素晴らしい！その調子です 🎉' : '次に活かしましょう！',
-      );
+      
+      if (!isSuccess && state.shouldDeclareNextAction) {
+        // Trigger existing declaration flow
+        _showDeclarationWizard();
+      } else {
+        ref.read(successNotificationProvider.notifier).show(
+          message: isSuccess ? '素晴らしい！その調子です 🎉' : 'お疲れ様でした！',
+        );
+      }
     }
+  }
+
+  void _showDeclarationWizard() {
+    final declaration = widget.declaration;
+    // We need to fetch the original decision to pass it to the wizard
+    // For now, we use a simplified approach since we don't have the full Decision object here easily
+    // In a real app, you might want to fetch it from repo or pass it through
+    
+    // Re-using the logic from RetroWizardSheet bridge
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const DeclarationWizardSheet(),
+    );
+    
+    // Initialize the wizard state (note: this requires the decision object)
+    // Looking at declaration, it has logId.
+    ref.read(declarationWizardProvider.notifier).init(
+      decision: Decision(
+        id: declaration.logId,
+        textContent: declaration.originalText,
+        createdAt: DateTime.now(), // dummy
+        driver: DriverType.habit, // dummy
+        retroOffsetType: RetroOffsetType.plus1week, // dummy
+        retroAt: DateTime.now(), // dummy
+        status: DecisionStatus.reviewed,
+        lastUsedAt: DateTime.now(),
+      ),
+      reasonLabel: declaration.reasonLabel,
+      solutionText: declaration.solutionText,
+    );
   }
 
   void _skip() {
@@ -118,6 +160,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(actionReviewProvider);
+    final reviewMapAsync = ref.watch(practiceReviewMapProvider);
 
     return WizardScaffold(
       totalSteps: _getTotalSteps(state),
@@ -135,8 +178,17 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
       children: [
         _buildStep1(state),
         if (state.reviewStatus != ActionReviewStatus.success) ...[
-          _buildStep2(state),
-          _buildStep3(state),
+          reviewMapAsync.when(
+            data: (map) => _buildStep2(state, map),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error context: $e')),
+          ),
+          reviewMapAsync.when(
+            data: (map) => _buildStep3(state, map),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error context: $e')),
+          ),
+          _buildStep4(state),
         ],
       ],
     );
@@ -217,71 +269,88 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     );
   }
 
-  Widget _buildStep2(ActionReviewState state) {
-    final reasons = [
-      '忘れていた（意識にのぼらなかった）',
-      '設定したタイミングが来なかった',
-      'ハードルが高くて動けなかった',
-      '今の自分には合わなかった',
-      'その他',
-    ];
-
-    return WizardSelectionStep<String>(
+  Widget _buildStep2(ActionReviewState state, ActionReviewMap map) {
+    return WizardSelectionStep<ActionBlocker>(
       title: '何が妨げになりましたか？',
       subtitle: '原因を特定して、次へつなげましょう',
-      items: reasons,
-      selected: state.failureReason,
-      onSelect: (reason) {
-        if (reason != null) {
-          ref.read(actionReviewProvider.notifier).updateFailureReason(reason);
+      items: map.blockers,
+      selected: state.blockerKey != null
+          ? map.blockers.firstWhere((b) => b.key == state.blockerKey)
+          : null,
+      onSelect: (blocker) {
+        if (blocker != null) {
+          ref.read(actionReviewProvider.notifier).updateBlockerKey(blocker.key);
           _next();
         }
       },
-      labelBuilder: (v) => v,
+      labelBuilder: (b) => b.label,
       scrollController: ScrollController(),
     );
   }
 
-  Widget _buildStep3(ActionReviewState state) {
-    final intervals = {
-      '今すぐ再挑戦': Duration.zero,
-      'もう一度挑戦（1週間後）': const Duration(days: 7),
-      'もう少し先にする（1ヶ月後）': const Duration(days: 30),
-      '今回はおわりにする': null,
-    };
+  Widget _buildStep3(ActionReviewState state, ActionReviewMap map) {
+    final selectedBlocker = state.blockerKey != null
+        ? map.blockers.where((b) => b.key == state.blockerKey).firstOrNull
+        : null;
+    final solutions = selectedBlocker?.solutions ?? [];
 
-    return WizardSelectionStep<String>(
-      title: '次はどうしますか？',
-      subtitle: '無理のない範囲で調整しましょう',
-      items: intervals.keys.toList(),
-      selected: state.nextReviewIntervalKey,
-      onSelect: (key) {
-        if (key != null) {
-          final duration = intervals[key];
-          if (duration != null) {
-            final reviewDate = DateTime.now().add(duration);
-            ref.read(actionReviewProvider.notifier).updateNextReviewConfig(key, reviewDate);
-            ref.read(actionReviewProvider.notifier).complete(shouldReDeclare: true);
-          } else {
-            ref.read(actionReviewProvider.notifier).complete(shouldReDeclare: false);
-          }
-          
-          if (mounted) {
-            Navigator.pop(context);
-            ref.read(successNotificationProvider.notifier).show(
-              message: duration != null ? '目標を更新しました' : 'お疲れ様でした！',
-            );
-          }
+    return WizardSelectionStep<ActionSolution>(
+      title: '今後に向けて何ができそう？',
+      subtitle: '対応する解決方針を提示しています',
+      items: solutions,
+      selected: state.solutionKey != null
+          ? solutions.where((s) => s.key == state.solutionKey).firstOrNull
+          : null,
+      onSelect: (solution) {
+        if (solution != null) {
+          ref.read(actionReviewProvider.notifier).updateSolutionKey(solution.key);
+          _next();
         }
       },
-      labelBuilder: (v) => v,
+      labelBuilder: (s) => s.label,
       scrollController: ScrollController(),
+    );
+  }
+
+  Widget _buildStep4(ActionReviewState state) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            '次はどうしますか？',
+            style: AppDesign.titleStyle.copyWith(fontSize: 22),
+          ),
+          const SizedBox(height: 32),
+          _buildLargeSelectButton(
+            '次の行動宣言を入力する',
+            Icons.edit_note,
+            state.shouldDeclareNextAction,
+            () {
+              ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(true);
+              _complete();
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildLargeSelectButton(
+            'このまま完了する',
+            Icons.done_all,
+            !state.shouldDeclareNextAction && state.currentStep == 3,
+            () {
+              ref.read(actionReviewProvider.notifier).updateShouldDeclareNextAction(false);
+              _complete();
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBottomNavigation(ActionReviewState state) {
-    // Hidden on first step for fast completion, and second step for auto-advance
-    if (state.currentStep < 2) return const SizedBox.shrink();
+    // Hidden on almost all steps as they auto-advance or auto-complete
+    if (state.currentStep < 4) return const SizedBox.shrink();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 8, 24, MediaQuery.of(context).padding.bottom + 20),
@@ -300,7 +369,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
               child: const Text(
-                'あとで',
+                '閉じる',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),

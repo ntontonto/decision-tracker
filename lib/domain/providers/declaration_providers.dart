@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../domain/models/enums.dart';
+import '../models/practice_review_model.dart';
 import 'app_providers.dart';
 
 class DeclarationWizardState {
@@ -49,7 +52,14 @@ class ActionReviewState {
   final int currentStep;
   final ActionReviewStatus? reviewStatus;
   final String? failureReason;
+
+  // JSON-driven selections
+  final String? blockerKey;
+  final String? solutionKey;
   
+  // Branching toggle
+  final bool shouldDeclareNextAction;
+
   // For re-declaration flow
   final String nextDeclarationText;
   final DateTime? nextReviewAt;
@@ -60,6 +70,9 @@ class ActionReviewState {
     this.currentStep = 0,
     this.reviewStatus,
     this.failureReason,
+    this.blockerKey,
+    this.solutionKey,
+    this.shouldDeclareNextAction = false,
     this.nextDeclarationText = '',
     this.nextReviewAt,
     this.nextReviewIntervalKey,
@@ -70,6 +83,9 @@ class ActionReviewState {
     int? currentStep,
     ActionReviewStatus? reviewStatus,
     String? failureReason,
+    String? blockerKey,
+    String? solutionKey,
+    bool? shouldDeclareNextAction,
     String? nextDeclarationText,
     DateTime? nextReviewAt,
     String? nextReviewIntervalKey,
@@ -79,6 +95,9 @@ class ActionReviewState {
       currentStep: currentStep ?? this.currentStep,
       reviewStatus: reviewStatus ?? this.reviewStatus,
       failureReason: failureReason ?? this.failureReason,
+      blockerKey: blockerKey ?? this.blockerKey,
+      solutionKey: solutionKey ?? this.solutionKey,
+      shouldDeclareNextAction: shouldDeclareNextAction ?? this.shouldDeclareNextAction,
       nextDeclarationText: nextDeclarationText ?? this.nextDeclarationText,
       nextReviewAt: nextReviewAt ?? this.nextReviewAt,
       nextReviewIntervalKey: nextReviewIntervalKey ?? this.nextReviewIntervalKey,
@@ -165,6 +184,18 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
     state = state.copyWith(nextDeclarationText: text);
   }
 
+  void updateBlockerKey(String key) {
+    state = state.copyWith(blockerKey: key, solutionKey: null); // Reset solution if blocker changes
+  }
+
+  void updateSolutionKey(String key) {
+    state = state.copyWith(solutionKey: key);
+  }
+
+  void updateShouldDeclareNextAction(bool val) {
+    state = state.copyWith(shouldDeclareNextAction: val);
+  }
+
   void updateNextReviewConfig(String key, DateTime reviewAt) {
     state = state.copyWith(
       nextReviewIntervalKey: key,
@@ -229,4 +260,10 @@ final declarationWizardProvider = StateNotifierProvider<DeclarationWizardNotifie
 
 final actionGoalsProvider = StreamProvider<List<Declaration>>((ref) {
   return ref.watch(repositoryProvider).watchDeclarations();
+});
+
+final practiceReviewMapProvider = FutureProvider<ActionReviewMap>((ref) async {
+  final content = await rootBundle.loadString('assets/practice_review_map.json');
+  final data = json.decode(content);
+  return ActionReviewMap.fromJson(data);
 });
