@@ -148,6 +148,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
       ),
       reasonLabel: declaration.reasonLabel,
       solutionText: declaration.solutionText,
+      parentId: declaration.id,
     );
   }
 

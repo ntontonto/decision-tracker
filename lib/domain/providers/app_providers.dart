@@ -215,8 +215,16 @@ final allDecisionsProvider = FutureProvider<List<Decision>>((ref) {
   return ref.watch(repositoryProvider).getAllDecisions();
 });
 
+final allDecisionsStreamProvider = StreamProvider<List<Decision>>((ref) {
+  return ref.watch(repositoryProvider).watchDecisions();
+});
+
 final reviewForLogProvider = FutureProvider.family<Review?, String>((ref, id) {
   return ref.watch(repositoryProvider).getReviewForLog(id);
+});
+
+final allReviewsProvider = FutureProvider<List<Review>>((ref) {
+  return ref.watch(repositoryProvider).getAllReviews();
 });
 
 // --- Success Notification ---

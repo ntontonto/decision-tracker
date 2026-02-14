@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_design.dart';
 import '../pages/decision_list_page.dart';
 import '../pages/action_goal_list_page.dart';
+import '../pages/constellation_page.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -78,6 +79,20 @@ class AppSidebar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ActionGoalListPage()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome, color: AppDesign.textSecondary),
+                  title: const Text(
+                    '学びの星座 (Map)',
+                    style: TextStyle(color: AppDesign.textPrimary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ConstellationPage()),
                     );
                   },
                 ),
