@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_design.dart';
-import '../pages/decision_list_page.dart';
-import '../pages/action_goal_list_page.dart';
 import '../pages/constellation_page.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -53,34 +51,6 @@ class AppSidebar extends StatelessWidget {
                       style: AppDesign.titleStyle,
                     ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.list, color: AppDesign.textSecondary),
-                  title: const Text(
-                    '過去の判断一覧 (List)',
-                    style: TextStyle(color: AppDesign.textPrimary),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const DecisionListPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.flag_outlined, color: AppDesign.textSecondary),
-                  title: const Text(
-                    '行動目標 (Goals)',
-                    style: TextStyle(color: AppDesign.textPrimary),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ActionGoalListPage()),
-                    );
-                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.auto_awesome, color: AppDesign.textSecondary),

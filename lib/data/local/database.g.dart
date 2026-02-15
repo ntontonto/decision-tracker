@@ -116,6 +116,88 @@ class $DecisionsTable extends Decisions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _reviewedAtMeta = const VerificationMeta(
+    'reviewedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> reviewedAt = GeneratedColumn<DateTime>(
+    'reviewed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RegretLevel?, int> regretLevel =
+      GeneratedColumn<int>(
+        'regret_level',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<RegretLevel?>($DecisionsTable.$converterregretLeveln);
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reasonKeyMeta = const VerificationMeta(
+    'reasonKey',
+  );
+  @override
+  late final GeneratedColumn<String> reasonKey = GeneratedColumn<String>(
+    'reason_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _solutionMeta = const VerificationMeta(
+    'solution',
+  );
+  @override
+  late final GeneratedColumn<String> solution = GeneratedColumn<String>(
+    'solution',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _successFactorMeta = const VerificationMeta(
+    'successFactor',
+  );
+  @override
+  late final GeneratedColumn<String> successFactor = GeneratedColumn<String>(
+    'success_factor',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reproductionStrategyMeta =
+      const VerificationMeta('reproductionStrategy');
+  @override
+  late final GeneratedColumn<String> reproductionStrategy =
+      GeneratedColumn<String>(
+        'reproduction_strategy',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _memoMeta = const VerificationMeta('memo');
+  @override
+  late final GeneratedColumn<String> memo = GeneratedColumn<String>(
+    'memo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -129,6 +211,14 @@ class $DecisionsTable extends Decisions
     retroAt,
     status,
     lastUsedAt,
+    reviewedAt,
+    regretLevel,
+    score,
+    reasonKey,
+    solution,
+    successFactor,
+    reproductionStrategy,
+    memo,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -190,6 +280,54 @@ class $DecisionsTable extends Decisions
       );
     } else if (isInserting) {
       context.missing(_lastUsedAtMeta);
+    }
+    if (data.containsKey('reviewed_at')) {
+      context.handle(
+        _reviewedAtMeta,
+        reviewedAt.isAcceptableOrUnknown(data['reviewed_at']!, _reviewedAtMeta),
+      );
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    }
+    if (data.containsKey('reason_key')) {
+      context.handle(
+        _reasonKeyMeta,
+        reasonKey.isAcceptableOrUnknown(data['reason_key']!, _reasonKeyMeta),
+      );
+    }
+    if (data.containsKey('solution')) {
+      context.handle(
+        _solutionMeta,
+        solution.isAcceptableOrUnknown(data['solution']!, _solutionMeta),
+      );
+    }
+    if (data.containsKey('success_factor')) {
+      context.handle(
+        _successFactorMeta,
+        successFactor.isAcceptableOrUnknown(
+          data['success_factor']!,
+          _successFactorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reproduction_strategy')) {
+      context.handle(
+        _reproductionStrategyMeta,
+        reproductionStrategy.isAcceptableOrUnknown(
+          data['reproduction_strategy']!,
+          _reproductionStrategyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memo')) {
+      context.handle(
+        _memoMeta,
+        memo.isAcceptableOrUnknown(data['memo']!, _memoMeta),
+      );
     }
     return context;
   }
@@ -254,6 +392,40 @@ class $DecisionsTable extends Decisions
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_used_at'],
       )!,
+      reviewedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}reviewed_at'],
+      ),
+      regretLevel: $DecisionsTable.$converterregretLeveln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}regret_level'],
+        ),
+      ),
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
+      ),
+      reasonKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason_key'],
+      ),
+      solution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}solution'],
+      ),
+      successFactor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}success_factor'],
+      ),
+      reproductionStrategy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reproduction_strategy'],
+      ),
+      memo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memo'],
+      ),
     );
   }
 
@@ -278,6 +450,10 @@ class $DecisionsTable extends Decisions
   );
   static JsonTypeConverter2<DecisionStatus, int, int> $converterstatus =
       const EnumIndexConverter<DecisionStatus>(DecisionStatus.values);
+  static JsonTypeConverter2<RegretLevel, int, int> $converterregretLevel =
+      const EnumIndexConverter<RegretLevel>(RegretLevel.values);
+  static JsonTypeConverter2<RegretLevel?, int?, int?> $converterregretLeveln =
+      JsonTypeConverter2.asNullable($converterregretLevel);
 }
 
 class Decision extends DataClass implements Insertable<Decision> {
@@ -292,6 +468,14 @@ class Decision extends DataClass implements Insertable<Decision> {
   final DateTime retroAt;
   final DecisionStatus status;
   final DateTime lastUsedAt;
+  final DateTime? reviewedAt;
+  final RegretLevel? regretLevel;
+  final int? score;
+  final String? reasonKey;
+  final String? solution;
+  final String? successFactor;
+  final String? reproductionStrategy;
+  final String? memo;
   const Decision({
     required this.id,
     required this.textContent,
@@ -304,6 +488,14 @@ class Decision extends DataClass implements Insertable<Decision> {
     required this.retroAt,
     required this.status,
     required this.lastUsedAt,
+    this.reviewedAt,
+    this.regretLevel,
+    this.score,
+    this.reasonKey,
+    this.solution,
+    this.successFactor,
+    this.reproductionStrategy,
+    this.memo,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -337,6 +529,32 @@ class Decision extends DataClass implements Insertable<Decision> {
       );
     }
     map['last_used_at'] = Variable<DateTime>(lastUsedAt);
+    if (!nullToAbsent || reviewedAt != null) {
+      map['reviewed_at'] = Variable<DateTime>(reviewedAt);
+    }
+    if (!nullToAbsent || regretLevel != null) {
+      map['regret_level'] = Variable<int>(
+        $DecisionsTable.$converterregretLeveln.toSql(regretLevel),
+      );
+    }
+    if (!nullToAbsent || score != null) {
+      map['score'] = Variable<int>(score);
+    }
+    if (!nullToAbsent || reasonKey != null) {
+      map['reason_key'] = Variable<String>(reasonKey);
+    }
+    if (!nullToAbsent || solution != null) {
+      map['solution'] = Variable<String>(solution);
+    }
+    if (!nullToAbsent || successFactor != null) {
+      map['success_factor'] = Variable<String>(successFactor);
+    }
+    if (!nullToAbsent || reproductionStrategy != null) {
+      map['reproduction_strategy'] = Variable<String>(reproductionStrategy);
+    }
+    if (!nullToAbsent || memo != null) {
+      map['memo'] = Variable<String>(memo);
+    }
     return map;
   }
 
@@ -353,6 +571,28 @@ class Decision extends DataClass implements Insertable<Decision> {
       retroAt: Value(retroAt),
       status: Value(status),
       lastUsedAt: Value(lastUsedAt),
+      reviewedAt: reviewedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewedAt),
+      regretLevel: regretLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(regretLevel),
+      score: score == null && nullToAbsent
+          ? const Value.absent()
+          : Value(score),
+      reasonKey: reasonKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reasonKey),
+      solution: solution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(solution),
+      successFactor: successFactor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(successFactor),
+      reproductionStrategy: reproductionStrategy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reproductionStrategy),
+      memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
     );
   }
 
@@ -383,6 +623,18 @@ class Decision extends DataClass implements Insertable<Decision> {
         serializer.fromJson<int>(json['status']),
       ),
       lastUsedAt: serializer.fromJson<DateTime>(json['lastUsedAt']),
+      reviewedAt: serializer.fromJson<DateTime?>(json['reviewedAt']),
+      regretLevel: $DecisionsTable.$converterregretLeveln.fromJson(
+        serializer.fromJson<int?>(json['regretLevel']),
+      ),
+      score: serializer.fromJson<int?>(json['score']),
+      reasonKey: serializer.fromJson<String?>(json['reasonKey']),
+      solution: serializer.fromJson<String?>(json['solution']),
+      successFactor: serializer.fromJson<String?>(json['successFactor']),
+      reproductionStrategy: serializer.fromJson<String?>(
+        json['reproductionStrategy'],
+      ),
+      memo: serializer.fromJson<String?>(json['memo']),
     );
   }
   @override
@@ -410,6 +662,16 @@ class Decision extends DataClass implements Insertable<Decision> {
         $DecisionsTable.$converterstatus.toJson(status),
       ),
       'lastUsedAt': serializer.toJson<DateTime>(lastUsedAt),
+      'reviewedAt': serializer.toJson<DateTime?>(reviewedAt),
+      'regretLevel': serializer.toJson<int?>(
+        $DecisionsTable.$converterregretLeveln.toJson(regretLevel),
+      ),
+      'score': serializer.toJson<int?>(score),
+      'reasonKey': serializer.toJson<String?>(reasonKey),
+      'solution': serializer.toJson<String?>(solution),
+      'successFactor': serializer.toJson<String?>(successFactor),
+      'reproductionStrategy': serializer.toJson<String?>(reproductionStrategy),
+      'memo': serializer.toJson<String?>(memo),
     };
   }
 
@@ -425,6 +687,14 @@ class Decision extends DataClass implements Insertable<Decision> {
     DateTime? retroAt,
     DecisionStatus? status,
     DateTime? lastUsedAt,
+    Value<DateTime?> reviewedAt = const Value.absent(),
+    Value<RegretLevel?> regretLevel = const Value.absent(),
+    Value<int?> score = const Value.absent(),
+    Value<String?> reasonKey = const Value.absent(),
+    Value<String?> solution = const Value.absent(),
+    Value<String?> successFactor = const Value.absent(),
+    Value<String?> reproductionStrategy = const Value.absent(),
+    Value<String?> memo = const Value.absent(),
   }) => Decision(
     id: id ?? this.id,
     textContent: textContent ?? this.textContent,
@@ -437,6 +707,18 @@ class Decision extends DataClass implements Insertable<Decision> {
     retroAt: retroAt ?? this.retroAt,
     status: status ?? this.status,
     lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+    reviewedAt: reviewedAt.present ? reviewedAt.value : this.reviewedAt,
+    regretLevel: regretLevel.present ? regretLevel.value : this.regretLevel,
+    score: score.present ? score.value : this.score,
+    reasonKey: reasonKey.present ? reasonKey.value : this.reasonKey,
+    solution: solution.present ? solution.value : this.solution,
+    successFactor: successFactor.present
+        ? successFactor.value
+        : this.successFactor,
+    reproductionStrategy: reproductionStrategy.present
+        ? reproductionStrategy.value
+        : this.reproductionStrategy,
+    memo: memo.present ? memo.value : this.memo,
   );
   Decision copyWithCompanion(DecisionsCompanion data) {
     return Decision(
@@ -457,6 +739,22 @@ class Decision extends DataClass implements Insertable<Decision> {
       lastUsedAt: data.lastUsedAt.present
           ? data.lastUsedAt.value
           : this.lastUsedAt,
+      reviewedAt: data.reviewedAt.present
+          ? data.reviewedAt.value
+          : this.reviewedAt,
+      regretLevel: data.regretLevel.present
+          ? data.regretLevel.value
+          : this.regretLevel,
+      score: data.score.present ? data.score.value : this.score,
+      reasonKey: data.reasonKey.present ? data.reasonKey.value : this.reasonKey,
+      solution: data.solution.present ? data.solution.value : this.solution,
+      successFactor: data.successFactor.present
+          ? data.successFactor.value
+          : this.successFactor,
+      reproductionStrategy: data.reproductionStrategy.present
+          ? data.reproductionStrategy.value
+          : this.reproductionStrategy,
+      memo: data.memo.present ? data.memo.value : this.memo,
     );
   }
 
@@ -473,7 +771,15 @@ class Decision extends DataClass implements Insertable<Decision> {
           ..write('retroOffsetType: $retroOffsetType, ')
           ..write('retroAt: $retroAt, ')
           ..write('status: $status, ')
-          ..write('lastUsedAt: $lastUsedAt')
+          ..write('lastUsedAt: $lastUsedAt, ')
+          ..write('reviewedAt: $reviewedAt, ')
+          ..write('regretLevel: $regretLevel, ')
+          ..write('score: $score, ')
+          ..write('reasonKey: $reasonKey, ')
+          ..write('solution: $solution, ')
+          ..write('successFactor: $successFactor, ')
+          ..write('reproductionStrategy: $reproductionStrategy, ')
+          ..write('memo: $memo')
           ..write(')'))
         .toString();
   }
@@ -491,6 +797,14 @@ class Decision extends DataClass implements Insertable<Decision> {
     retroAt,
     status,
     lastUsedAt,
+    reviewedAt,
+    regretLevel,
+    score,
+    reasonKey,
+    solution,
+    successFactor,
+    reproductionStrategy,
+    memo,
   );
   @override
   bool operator ==(Object other) =>
@@ -506,7 +820,15 @@ class Decision extends DataClass implements Insertable<Decision> {
           other.retroOffsetType == this.retroOffsetType &&
           other.retroAt == this.retroAt &&
           other.status == this.status &&
-          other.lastUsedAt == this.lastUsedAt);
+          other.lastUsedAt == this.lastUsedAt &&
+          other.reviewedAt == this.reviewedAt &&
+          other.regretLevel == this.regretLevel &&
+          other.score == this.score &&
+          other.reasonKey == this.reasonKey &&
+          other.solution == this.solution &&
+          other.successFactor == this.successFactor &&
+          other.reproductionStrategy == this.reproductionStrategy &&
+          other.memo == this.memo);
 }
 
 class DecisionsCompanion extends UpdateCompanion<Decision> {
@@ -521,6 +843,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
   final Value<DateTime> retroAt;
   final Value<DecisionStatus> status;
   final Value<DateTime> lastUsedAt;
+  final Value<DateTime?> reviewedAt;
+  final Value<RegretLevel?> regretLevel;
+  final Value<int?> score;
+  final Value<String?> reasonKey;
+  final Value<String?> solution;
+  final Value<String?> successFactor;
+  final Value<String?> reproductionStrategy;
+  final Value<String?> memo;
   final Value<int> rowid;
   const DecisionsCompanion({
     this.id = const Value.absent(),
@@ -534,6 +864,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     this.retroAt = const Value.absent(),
     this.status = const Value.absent(),
     this.lastUsedAt = const Value.absent(),
+    this.reviewedAt = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.score = const Value.absent(),
+    this.reasonKey = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.successFactor = const Value.absent(),
+    this.reproductionStrategy = const Value.absent(),
+    this.memo = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DecisionsCompanion.insert({
@@ -548,6 +886,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     required DateTime retroAt,
     required DecisionStatus status,
     required DateTime lastUsedAt,
+    this.reviewedAt = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.score = const Value.absent(),
+    this.reasonKey = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.successFactor = const Value.absent(),
+    this.reproductionStrategy = const Value.absent(),
+    this.memo = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        textContent = Value(textContent),
@@ -569,6 +915,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     Expression<DateTime>? retroAt,
     Expression<int>? status,
     Expression<DateTime>? lastUsedAt,
+    Expression<DateTime>? reviewedAt,
+    Expression<int>? regretLevel,
+    Expression<int>? score,
+    Expression<String>? reasonKey,
+    Expression<String>? solution,
+    Expression<String>? successFactor,
+    Expression<String>? reproductionStrategy,
+    Expression<String>? memo,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -583,6 +937,15 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
       if (retroAt != null) 'retro_at': retroAt,
       if (status != null) 'status': status,
       if (lastUsedAt != null) 'last_used_at': lastUsedAt,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt,
+      if (regretLevel != null) 'regret_level': regretLevel,
+      if (score != null) 'score': score,
+      if (reasonKey != null) 'reason_key': reasonKey,
+      if (solution != null) 'solution': solution,
+      if (successFactor != null) 'success_factor': successFactor,
+      if (reproductionStrategy != null)
+        'reproduction_strategy': reproductionStrategy,
+      if (memo != null) 'memo': memo,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -599,6 +962,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     Value<DateTime>? retroAt,
     Value<DecisionStatus>? status,
     Value<DateTime>? lastUsedAt,
+    Value<DateTime?>? reviewedAt,
+    Value<RegretLevel?>? regretLevel,
+    Value<int?>? score,
+    Value<String?>? reasonKey,
+    Value<String?>? solution,
+    Value<String?>? successFactor,
+    Value<String?>? reproductionStrategy,
+    Value<String?>? memo,
     Value<int>? rowid,
   }) {
     return DecisionsCompanion(
@@ -613,6 +984,14 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
       retroAt: retroAt ?? this.retroAt,
       status: status ?? this.status,
       lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      regretLevel: regretLevel ?? this.regretLevel,
+      score: score ?? this.score,
+      reasonKey: reasonKey ?? this.reasonKey,
+      solution: solution ?? this.solution,
+      successFactor: successFactor ?? this.successFactor,
+      reproductionStrategy: reproductionStrategy ?? this.reproductionStrategy,
+      memo: memo ?? this.memo,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -663,754 +1042,16 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     if (lastUsedAt.present) {
       map['last_used_at'] = Variable<DateTime>(lastUsedAt.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('DecisionsCompanion(')
-          ..write('id: $id, ')
-          ..write('textContent: $textContent, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('driver: $driver, ')
-          ..write('gain: $gain, ')
-          ..write('lose: $lose, ')
-          ..write('note: $note, ')
-          ..write('retroOffsetType: $retroOffsetType, ')
-          ..write('retroAt: $retroAt, ')
-          ..write('status: $status, ')
-          ..write('lastUsedAt: $lastUsedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, Review> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ReviewsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _logIdMeta = const VerificationMeta('logId');
-  @override
-  late final GeneratedColumn<String> logId = GeneratedColumn<String>(
-    'log_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES decisions (id)',
-    ),
-  );
-  static const VerificationMeta _reviewedAtMeta = const VerificationMeta(
-    'reviewedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> reviewedAt = GeneratedColumn<DateTime>(
-    'reviewed_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<ExecutionStatus, int> execution =
-      GeneratedColumn<int>(
-        'execution',
-        aliasedName,
-        false,
-        type: DriftSqlType.int,
-        requiredDuringInsert: true,
-      ).withConverter<ExecutionStatus>($ReviewsTable.$converterexecution);
-  static const VerificationMeta _convictionScoreMeta = const VerificationMeta(
-    'convictionScore',
-  );
-  @override
-  late final GeneratedColumn<int> convictionScore = GeneratedColumn<int>(
-    'conviction_score',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _wouldRepeatMeta = const VerificationMeta(
-    'wouldRepeat',
-  );
-  @override
-  late final GeneratedColumn<bool> wouldRepeat = GeneratedColumn<bool>(
-    'would_repeat',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("would_repeat" IN (0, 1))',
-    ),
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<AdjustmentType?, int> adjustment =
-      GeneratedColumn<int>(
-        'adjustment',
-        aliasedName,
-        true,
-        type: DriftSqlType.int,
-        requiredDuringInsert: false,
-      ).withConverter<AdjustmentType?>($ReviewsTable.$converteradjustmentn);
-  @override
-  late final GeneratedColumnWithTypeConverter<RegretLevel?, int> regretLevel =
-      GeneratedColumn<int>(
-        'regret_level',
-        aliasedName,
-        true,
-        type: DriftSqlType.int,
-        requiredDuringInsert: false,
-      ).withConverter<RegretLevel?>($ReviewsTable.$converterregretLeveln);
-  static const VerificationMeta _reasonKeyMeta = const VerificationMeta(
-    'reasonKey',
-  );
-  @override
-  late final GeneratedColumn<String> reasonKey = GeneratedColumn<String>(
-    'reason_key',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _solutionMeta = const VerificationMeta(
-    'solution',
-  );
-  @override
-  late final GeneratedColumn<String> solution = GeneratedColumn<String>(
-    'solution',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _successFactorMeta = const VerificationMeta(
-    'successFactor',
-  );
-  @override
-  late final GeneratedColumn<String> successFactor = GeneratedColumn<String>(
-    'success_factor',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _reproductionStrategyMeta =
-      const VerificationMeta('reproductionStrategy');
-  @override
-  late final GeneratedColumn<String> reproductionStrategy =
-      GeneratedColumn<String>(
-        'reproduction_strategy',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _memoMeta = const VerificationMeta('memo');
-  @override
-  late final GeneratedColumn<String> memo = GeneratedColumn<String>(
-    'memo',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    logId,
-    reviewedAt,
-    execution,
-    convictionScore,
-    wouldRepeat,
-    adjustment,
-    regretLevel,
-    reasonKey,
-    solution,
-    successFactor,
-    reproductionStrategy,
-    memo,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'reviews';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Review> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('log_id')) {
-      context.handle(
-        _logIdMeta,
-        logId.isAcceptableOrUnknown(data['log_id']!, _logIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_logIdMeta);
-    }
-    if (data.containsKey('reviewed_at')) {
-      context.handle(
-        _reviewedAtMeta,
-        reviewedAt.isAcceptableOrUnknown(data['reviewed_at']!, _reviewedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_reviewedAtMeta);
-    }
-    if (data.containsKey('conviction_score')) {
-      context.handle(
-        _convictionScoreMeta,
-        convictionScore.isAcceptableOrUnknown(
-          data['conviction_score']!,
-          _convictionScoreMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_convictionScoreMeta);
-    }
-    if (data.containsKey('would_repeat')) {
-      context.handle(
-        _wouldRepeatMeta,
-        wouldRepeat.isAcceptableOrUnknown(
-          data['would_repeat']!,
-          _wouldRepeatMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_wouldRepeatMeta);
-    }
-    if (data.containsKey('reason_key')) {
-      context.handle(
-        _reasonKeyMeta,
-        reasonKey.isAcceptableOrUnknown(data['reason_key']!, _reasonKeyMeta),
-      );
-    }
-    if (data.containsKey('solution')) {
-      context.handle(
-        _solutionMeta,
-        solution.isAcceptableOrUnknown(data['solution']!, _solutionMeta),
-      );
-    }
-    if (data.containsKey('success_factor')) {
-      context.handle(
-        _successFactorMeta,
-        successFactor.isAcceptableOrUnknown(
-          data['success_factor']!,
-          _successFactorMeta,
-        ),
-      );
-    }
-    if (data.containsKey('reproduction_strategy')) {
-      context.handle(
-        _reproductionStrategyMeta,
-        reproductionStrategy.isAcceptableOrUnknown(
-          data['reproduction_strategy']!,
-          _reproductionStrategyMeta,
-        ),
-      );
-    }
-    if (data.containsKey('memo')) {
-      context.handle(
-        _memoMeta,
-        memo.isAcceptableOrUnknown(data['memo']!, _memoMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {logId};
-  @override
-  Review map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Review(
-      logId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}log_id'],
-      )!,
-      reviewedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}reviewed_at'],
-      )!,
-      execution: $ReviewsTable.$converterexecution.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}execution'],
-        )!,
-      ),
-      convictionScore: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}conviction_score'],
-      )!,
-      wouldRepeat: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}would_repeat'],
-      )!,
-      adjustment: $ReviewsTable.$converteradjustmentn.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}adjustment'],
-        ),
-      ),
-      regretLevel: $ReviewsTable.$converterregretLeveln.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}regret_level'],
-        ),
-      ),
-      reasonKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}reason_key'],
-      ),
-      solution: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}solution'],
-      ),
-      successFactor: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}success_factor'],
-      ),
-      reproductionStrategy: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}reproduction_strategy'],
-      ),
-      memo: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}memo'],
-      ),
-    );
-  }
-
-  @override
-  $ReviewsTable createAlias(String alias) {
-    return $ReviewsTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<ExecutionStatus, int, int> $converterexecution =
-      const EnumIndexConverter<ExecutionStatus>(ExecutionStatus.values);
-  static JsonTypeConverter2<AdjustmentType, int, int> $converteradjustment =
-      const EnumIndexConverter<AdjustmentType>(AdjustmentType.values);
-  static JsonTypeConverter2<AdjustmentType?, int?, int?> $converteradjustmentn =
-      JsonTypeConverter2.asNullable($converteradjustment);
-  static JsonTypeConverter2<RegretLevel, int, int> $converterregretLevel =
-      const EnumIndexConverter<RegretLevel>(RegretLevel.values);
-  static JsonTypeConverter2<RegretLevel?, int?, int?> $converterregretLeveln =
-      JsonTypeConverter2.asNullable($converterregretLevel);
-}
-
-class Review extends DataClass implements Insertable<Review> {
-  final String logId;
-  final DateTime reviewedAt;
-  final ExecutionStatus execution;
-  final int convictionScore;
-  final bool wouldRepeat;
-  final AdjustmentType? adjustment;
-  final RegretLevel? regretLevel;
-  final String? reasonKey;
-  final String? solution;
-  final String? successFactor;
-  final String? reproductionStrategy;
-  final String? memo;
-  const Review({
-    required this.logId,
-    required this.reviewedAt,
-    required this.execution,
-    required this.convictionScore,
-    required this.wouldRepeat,
-    this.adjustment,
-    this.regretLevel,
-    this.reasonKey,
-    this.solution,
-    this.successFactor,
-    this.reproductionStrategy,
-    this.memo,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['log_id'] = Variable<String>(logId);
-    map['reviewed_at'] = Variable<DateTime>(reviewedAt);
-    {
-      map['execution'] = Variable<int>(
-        $ReviewsTable.$converterexecution.toSql(execution),
-      );
-    }
-    map['conviction_score'] = Variable<int>(convictionScore);
-    map['would_repeat'] = Variable<bool>(wouldRepeat);
-    if (!nullToAbsent || adjustment != null) {
-      map['adjustment'] = Variable<int>(
-        $ReviewsTable.$converteradjustmentn.toSql(adjustment),
-      );
-    }
-    if (!nullToAbsent || regretLevel != null) {
-      map['regret_level'] = Variable<int>(
-        $ReviewsTable.$converterregretLeveln.toSql(regretLevel),
-      );
-    }
-    if (!nullToAbsent || reasonKey != null) {
-      map['reason_key'] = Variable<String>(reasonKey);
-    }
-    if (!nullToAbsent || solution != null) {
-      map['solution'] = Variable<String>(solution);
-    }
-    if (!nullToAbsent || successFactor != null) {
-      map['success_factor'] = Variable<String>(successFactor);
-    }
-    if (!nullToAbsent || reproductionStrategy != null) {
-      map['reproduction_strategy'] = Variable<String>(reproductionStrategy);
-    }
-    if (!nullToAbsent || memo != null) {
-      map['memo'] = Variable<String>(memo);
-    }
-    return map;
-  }
-
-  ReviewsCompanion toCompanion(bool nullToAbsent) {
-    return ReviewsCompanion(
-      logId: Value(logId),
-      reviewedAt: Value(reviewedAt),
-      execution: Value(execution),
-      convictionScore: Value(convictionScore),
-      wouldRepeat: Value(wouldRepeat),
-      adjustment: adjustment == null && nullToAbsent
-          ? const Value.absent()
-          : Value(adjustment),
-      regretLevel: regretLevel == null && nullToAbsent
-          ? const Value.absent()
-          : Value(regretLevel),
-      reasonKey: reasonKey == null && nullToAbsent
-          ? const Value.absent()
-          : Value(reasonKey),
-      solution: solution == null && nullToAbsent
-          ? const Value.absent()
-          : Value(solution),
-      successFactor: successFactor == null && nullToAbsent
-          ? const Value.absent()
-          : Value(successFactor),
-      reproductionStrategy: reproductionStrategy == null && nullToAbsent
-          ? const Value.absent()
-          : Value(reproductionStrategy),
-      memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
-    );
-  }
-
-  factory Review.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Review(
-      logId: serializer.fromJson<String>(json['logId']),
-      reviewedAt: serializer.fromJson<DateTime>(json['reviewedAt']),
-      execution: $ReviewsTable.$converterexecution.fromJson(
-        serializer.fromJson<int>(json['execution']),
-      ),
-      convictionScore: serializer.fromJson<int>(json['convictionScore']),
-      wouldRepeat: serializer.fromJson<bool>(json['wouldRepeat']),
-      adjustment: $ReviewsTable.$converteradjustmentn.fromJson(
-        serializer.fromJson<int?>(json['adjustment']),
-      ),
-      regretLevel: $ReviewsTable.$converterregretLeveln.fromJson(
-        serializer.fromJson<int?>(json['regretLevel']),
-      ),
-      reasonKey: serializer.fromJson<String?>(json['reasonKey']),
-      solution: serializer.fromJson<String?>(json['solution']),
-      successFactor: serializer.fromJson<String?>(json['successFactor']),
-      reproductionStrategy: serializer.fromJson<String?>(
-        json['reproductionStrategy'],
-      ),
-      memo: serializer.fromJson<String?>(json['memo']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'logId': serializer.toJson<String>(logId),
-      'reviewedAt': serializer.toJson<DateTime>(reviewedAt),
-      'execution': serializer.toJson<int>(
-        $ReviewsTable.$converterexecution.toJson(execution),
-      ),
-      'convictionScore': serializer.toJson<int>(convictionScore),
-      'wouldRepeat': serializer.toJson<bool>(wouldRepeat),
-      'adjustment': serializer.toJson<int?>(
-        $ReviewsTable.$converteradjustmentn.toJson(adjustment),
-      ),
-      'regretLevel': serializer.toJson<int?>(
-        $ReviewsTable.$converterregretLeveln.toJson(regretLevel),
-      ),
-      'reasonKey': serializer.toJson<String?>(reasonKey),
-      'solution': serializer.toJson<String?>(solution),
-      'successFactor': serializer.toJson<String?>(successFactor),
-      'reproductionStrategy': serializer.toJson<String?>(reproductionStrategy),
-      'memo': serializer.toJson<String?>(memo),
-    };
-  }
-
-  Review copyWith({
-    String? logId,
-    DateTime? reviewedAt,
-    ExecutionStatus? execution,
-    int? convictionScore,
-    bool? wouldRepeat,
-    Value<AdjustmentType?> adjustment = const Value.absent(),
-    Value<RegretLevel?> regretLevel = const Value.absent(),
-    Value<String?> reasonKey = const Value.absent(),
-    Value<String?> solution = const Value.absent(),
-    Value<String?> successFactor = const Value.absent(),
-    Value<String?> reproductionStrategy = const Value.absent(),
-    Value<String?> memo = const Value.absent(),
-  }) => Review(
-    logId: logId ?? this.logId,
-    reviewedAt: reviewedAt ?? this.reviewedAt,
-    execution: execution ?? this.execution,
-    convictionScore: convictionScore ?? this.convictionScore,
-    wouldRepeat: wouldRepeat ?? this.wouldRepeat,
-    adjustment: adjustment.present ? adjustment.value : this.adjustment,
-    regretLevel: regretLevel.present ? regretLevel.value : this.regretLevel,
-    reasonKey: reasonKey.present ? reasonKey.value : this.reasonKey,
-    solution: solution.present ? solution.value : this.solution,
-    successFactor: successFactor.present
-        ? successFactor.value
-        : this.successFactor,
-    reproductionStrategy: reproductionStrategy.present
-        ? reproductionStrategy.value
-        : this.reproductionStrategy,
-    memo: memo.present ? memo.value : this.memo,
-  );
-  Review copyWithCompanion(ReviewsCompanion data) {
-    return Review(
-      logId: data.logId.present ? data.logId.value : this.logId,
-      reviewedAt: data.reviewedAt.present
-          ? data.reviewedAt.value
-          : this.reviewedAt,
-      execution: data.execution.present ? data.execution.value : this.execution,
-      convictionScore: data.convictionScore.present
-          ? data.convictionScore.value
-          : this.convictionScore,
-      wouldRepeat: data.wouldRepeat.present
-          ? data.wouldRepeat.value
-          : this.wouldRepeat,
-      adjustment: data.adjustment.present
-          ? data.adjustment.value
-          : this.adjustment,
-      regretLevel: data.regretLevel.present
-          ? data.regretLevel.value
-          : this.regretLevel,
-      reasonKey: data.reasonKey.present ? data.reasonKey.value : this.reasonKey,
-      solution: data.solution.present ? data.solution.value : this.solution,
-      successFactor: data.successFactor.present
-          ? data.successFactor.value
-          : this.successFactor,
-      reproductionStrategy: data.reproductionStrategy.present
-          ? data.reproductionStrategy.value
-          : this.reproductionStrategy,
-      memo: data.memo.present ? data.memo.value : this.memo,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Review(')
-          ..write('logId: $logId, ')
-          ..write('reviewedAt: $reviewedAt, ')
-          ..write('execution: $execution, ')
-          ..write('convictionScore: $convictionScore, ')
-          ..write('wouldRepeat: $wouldRepeat, ')
-          ..write('adjustment: $adjustment, ')
-          ..write('regretLevel: $regretLevel, ')
-          ..write('reasonKey: $reasonKey, ')
-          ..write('solution: $solution, ')
-          ..write('successFactor: $successFactor, ')
-          ..write('reproductionStrategy: $reproductionStrategy, ')
-          ..write('memo: $memo')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    logId,
-    reviewedAt,
-    execution,
-    convictionScore,
-    wouldRepeat,
-    adjustment,
-    regretLevel,
-    reasonKey,
-    solution,
-    successFactor,
-    reproductionStrategy,
-    memo,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Review &&
-          other.logId == this.logId &&
-          other.reviewedAt == this.reviewedAt &&
-          other.execution == this.execution &&
-          other.convictionScore == this.convictionScore &&
-          other.wouldRepeat == this.wouldRepeat &&
-          other.adjustment == this.adjustment &&
-          other.regretLevel == this.regretLevel &&
-          other.reasonKey == this.reasonKey &&
-          other.solution == this.solution &&
-          other.successFactor == this.successFactor &&
-          other.reproductionStrategy == this.reproductionStrategy &&
-          other.memo == this.memo);
-}
-
-class ReviewsCompanion extends UpdateCompanion<Review> {
-  final Value<String> logId;
-  final Value<DateTime> reviewedAt;
-  final Value<ExecutionStatus> execution;
-  final Value<int> convictionScore;
-  final Value<bool> wouldRepeat;
-  final Value<AdjustmentType?> adjustment;
-  final Value<RegretLevel?> regretLevel;
-  final Value<String?> reasonKey;
-  final Value<String?> solution;
-  final Value<String?> successFactor;
-  final Value<String?> reproductionStrategy;
-  final Value<String?> memo;
-  final Value<int> rowid;
-  const ReviewsCompanion({
-    this.logId = const Value.absent(),
-    this.reviewedAt = const Value.absent(),
-    this.execution = const Value.absent(),
-    this.convictionScore = const Value.absent(),
-    this.wouldRepeat = const Value.absent(),
-    this.adjustment = const Value.absent(),
-    this.regretLevel = const Value.absent(),
-    this.reasonKey = const Value.absent(),
-    this.solution = const Value.absent(),
-    this.successFactor = const Value.absent(),
-    this.reproductionStrategy = const Value.absent(),
-    this.memo = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ReviewsCompanion.insert({
-    required String logId,
-    required DateTime reviewedAt,
-    required ExecutionStatus execution,
-    required int convictionScore,
-    required bool wouldRepeat,
-    this.adjustment = const Value.absent(),
-    this.regretLevel = const Value.absent(),
-    this.reasonKey = const Value.absent(),
-    this.solution = const Value.absent(),
-    this.successFactor = const Value.absent(),
-    this.reproductionStrategy = const Value.absent(),
-    this.memo = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : logId = Value(logId),
-       reviewedAt = Value(reviewedAt),
-       execution = Value(execution),
-       convictionScore = Value(convictionScore),
-       wouldRepeat = Value(wouldRepeat);
-  static Insertable<Review> custom({
-    Expression<String>? logId,
-    Expression<DateTime>? reviewedAt,
-    Expression<int>? execution,
-    Expression<int>? convictionScore,
-    Expression<bool>? wouldRepeat,
-    Expression<int>? adjustment,
-    Expression<int>? regretLevel,
-    Expression<String>? reasonKey,
-    Expression<String>? solution,
-    Expression<String>? successFactor,
-    Expression<String>? reproductionStrategy,
-    Expression<String>? memo,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (logId != null) 'log_id': logId,
-      if (reviewedAt != null) 'reviewed_at': reviewedAt,
-      if (execution != null) 'execution': execution,
-      if (convictionScore != null) 'conviction_score': convictionScore,
-      if (wouldRepeat != null) 'would_repeat': wouldRepeat,
-      if (adjustment != null) 'adjustment': adjustment,
-      if (regretLevel != null) 'regret_level': regretLevel,
-      if (reasonKey != null) 'reason_key': reasonKey,
-      if (solution != null) 'solution': solution,
-      if (successFactor != null) 'success_factor': successFactor,
-      if (reproductionStrategy != null)
-        'reproduction_strategy': reproductionStrategy,
-      if (memo != null) 'memo': memo,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ReviewsCompanion copyWith({
-    Value<String>? logId,
-    Value<DateTime>? reviewedAt,
-    Value<ExecutionStatus>? execution,
-    Value<int>? convictionScore,
-    Value<bool>? wouldRepeat,
-    Value<AdjustmentType?>? adjustment,
-    Value<RegretLevel?>? regretLevel,
-    Value<String?>? reasonKey,
-    Value<String?>? solution,
-    Value<String?>? successFactor,
-    Value<String?>? reproductionStrategy,
-    Value<String?>? memo,
-    Value<int>? rowid,
-  }) {
-    return ReviewsCompanion(
-      logId: logId ?? this.logId,
-      reviewedAt: reviewedAt ?? this.reviewedAt,
-      execution: execution ?? this.execution,
-      convictionScore: convictionScore ?? this.convictionScore,
-      wouldRepeat: wouldRepeat ?? this.wouldRepeat,
-      adjustment: adjustment ?? this.adjustment,
-      regretLevel: regretLevel ?? this.regretLevel,
-      reasonKey: reasonKey ?? this.reasonKey,
-      solution: solution ?? this.solution,
-      successFactor: successFactor ?? this.successFactor,
-      reproductionStrategy: reproductionStrategy ?? this.reproductionStrategy,
-      memo: memo ?? this.memo,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (logId.present) {
-      map['log_id'] = Variable<String>(logId.value);
-    }
     if (reviewedAt.present) {
       map['reviewed_at'] = Variable<DateTime>(reviewedAt.value);
     }
-    if (execution.present) {
-      map['execution'] = Variable<int>(
-        $ReviewsTable.$converterexecution.toSql(execution.value),
-      );
-    }
-    if (convictionScore.present) {
-      map['conviction_score'] = Variable<int>(convictionScore.value);
-    }
-    if (wouldRepeat.present) {
-      map['would_repeat'] = Variable<bool>(wouldRepeat.value);
-    }
-    if (adjustment.present) {
-      map['adjustment'] = Variable<int>(
-        $ReviewsTable.$converteradjustmentn.toSql(adjustment.value),
-      );
-    }
     if (regretLevel.present) {
       map['regret_level'] = Variable<int>(
-        $ReviewsTable.$converterregretLeveln.toSql(regretLevel.value),
+        $DecisionsTable.$converterregretLeveln.toSql(regretLevel.value),
       );
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
     }
     if (reasonKey.present) {
       map['reason_key'] = Variable<String>(reasonKey.value);
@@ -1437,14 +1078,21 @@ class ReviewsCompanion extends UpdateCompanion<Review> {
 
   @override
   String toString() {
-    return (StringBuffer('ReviewsCompanion(')
-          ..write('logId: $logId, ')
+    return (StringBuffer('DecisionsCompanion(')
+          ..write('id: $id, ')
+          ..write('textContent: $textContent, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('driver: $driver, ')
+          ..write('gain: $gain, ')
+          ..write('lose: $lose, ')
+          ..write('note: $note, ')
+          ..write('retroOffsetType: $retroOffsetType, ')
+          ..write('retroAt: $retroAt, ')
+          ..write('status: $status, ')
+          ..write('lastUsedAt: $lastUsedAt, ')
           ..write('reviewedAt: $reviewedAt, ')
-          ..write('execution: $execution, ')
-          ..write('convictionScore: $convictionScore, ')
-          ..write('wouldRepeat: $wouldRepeat, ')
-          ..write('adjustment: $adjustment, ')
           ..write('regretLevel: $regretLevel, ')
+          ..write('score: $score, ')
           ..write('reasonKey: $reasonKey, ')
           ..write('solution: $solution, ')
           ..write('successFactor: $successFactor, ')
@@ -1586,17 +1234,23 @@ class $DeclarationsTable extends Declarations
     requiredDuringInsert: false,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<ActionReviewStatus?, int>
-  lastReviewStatus =
+  late final GeneratedColumnWithTypeConverter<RegretLevel?, int> regretLevel =
       GeneratedColumn<int>(
-        'last_review_status',
+        'regret_level',
         aliasedName,
         true,
         type: DriftSqlType.int,
         requiredDuringInsert: false,
-      ).withConverter<ActionReviewStatus?>(
-        $DeclarationsTable.$converterlastReviewStatusn,
-      );
+      ).withConverter<RegretLevel?>($DeclarationsTable.$converterregretLeveln);
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1610,7 +1264,8 @@ class $DeclarationsTable extends Declarations
     completedAt,
     status,
     parentId,
-    lastReviewStatus,
+    regretLevel,
+    score,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1710,6 +1365,12 @@ class $DeclarationsTable extends Declarations
         parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
       );
     }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    }
     return context;
   }
 
@@ -1765,11 +1426,15 @@ class $DeclarationsTable extends Declarations
         DriftSqlType.int,
         data['${effectivePrefix}parent_id'],
       ),
-      lastReviewStatus: $DeclarationsTable.$converterlastReviewStatusn.fromSql(
+      regretLevel: $DeclarationsTable.$converterregretLeveln.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}last_review_status'],
+          data['${effectivePrefix}regret_level'],
         ),
+      ),
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
       ),
     );
   }
@@ -1781,14 +1446,10 @@ class $DeclarationsTable extends Declarations
 
   static JsonTypeConverter2<DeclarationStatus, int, int> $converterstatus =
       const EnumIndexConverter<DeclarationStatus>(DeclarationStatus.values);
-  static JsonTypeConverter2<ActionReviewStatus, int, int>
-  $converterlastReviewStatus = const EnumIndexConverter<ActionReviewStatus>(
-    ActionReviewStatus.values,
-  );
-  static JsonTypeConverter2<ActionReviewStatus?, int?, int?>
-  $converterlastReviewStatusn = JsonTypeConverter2.asNullable(
-    $converterlastReviewStatus,
-  );
+  static JsonTypeConverter2<RegretLevel, int, int> $converterregretLevel =
+      const EnumIndexConverter<RegretLevel>(RegretLevel.values);
+  static JsonTypeConverter2<RegretLevel?, int?, int?> $converterregretLeveln =
+      JsonTypeConverter2.asNullable($converterregretLevel);
 }
 
 class Declaration extends DataClass implements Insertable<Declaration> {
@@ -1803,7 +1464,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
   final DateTime? completedAt;
   final DeclarationStatus status;
   final int? parentId;
-  final ActionReviewStatus? lastReviewStatus;
+  final RegretLevel? regretLevel;
+  final int? score;
   const Declaration({
     required this.id,
     required this.logId,
@@ -1816,7 +1478,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     this.completedAt,
     required this.status,
     this.parentId,
-    this.lastReviewStatus,
+    this.regretLevel,
+    this.score,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1840,10 +1503,13 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     if (!nullToAbsent || parentId != null) {
       map['parent_id'] = Variable<int>(parentId);
     }
-    if (!nullToAbsent || lastReviewStatus != null) {
-      map['last_review_status'] = Variable<int>(
-        $DeclarationsTable.$converterlastReviewStatusn.toSql(lastReviewStatus),
+    if (!nullToAbsent || regretLevel != null) {
+      map['regret_level'] = Variable<int>(
+        $DeclarationsTable.$converterregretLeveln.toSql(regretLevel),
       );
+    }
+    if (!nullToAbsent || score != null) {
+      map['score'] = Variable<int>(score);
     }
     return map;
   }
@@ -1865,9 +1531,12 @@ class Declaration extends DataClass implements Insertable<Declaration> {
       parentId: parentId == null && nullToAbsent
           ? const Value.absent()
           : Value(parentId),
-      lastReviewStatus: lastReviewStatus == null && nullToAbsent
+      regretLevel: regretLevel == null && nullToAbsent
           ? const Value.absent()
-          : Value(lastReviewStatus),
+          : Value(regretLevel),
+      score: score == null && nullToAbsent
+          ? const Value.absent()
+          : Value(score),
     );
   }
 
@@ -1890,9 +1559,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
         serializer.fromJson<int>(json['status']),
       ),
       parentId: serializer.fromJson<int?>(json['parentId']),
-      lastReviewStatus: $DeclarationsTable.$converterlastReviewStatusn.fromJson(
-        serializer.fromJson<int?>(json['lastReviewStatus']),
+      regretLevel: $DeclarationsTable.$converterregretLeveln.fromJson(
+        serializer.fromJson<int?>(json['regretLevel']),
       ),
+      score: serializer.fromJson<int?>(json['score']),
     );
   }
   @override
@@ -1912,9 +1582,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
         $DeclarationsTable.$converterstatus.toJson(status),
       ),
       'parentId': serializer.toJson<int?>(parentId),
-      'lastReviewStatus': serializer.toJson<int?>(
-        $DeclarationsTable.$converterlastReviewStatusn.toJson(lastReviewStatus),
+      'regretLevel': serializer.toJson<int?>(
+        $DeclarationsTable.$converterregretLeveln.toJson(regretLevel),
       ),
+      'score': serializer.toJson<int?>(score),
     };
   }
 
@@ -1930,7 +1601,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     Value<DateTime?> completedAt = const Value.absent(),
     DeclarationStatus? status,
     Value<int?> parentId = const Value.absent(),
-    Value<ActionReviewStatus?> lastReviewStatus = const Value.absent(),
+    Value<RegretLevel?> regretLevel = const Value.absent(),
+    Value<int?> score = const Value.absent(),
   }) => Declaration(
     id: id ?? this.id,
     logId: logId ?? this.logId,
@@ -1943,9 +1615,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
     status: status ?? this.status,
     parentId: parentId.present ? parentId.value : this.parentId,
-    lastReviewStatus: lastReviewStatus.present
-        ? lastReviewStatus.value
-        : this.lastReviewStatus,
+    regretLevel: regretLevel.present ? regretLevel.value : this.regretLevel,
+    score: score.present ? score.value : this.score,
   );
   Declaration copyWithCompanion(DeclarationsCompanion data) {
     return Declaration(
@@ -1970,9 +1641,10 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           : this.completedAt,
       status: data.status.present ? data.status.value : this.status,
       parentId: data.parentId.present ? data.parentId.value : this.parentId,
-      lastReviewStatus: data.lastReviewStatus.present
-          ? data.lastReviewStatus.value
-          : this.lastReviewStatus,
+      regretLevel: data.regretLevel.present
+          ? data.regretLevel.value
+          : this.regretLevel,
+      score: data.score.present ? data.score.value : this.score,
     );
   }
 
@@ -1990,7 +1662,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           ..write('completedAt: $completedAt, ')
           ..write('status: $status, ')
           ..write('parentId: $parentId, ')
-          ..write('lastReviewStatus: $lastReviewStatus')
+          ..write('regretLevel: $regretLevel, ')
+          ..write('score: $score')
           ..write(')'))
         .toString();
   }
@@ -2008,7 +1681,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     completedAt,
     status,
     parentId,
-    lastReviewStatus,
+    regretLevel,
+    score,
   );
   @override
   bool operator ==(Object other) =>
@@ -2025,7 +1699,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           other.completedAt == this.completedAt &&
           other.status == this.status &&
           other.parentId == this.parentId &&
-          other.lastReviewStatus == this.lastReviewStatus);
+          other.regretLevel == this.regretLevel &&
+          other.score == this.score);
 }
 
 class DeclarationsCompanion extends UpdateCompanion<Declaration> {
@@ -2040,7 +1715,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
   final Value<DateTime?> completedAt;
   final Value<DeclarationStatus> status;
   final Value<int?> parentId;
-  final Value<ActionReviewStatus?> lastReviewStatus;
+  final Value<RegretLevel?> regretLevel;
+  final Value<int?> score;
   const DeclarationsCompanion({
     this.id = const Value.absent(),
     this.logId = const Value.absent(),
@@ -2053,7 +1729,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     this.completedAt = const Value.absent(),
     this.status = const Value.absent(),
     this.parentId = const Value.absent(),
-    this.lastReviewStatus = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.score = const Value.absent(),
   });
   DeclarationsCompanion.insert({
     this.id = const Value.absent(),
@@ -2067,7 +1744,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     this.completedAt = const Value.absent(),
     this.status = const Value.absent(),
     this.parentId = const Value.absent(),
-    this.lastReviewStatus = const Value.absent(),
+    this.regretLevel = const Value.absent(),
+    this.score = const Value.absent(),
   }) : logId = Value(logId),
        originalText = Value(originalText),
        reasonLabel = Value(reasonLabel),
@@ -2087,7 +1765,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Expression<DateTime>? completedAt,
     Expression<int>? status,
     Expression<int>? parentId,
-    Expression<int>? lastReviewStatus,
+    Expression<int>? regretLevel,
+    Expression<int>? score,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2101,7 +1780,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       if (completedAt != null) 'completed_at': completedAt,
       if (status != null) 'status': status,
       if (parentId != null) 'parent_id': parentId,
-      if (lastReviewStatus != null) 'last_review_status': lastReviewStatus,
+      if (regretLevel != null) 'regret_level': regretLevel,
+      if (score != null) 'score': score,
     });
   }
 
@@ -2117,7 +1797,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Value<DateTime?>? completedAt,
     Value<DeclarationStatus>? status,
     Value<int?>? parentId,
-    Value<ActionReviewStatus?>? lastReviewStatus,
+    Value<RegretLevel?>? regretLevel,
+    Value<int?>? score,
   }) {
     return DeclarationsCompanion(
       id: id ?? this.id,
@@ -2131,7 +1812,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       completedAt: completedAt ?? this.completedAt,
       status: status ?? this.status,
       parentId: parentId ?? this.parentId,
-      lastReviewStatus: lastReviewStatus ?? this.lastReviewStatus,
+      regretLevel: regretLevel ?? this.regretLevel,
+      score: score ?? this.score,
     );
   }
 
@@ -2173,12 +1855,13 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     if (parentId.present) {
       map['parent_id'] = Variable<int>(parentId.value);
     }
-    if (lastReviewStatus.present) {
-      map['last_review_status'] = Variable<int>(
-        $DeclarationsTable.$converterlastReviewStatusn.toSql(
-          lastReviewStatus.value,
-        ),
+    if (regretLevel.present) {
+      map['regret_level'] = Variable<int>(
+        $DeclarationsTable.$converterregretLeveln.toSql(regretLevel.value),
       );
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
     }
     return map;
   }
@@ -2197,7 +1880,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
           ..write('completedAt: $completedAt, ')
           ..write('status: $status, ')
           ..write('parentId: $parentId, ')
-          ..write('lastReviewStatus: $lastReviewStatus')
+          ..write('regretLevel: $regretLevel, ')
+          ..write('score: $score')
           ..write(')'))
         .toString();
   }
@@ -2207,17 +1891,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $DecisionsTable decisions = $DecisionsTable(this);
-  late final $ReviewsTable reviews = $ReviewsTable(this);
   late final $DeclarationsTable declarations = $DeclarationsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [
-    decisions,
-    reviews,
-    declarations,
-  ];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [decisions, declarations];
 }
 
 typedef $$DecisionsTableCreateCompanionBuilder =
@@ -2233,6 +1912,14 @@ typedef $$DecisionsTableCreateCompanionBuilder =
       required DateTime retroAt,
       required DecisionStatus status,
       required DateTime lastUsedAt,
+      Value<DateTime?> reviewedAt,
+      Value<RegretLevel?> regretLevel,
+      Value<int?> score,
+      Value<String?> reasonKey,
+      Value<String?> solution,
+      Value<String?> successFactor,
+      Value<String?> reproductionStrategy,
+      Value<String?> memo,
       Value<int> rowid,
     });
 typedef $$DecisionsTableUpdateCompanionBuilder =
@@ -2248,31 +1935,20 @@ typedef $$DecisionsTableUpdateCompanionBuilder =
       Value<DateTime> retroAt,
       Value<DecisionStatus> status,
       Value<DateTime> lastUsedAt,
+      Value<DateTime?> reviewedAt,
+      Value<RegretLevel?> regretLevel,
+      Value<int?> score,
+      Value<String?> reasonKey,
+      Value<String?> solution,
+      Value<String?> successFactor,
+      Value<String?> reproductionStrategy,
+      Value<String?> memo,
       Value<int> rowid,
     });
 
 final class $$DecisionsTableReferences
     extends BaseReferences<_$AppDatabase, $DecisionsTable, Decision> {
   $$DecisionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$ReviewsTable, List<Review>> _reviewsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.reviews,
-    aliasName: $_aliasNameGenerator(db.decisions.id, db.reviews.logId),
-  );
-
-  $$ReviewsTableProcessedTableManager get reviewsRefs {
-    final manager = $$ReviewsTableTableManager(
-      $_db,
-      $_db.reviews,
-    ).filter((f) => f.logId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_reviewsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 
   static MultiTypedResultKey<$DeclarationsTable, List<Declaration>>
   _declarationsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -2362,30 +2038,46 @@ class $$DecisionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  Expression<bool> reviewsRefs(
-    Expression<bool> Function($$ReviewsTableFilterComposer f) f,
-  ) {
-    final $$ReviewsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.reviews,
-      getReferencedColumn: (t) => t.logId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ReviewsTableFilterComposer(
-            $db: $db,
-            $table: $db.reviews,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
+  ColumnFilters<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<RegretLevel?, RegretLevel, int>
+  get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reasonKey => $composableBuilder(
+    column: $table.reasonKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memo => $composableBuilder(
+    column: $table.memo,
+    builder: (column) => ColumnFilters(column),
+  );
 
   Expression<bool> declarationsRefs(
     Expression<bool> Function($$DeclarationsTableFilterComposer f) f,
@@ -2476,6 +2168,46 @@ class $$DecisionsTableOrderingComposer
     column: $table.lastUsedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reasonKey => $composableBuilder(
+    column: $table.reasonKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memo => $composableBuilder(
+    column: $table.memo,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DecisionsTableAnnotationComposer
@@ -2527,30 +2259,38 @@ class $$DecisionsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  Expression<T> reviewsRefs<T extends Object>(
-    Expression<T> Function($$ReviewsTableAnnotationComposer a) f,
-  ) {
-    final $$ReviewsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.reviews,
-      getReferencedColumn: (t) => t.logId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ReviewsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.reviews,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
+  GeneratedColumn<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<RegretLevel?, int> get regretLevel =>
+      $composableBuilder(
+        column: $table.regretLevel,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<String> get reasonKey =>
+      $composableBuilder(column: $table.reasonKey, builder: (column) => column);
+
+  GeneratedColumn<String> get solution =>
+      $composableBuilder(column: $table.solution, builder: (column) => column);
+
+  GeneratedColumn<String> get successFactor => $composableBuilder(
+    column: $table.successFactor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reproductionStrategy => $composableBuilder(
+    column: $table.reproductionStrategy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memo =>
+      $composableBuilder(column: $table.memo, builder: (column) => column);
 
   Expression<T> declarationsRefs<T extends Object>(
     Expression<T> Function($$DeclarationsTableAnnotationComposer a) f,
@@ -2591,7 +2331,7 @@ class $$DecisionsTableTableManager
           $$DecisionsTableUpdateCompanionBuilder,
           (Decision, $$DecisionsTableReferences),
           Decision,
-          PrefetchHooks Function({bool reviewsRefs, bool declarationsRefs})
+          PrefetchHooks Function({bool declarationsRefs})
         > {
   $$DecisionsTableTableManager(_$AppDatabase db, $DecisionsTable table)
     : super(
@@ -2617,6 +2357,14 @@ class $$DecisionsTableTableManager
                 Value<DateTime> retroAt = const Value.absent(),
                 Value<DecisionStatus> status = const Value.absent(),
                 Value<DateTime> lastUsedAt = const Value.absent(),
+                Value<DateTime?> reviewedAt = const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<int?> score = const Value.absent(),
+                Value<String?> reasonKey = const Value.absent(),
+                Value<String?> solution = const Value.absent(),
+                Value<String?> successFactor = const Value.absent(),
+                Value<String?> reproductionStrategy = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DecisionsCompanion(
                 id: id,
@@ -2630,6 +2378,14 @@ class $$DecisionsTableTableManager
                 retroAt: retroAt,
                 status: status,
                 lastUsedAt: lastUsedAt,
+                reviewedAt: reviewedAt,
+                regretLevel: regretLevel,
+                score: score,
+                reasonKey: reasonKey,
+                solution: solution,
+                successFactor: successFactor,
+                reproductionStrategy: reproductionStrategy,
+                memo: memo,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2645,6 +2401,14 @@ class $$DecisionsTableTableManager
                 required DateTime retroAt,
                 required DecisionStatus status,
                 required DateTime lastUsedAt,
+                Value<DateTime?> reviewedAt = const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<int?> score = const Value.absent(),
+                Value<String?> reasonKey = const Value.absent(),
+                Value<String?> solution = const Value.absent(),
+                Value<String?> successFactor = const Value.absent(),
+                Value<String?> reproductionStrategy = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DecisionsCompanion.insert(
                 id: id,
@@ -2658,6 +2422,14 @@ class $$DecisionsTableTableManager
                 retroAt: retroAt,
                 status: status,
                 lastUsedAt: lastUsedAt,
+                reviewedAt: reviewedAt,
+                regretLevel: regretLevel,
+                score: score,
+                reasonKey: reasonKey,
+                solution: solution,
+                successFactor: successFactor,
+                reproductionStrategy: reproductionStrategy,
+                memo: memo,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2668,63 +2440,36 @@ class $$DecisionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({reviewsRefs = false, declarationsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (reviewsRefs) db.reviews,
-                    if (declarationsRefs) db.declarations,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (reviewsRefs)
-                        await $_getPrefetchedData<
-                          Decision,
-                          $DecisionsTable,
-                          Review
-                        >(
-                          currentTable: table,
-                          referencedTable: $$DecisionsTableReferences
-                              ._reviewsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$DecisionsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).reviewsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.logId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (declarationsRefs)
-                        await $_getPrefetchedData<
-                          Decision,
-                          $DecisionsTable,
-                          Declaration
-                        >(
-                          currentTable: table,
-                          referencedTable: $$DecisionsTableReferences
-                              ._declarationsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$DecisionsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).declarationsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.logId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
+          prefetchHooksCallback: ({declarationsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (declarationsRefs) db.declarations],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (declarationsRefs)
+                    await $_getPrefetchedData<
+                      Decision,
+                      $DecisionsTable,
+                      Declaration
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DecisionsTableReferences
+                          ._declarationsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$DecisionsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).declarationsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.logId == item.id),
+                      typedResults: items,
+                    ),
+                ];
               },
+            );
+          },
         ),
       );
 }
@@ -2741,476 +2486,7 @@ typedef $$DecisionsTableProcessedTableManager =
       $$DecisionsTableUpdateCompanionBuilder,
       (Decision, $$DecisionsTableReferences),
       Decision,
-      PrefetchHooks Function({bool reviewsRefs, bool declarationsRefs})
-    >;
-typedef $$ReviewsTableCreateCompanionBuilder =
-    ReviewsCompanion Function({
-      required String logId,
-      required DateTime reviewedAt,
-      required ExecutionStatus execution,
-      required int convictionScore,
-      required bool wouldRepeat,
-      Value<AdjustmentType?> adjustment,
-      Value<RegretLevel?> regretLevel,
-      Value<String?> reasonKey,
-      Value<String?> solution,
-      Value<String?> successFactor,
-      Value<String?> reproductionStrategy,
-      Value<String?> memo,
-      Value<int> rowid,
-    });
-typedef $$ReviewsTableUpdateCompanionBuilder =
-    ReviewsCompanion Function({
-      Value<String> logId,
-      Value<DateTime> reviewedAt,
-      Value<ExecutionStatus> execution,
-      Value<int> convictionScore,
-      Value<bool> wouldRepeat,
-      Value<AdjustmentType?> adjustment,
-      Value<RegretLevel?> regretLevel,
-      Value<String?> reasonKey,
-      Value<String?> solution,
-      Value<String?> successFactor,
-      Value<String?> reproductionStrategy,
-      Value<String?> memo,
-      Value<int> rowid,
-    });
-
-final class $$ReviewsTableReferences
-    extends BaseReferences<_$AppDatabase, $ReviewsTable, Review> {
-  $$ReviewsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $DecisionsTable _logIdTable(_$AppDatabase db) => db.decisions
-      .createAlias($_aliasNameGenerator(db.reviews.logId, db.decisions.id));
-
-  $$DecisionsTableProcessedTableManager get logId {
-    final $_column = $_itemColumn<String>('log_id')!;
-
-    final manager = $$DecisionsTableTableManager(
-      $_db,
-      $_db.decisions,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_logIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$ReviewsTableFilterComposer
-    extends Composer<_$AppDatabase, $ReviewsTable> {
-  $$ReviewsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<DateTime> get reviewedAt => $composableBuilder(
-    column: $table.reviewedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<ExecutionStatus, ExecutionStatus, int>
-  get execution => $composableBuilder(
-    column: $table.execution,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<int> get convictionScore => $composableBuilder(
-    column: $table.convictionScore,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get wouldRepeat => $composableBuilder(
-    column: $table.wouldRepeat,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<AdjustmentType?, AdjustmentType, int>
-  get adjustment => $composableBuilder(
-    column: $table.adjustment,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<RegretLevel?, RegretLevel, int>
-  get regretLevel => $composableBuilder(
-    column: $table.regretLevel,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<String> get reasonKey => $composableBuilder(
-    column: $table.reasonKey,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get solution => $composableBuilder(
-    column: $table.solution,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get successFactor => $composableBuilder(
-    column: $table.successFactor,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get reproductionStrategy => $composableBuilder(
-    column: $table.reproductionStrategy,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get memo => $composableBuilder(
-    column: $table.memo,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$DecisionsTableFilterComposer get logId {
-    final $$DecisionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.logId,
-      referencedTable: $db.decisions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DecisionsTableFilterComposer(
-            $db: $db,
-            $table: $db.decisions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ReviewsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReviewsTable> {
-  $$ReviewsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<DateTime> get reviewedAt => $composableBuilder(
-    column: $table.reviewedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get execution => $composableBuilder(
-    column: $table.execution,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get convictionScore => $composableBuilder(
-    column: $table.convictionScore,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get wouldRepeat => $composableBuilder(
-    column: $table.wouldRepeat,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get adjustment => $composableBuilder(
-    column: $table.adjustment,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get regretLevel => $composableBuilder(
-    column: $table.regretLevel,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get reasonKey => $composableBuilder(
-    column: $table.reasonKey,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get solution => $composableBuilder(
-    column: $table.solution,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get successFactor => $composableBuilder(
-    column: $table.successFactor,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get reproductionStrategy => $composableBuilder(
-    column: $table.reproductionStrategy,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get memo => $composableBuilder(
-    column: $table.memo,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$DecisionsTableOrderingComposer get logId {
-    final $$DecisionsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.logId,
-      referencedTable: $db.decisions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DecisionsTableOrderingComposer(
-            $db: $db,
-            $table: $db.decisions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ReviewsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReviewsTable> {
-  $$ReviewsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<DateTime> get reviewedAt => $composableBuilder(
-    column: $table.reviewedAt,
-    builder: (column) => column,
-  );
-
-  GeneratedColumnWithTypeConverter<ExecutionStatus, int> get execution =>
-      $composableBuilder(column: $table.execution, builder: (column) => column);
-
-  GeneratedColumn<int> get convictionScore => $composableBuilder(
-    column: $table.convictionScore,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get wouldRepeat => $composableBuilder(
-    column: $table.wouldRepeat,
-    builder: (column) => column,
-  );
-
-  GeneratedColumnWithTypeConverter<AdjustmentType?, int> get adjustment =>
-      $composableBuilder(
-        column: $table.adjustment,
-        builder: (column) => column,
-      );
-
-  GeneratedColumnWithTypeConverter<RegretLevel?, int> get regretLevel =>
-      $composableBuilder(
-        column: $table.regretLevel,
-        builder: (column) => column,
-      );
-
-  GeneratedColumn<String> get reasonKey =>
-      $composableBuilder(column: $table.reasonKey, builder: (column) => column);
-
-  GeneratedColumn<String> get solution =>
-      $composableBuilder(column: $table.solution, builder: (column) => column);
-
-  GeneratedColumn<String> get successFactor => $composableBuilder(
-    column: $table.successFactor,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get reproductionStrategy => $composableBuilder(
-    column: $table.reproductionStrategy,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get memo =>
-      $composableBuilder(column: $table.memo, builder: (column) => column);
-
-  $$DecisionsTableAnnotationComposer get logId {
-    final $$DecisionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.logId,
-      referencedTable: $db.decisions,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$DecisionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.decisions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ReviewsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ReviewsTable,
-          Review,
-          $$ReviewsTableFilterComposer,
-          $$ReviewsTableOrderingComposer,
-          $$ReviewsTableAnnotationComposer,
-          $$ReviewsTableCreateCompanionBuilder,
-          $$ReviewsTableUpdateCompanionBuilder,
-          (Review, $$ReviewsTableReferences),
-          Review,
-          PrefetchHooks Function({bool logId})
-        > {
-  $$ReviewsTableTableManager(_$AppDatabase db, $ReviewsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ReviewsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ReviewsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ReviewsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> logId = const Value.absent(),
-                Value<DateTime> reviewedAt = const Value.absent(),
-                Value<ExecutionStatus> execution = const Value.absent(),
-                Value<int> convictionScore = const Value.absent(),
-                Value<bool> wouldRepeat = const Value.absent(),
-                Value<AdjustmentType?> adjustment = const Value.absent(),
-                Value<RegretLevel?> regretLevel = const Value.absent(),
-                Value<String?> reasonKey = const Value.absent(),
-                Value<String?> solution = const Value.absent(),
-                Value<String?> successFactor = const Value.absent(),
-                Value<String?> reproductionStrategy = const Value.absent(),
-                Value<String?> memo = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ReviewsCompanion(
-                logId: logId,
-                reviewedAt: reviewedAt,
-                execution: execution,
-                convictionScore: convictionScore,
-                wouldRepeat: wouldRepeat,
-                adjustment: adjustment,
-                regretLevel: regretLevel,
-                reasonKey: reasonKey,
-                solution: solution,
-                successFactor: successFactor,
-                reproductionStrategy: reproductionStrategy,
-                memo: memo,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String logId,
-                required DateTime reviewedAt,
-                required ExecutionStatus execution,
-                required int convictionScore,
-                required bool wouldRepeat,
-                Value<AdjustmentType?> adjustment = const Value.absent(),
-                Value<RegretLevel?> regretLevel = const Value.absent(),
-                Value<String?> reasonKey = const Value.absent(),
-                Value<String?> solution = const Value.absent(),
-                Value<String?> successFactor = const Value.absent(),
-                Value<String?> reproductionStrategy = const Value.absent(),
-                Value<String?> memo = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ReviewsCompanion.insert(
-                logId: logId,
-                reviewedAt: reviewedAt,
-                execution: execution,
-                convictionScore: convictionScore,
-                wouldRepeat: wouldRepeat,
-                adjustment: adjustment,
-                regretLevel: regretLevel,
-                reasonKey: reasonKey,
-                solution: solution,
-                successFactor: successFactor,
-                reproductionStrategy: reproductionStrategy,
-                memo: memo,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$ReviewsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({logId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (logId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.logId,
-                                referencedTable: $$ReviewsTableReferences
-                                    ._logIdTable(db),
-                                referencedColumn: $$ReviewsTableReferences
-                                    ._logIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$ReviewsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ReviewsTable,
-      Review,
-      $$ReviewsTableFilterComposer,
-      $$ReviewsTableOrderingComposer,
-      $$ReviewsTableAnnotationComposer,
-      $$ReviewsTableCreateCompanionBuilder,
-      $$ReviewsTableUpdateCompanionBuilder,
-      (Review, $$ReviewsTableReferences),
-      Review,
-      PrefetchHooks Function({bool logId})
+      PrefetchHooks Function({bool declarationsRefs})
     >;
 typedef $$DeclarationsTableCreateCompanionBuilder =
     DeclarationsCompanion Function({
@@ -3225,7 +2501,8 @@ typedef $$DeclarationsTableCreateCompanionBuilder =
       Value<DateTime?> completedAt,
       Value<DeclarationStatus> status,
       Value<int?> parentId,
-      Value<ActionReviewStatus?> lastReviewStatus,
+      Value<RegretLevel?> regretLevel,
+      Value<int?> score,
     });
 typedef $$DeclarationsTableUpdateCompanionBuilder =
     DeclarationsCompanion Function({
@@ -3240,7 +2517,8 @@ typedef $$DeclarationsTableUpdateCompanionBuilder =
       Value<DateTime?> completedAt,
       Value<DeclarationStatus> status,
       Value<int?> parentId,
-      Value<ActionReviewStatus?> lastReviewStatus,
+      Value<RegretLevel?> regretLevel,
+      Value<int?> score,
     });
 
 final class $$DeclarationsTableReferences
@@ -3327,10 +2605,15 @@ class $$DeclarationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<ActionReviewStatus?, ActionReviewStatus, int>
-  get lastReviewStatus => $composableBuilder(
-    column: $table.lastReviewStatus,
+  ColumnWithTypeConverterFilters<RegretLevel?, RegretLevel, int>
+  get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
   );
 
   $$DecisionsTableFilterComposer get logId {
@@ -3416,8 +2699,13 @@ class $$DeclarationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get lastReviewStatus => $composableBuilder(
-    column: $table.lastReviewStatus,
+  ColumnOrderings<int> get regretLevel => $composableBuilder(
+    column: $table.regretLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3494,11 +2782,14 @@ class $$DeclarationsTableAnnotationComposer
   GeneratedColumn<int> get parentId =>
       $composableBuilder(column: $table.parentId, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<ActionReviewStatus?, int>
-  get lastReviewStatus => $composableBuilder(
-    column: $table.lastReviewStatus,
-    builder: (column) => column,
-  );
+  GeneratedColumnWithTypeConverter<RegretLevel?, int> get regretLevel =>
+      $composableBuilder(
+        column: $table.regretLevel,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
 
   $$DecisionsTableAnnotationComposer get logId {
     final $$DecisionsTableAnnotationComposer composer = $composerBuilder(
@@ -3563,8 +2854,8 @@ class $$DeclarationsTableTableManager
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DeclarationStatus> status = const Value.absent(),
                 Value<int?> parentId = const Value.absent(),
-                Value<ActionReviewStatus?> lastReviewStatus =
-                    const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<int?> score = const Value.absent(),
               }) => DeclarationsCompanion(
                 id: id,
                 logId: logId,
@@ -3577,7 +2868,8 @@ class $$DeclarationsTableTableManager
                 completedAt: completedAt,
                 status: status,
                 parentId: parentId,
-                lastReviewStatus: lastReviewStatus,
+                regretLevel: regretLevel,
+                score: score,
               ),
           createCompanionCallback:
               ({
@@ -3592,8 +2884,8 @@ class $$DeclarationsTableTableManager
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DeclarationStatus> status = const Value.absent(),
                 Value<int?> parentId = const Value.absent(),
-                Value<ActionReviewStatus?> lastReviewStatus =
-                    const Value.absent(),
+                Value<RegretLevel?> regretLevel = const Value.absent(),
+                Value<int?> score = const Value.absent(),
               }) => DeclarationsCompanion.insert(
                 id: id,
                 logId: logId,
@@ -3606,7 +2898,8 @@ class $$DeclarationsTableTableManager
                 completedAt: completedAt,
                 status: status,
                 parentId: parentId,
-                lastReviewStatus: lastReviewStatus,
+                regretLevel: regretLevel,
+                score: score,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3681,8 +2974,6 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$DecisionsTableTableManager get decisions =>
       $$DecisionsTableTableManager(_db, _db.decisions);
-  $$ReviewsTableTableManager get reviews =>
-      $$ReviewsTableTableManager(_db, _db.reviews);
   $$DeclarationsTableTableManager get declarations =>
       $$DeclarationsTableTableManager(_db, _db.declarations);
 }

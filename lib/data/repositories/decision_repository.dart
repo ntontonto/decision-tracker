@@ -51,6 +51,7 @@ class DecisionRepository {
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
+    print('DEBUG: Database insert starting for id: $id');
     await db.into(db.decisions).insert(
           DecisionsCompanion.insert(
             id: id,
@@ -66,6 +67,7 @@ class DecisionRepository {
             lastUsedAt: now,
           ),
         );
+    print('DEBUG: Database insert completed for id: $id');
     return id;
   }
 
@@ -99,52 +101,31 @@ class DecisionRepository {
     );
   }
 
-  // --- Reviews ---
+  // --- Reviews (Integrated into Decisions) ---
 
   Future<void> createReview({
     required String logId,
-    required ExecutionStatus execution,
-    required int convictionScore,
-    required bool wouldRepeat,
-    AdjustmentType? adjustment,
-    RegretLevel? regretLevel,
+    required RegretLevel regretLevel,
     String? reasonKey,
     String? solution,
     String? successFactor,
     String? reproductionStrategy,
     String? memo,
   }) async {
-    await db.transaction(() async {
-      await db.into(db.reviews).insert(
-            ReviewsCompanion.insert(
-              logId: logId,
-              reviewedAt: DateTime.now(),
-              execution: execution,
-              convictionScore: convictionScore,
-              wouldRepeat: wouldRepeat,
-              adjustment: Value(adjustment),
-              regretLevel: Value(regretLevel),
-              reasonKey: Value(reasonKey),
-              solution: Value(solution),
-              successFactor: Value(successFactor),
-              reproductionStrategy: Value(reproductionStrategy),
-              memo: Value(memo),
-            ),
-          );
-
-      await (db.update(db.decisions)..where((t) => t.id.equals(logId))).write(
-        const DecisionsCompanion(status: Value(DecisionStatus.reviewed)),
-      );
-    });
-  }
-
-  Future<Review?> getReviewForLog(String logId) {
-    return (db.select(db.reviews)..where((t) => t.logId.equals(logId)))
-        .getSingleOrNull();
-  }
-
-  Future<List<Review>> getAllReviews() {
-    return (db.select(db.reviews)).get();
+    await (db.update(db.decisions)..where((t) => t.id.equals(logId))).write(
+      DecisionsCompanion(
+        status: const Value(DecisionStatus.reviewed),
+        reviewedAt: Value(DateTime.now()),
+        regretLevel: Value(regretLevel),
+        score: Value(regretLevel.score),
+        reasonKey: Value(reasonKey),
+        solution: Value(solution),
+        successFactor: Value(successFactor),
+        reproductionStrategy: Value(reproductionStrategy),
+        memo: Value(memo),
+        lastUsedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   // --- Retro Logic ---
@@ -195,14 +176,15 @@ class DecisionRepository {
 
   Future<void> completeDeclaration({
     required int id,
-    required ActionReviewStatus reviewStatus,
+    required RegretLevel regretLevel,
     DeclarationStatus nextStatus = DeclarationStatus.completed,
   }) async {
     await (db.update(db.declarations)..where((t) => t.id.equals(id))).write(
       DeclarationsCompanion(
         completedAt: Value(DateTime.now()),
         status: Value(nextStatus),
-        lastReviewStatus: Value(reviewStatus),
+        regretLevel: Value(regretLevel),
+        score: Value(regretLevel.score),
       ),
     );
   }

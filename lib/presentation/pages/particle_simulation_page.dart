@@ -2,6 +2,9 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/providers/reaction_providers.dart';
+import '../../domain/providers/app_providers.dart';
 
 /// Configuration parameters for the simulation.
 class SimConfig {
@@ -87,26 +90,27 @@ class Particle {
   double size = SimConfig.baseSize;
   double eccentricity = SimConfig.eccentricityFar;
   final double attractionStiffness;
-  final Color color;
+  Color color;
+  final double celebrateColorIndex; // 0.0 to 1.0 for palette selection
 
   Particle({
     required this.pos,
     required this.phase,
     required this.attractionStiffness,
     required this.color,
-  }) {
+  }) : celebrateColorIndex = math.Random().nextDouble() {
     angle = math.Random().nextDouble() * math.pi * 2;
   }
 }
 
-class ParticleSimulationPage extends StatefulWidget {
+class ParticleSimulationPage extends ConsumerStatefulWidget {
   const ParticleSimulationPage({super.key});
 
   @override
-  State<ParticleSimulationPage> createState() => _ParticleSimulationPageState();
+  ConsumerState<ParticleSimulationPage> createState() => _ParticleSimulationPageState();
 }
 
-class _ParticleSimulationPageState extends State<ParticleSimulationPage> with SingleTickerProviderStateMixin {
+class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage> with SingleTickerProviderStateMixin {
   late List<Particle> _particles;
   final List<Ripple> _ripples = [];
   Offset _targetPos = Offset.zero;
@@ -128,6 +132,10 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
   double _heartbeatStrength = SimConfig.heartbeatStrength;
   final bool _showDebugUI = false;
 
+  // Reaction Parameters
+  double _reactionFactor = 0.0;
+  ParticleReaction _activeReaction = ParticleReaction.none;
+
   @override
   void initState() {
     super.initState();
@@ -148,6 +156,29 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
     _ticker.start();
   }
 
+  void _triggerReaction(ParticleReaction type) {
+    setState(() {
+      _activeReaction = type;
+      _reactionFactor = 1.0;
+      
+      // Add multiple ripples for big impact
+      if (type == ParticleReaction.celebrate) {
+        for (int i = 0; i < 3; i++) {
+          Future.delayed(Duration(milliseconds: i * 300), () {
+            if (mounted) {
+              setState(() {
+                _ripples.add(Ripple(
+                  origin: _targetPos,
+                  strength: SimConfig.rippleStrength * 1.5,
+                ));
+              });
+            }
+          });
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
     _ticker.dispose();
@@ -160,6 +191,14 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
     setState(() {
       _time = elapsed.inMilliseconds.toDouble();
       
+      // Decay reaction factor
+      if (_reactionFactor > 0) {
+        _reactionFactor -= 0.005; // ~3 seconds to decay
+        if (_reactionFactor < 0) {
+          _reactionFactor = 0;
+          _activeReaction = ParticleReaction.none;
+        }
+      }
       // Update target position
       Offset goal;
       if (_isInteracting) {
@@ -167,8 +206,10 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
       } else {
         // Soft wandering when idle
         // Base frequencies/amplitudes scaled by activity
-        double freqScale = _targetActivity;
-        double ampScale = math.sqrt(_targetActivity); // Milder growth for amplitude to keep flock together
+        // Reaction boost for activity
+        double activityBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 2.0 : 0.0;
+        double freqScale = _targetActivity + activityBoost;
+        double ampScale = math.sqrt(_targetActivity) + activityBoost * 0.5; 
         
         double driftX = math.sin(_time * 0.0005 * freqScale) * 40.0 * ampScale + 
                         math.cos(_time * 0.0003 * freqScale) * 20.0 * ampScale;
@@ -262,7 +303,9 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         // 3c. Centripetal Rotation (Vortex Effect)
         if (toTargetCenter.distance > 10.0) {
           Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
-          double orbitSpeed = (_vortexStrength * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
+          
+          double vortexBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 0.8 : 0.0;
+          double orbitSpeed = ((_vortexStrength + vortexBoost) * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
           p.vel += tangential * orbitSpeed;
         }
 
@@ -271,8 +314,19 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         Offset pulseForce = pulseDir * (expansionFactor * SimConfig.breathInstability * 0.4);
 
         // 4. Update velocity and position
+        
+        // Add jitter if active
+        Offset jitter = Offset.zero;
+        if (_activeReaction == ParticleReaction.jitter && _reactionFactor > 0) {
+          double jitterAmp = _reactionFactor * 5.0;
+          jitter = Offset(
+            math.sin(_time * 0.05 + p.phase) * jitterAmp,
+            math.cos(_time * 0.05 + p.phase) * jitterAmp,
+          );
+        }
+
         p.vel = (p.vel + dynamicFlow + rippleForce + pulseForce) * currentDamping;
-        p.pos += p.vel;
+        p.pos += (p.vel + jitter);
 
         // 5. Alignment & Appearance logic
         double distToCenter = toTargetCenter.distance;
@@ -334,6 +388,50 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
         }
 
         p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor;
+        
+        // --- Reaction Visuals ---
+        if (_reactionFactor > 0) {
+          if (_activeReaction == ParticleReaction.celebrate) {
+            // Vibrant rainbow palette
+            const palette = [
+              Color(0xFFFF3B30), // Red
+              Color(0xFFFF9500), // Orange
+              Color(0xFFFFCC00), // Gold/Yellow
+              Color(0xFF4CD964), // Green
+              Color(0xFF5AC8FA), // Light Blue
+              Color(0xFF007AFF), // Blue
+              Color(0xFF5856D6), // Indigo
+              Color(0xFFAF52DE), // Violet
+            ];
+            
+            // Pick a color based on individual index
+            int idx = (p.celebrateColorIndex * palette.length).floor().clamp(0, palette.length - 1);
+            Color baseColor = palette[idx];
+            
+            // Shimmering gleam (individual oscillation) - Reduced white mix
+            double shimmer = math.sin(_time * 0.015 + p.phase * 5.0) * 0.5 + 0.5;
+            Color gleamColor = Color.lerp(baseColor, Colors.white, shimmer * 0.35)!;
+            
+            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8), gleamColor, _reactionFactor)!;
+          } else if (_activeReaction == ParticleReaction.jitter) {
+            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8), const Color(0xFFFF4500), _reactionFactor)!;
+          }
+        } else {
+          p.color = Colors.white.withValues(alpha: 0.8);
+        }
+
+        // --- Reaction Physics: Larger Orbits for Celebrate ---
+        if (_activeReaction == ParticleReaction.celebrate && _reactionFactor > 0.1) {
+          // Push particles outwards from the target center
+          Offset fromCenter = p.pos - _targetPos;
+          double dist = fromCenter.distance;
+          if (dist > 0.1) {
+            // Centrifugal-like push during peak reaction
+            // Strongest in the middle of the reaction phase
+            double pushStrength = math.sin(_reactionFactor * math.pi) * 0.15;
+            p.vel += (fromCenter / dist) * pushStrength;
+          }
+        }
       }
     });
   }
@@ -369,6 +467,20 @@ class _ParticleSimulationPageState extends State<ParticleSimulationPage> with Si
 
   @override
   Widget build(BuildContext context) {
+    // Listen to reactions via Riverpod in the build method for side effects
+    ref.listen(reactionProvider, (previous, next) {
+      if (next.type != ParticleReaction.none) {
+        _triggerReaction(next.type);
+      }
+    });
+
+    // Also auto-trigger on success notifications
+    ref.listen(successNotificationProvider, (previous, next) {
+      if (next.isVisible && next.message.contains('いいね')) {
+        _triggerReaction(ParticleReaction.celebrate);
+      }
+    });
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // ... (existing code omitted for brevity in thought, but tool needs exact match)

@@ -78,12 +78,12 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
   }
 
   int _getTotalSteps(ActionReviewState state) {
-    if (state.reviewStatus == ActionReviewStatus.success) return 1;
+    if (state.regretLevel == RegretLevel.none) return 1;
     return 3; // Q1 + Q2 (Blocker) + Q3 (Solution)
   }
 
   bool _isStepValid(ActionReviewState state) {
-    if (state.currentStep == 0) return state.reviewStatus != null;
+    if (state.currentStep == 0) return state.regretLevel != null;
     if (state.currentStep == 1) return state.blockerKey != null;
     if (state.currentStep == 2) return state.solutionKey != null;
     return true;
@@ -98,7 +98,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
 
   Future<void> _complete() async {
     final state = ref.read(actionReviewProvider);
-    final isSuccess = state.reviewStatus == ActionReviewStatus.success;
+    final isNoRegret = state.regretLevel == RegretLevel.none;
     
     // Save the review
     await ref.read(actionReviewProvider.notifier).complete(
@@ -108,12 +108,12 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     if (mounted) {
       Navigator.pop(context);
       
-      if (!isSuccess && state.shouldDeclareNextAction) {
+      if (!isNoRegret && state.shouldDeclareNextAction) {
         // Trigger existing declaration flow
         _showDeclarationWizard();
       } else {
         ref.read(successNotificationProvider.notifier).show(
-          message: isSuccess ? '素晴らしい！その調子です 🎉' : 'お疲れ様でした！',
+          message: isNoRegret ? '素晴らしい！その調子です 🎉' : 'お疲れ様でした！',
         );
       }
     }
@@ -176,7 +176,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
       bottomNavigationBar: _buildBottomNavigation(state),
       children: [
         _buildStep1(state),
-        if (state.reviewStatus != ActionReviewStatus.success) ...[
+        if (state.regretLevel != RegretLevel.none) ...[
           reviewMapAsync.when(
             data: (map) => _buildStep2(state, map),
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -200,7 +200,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
         children: [
           const SizedBox(height: 12),
           Text(
-            '目標の実践を確認します',
+            '目標の振り返り',
             style: AppDesign.titleStyle.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 8),
@@ -210,34 +210,43 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
           ),
           const SizedBox(height: 32),
           const Text(
-            '実践できましたか？',
+            'この行動に対して、後悔はありますか？',
             style: AppDesign.bodyStyle,
           ),
           const SizedBox(height: 24),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: _buildLargeSelectButton(
-                  'はい',
-                  Icons.check_circle_outline,
-                  state.reviewStatus == ActionReviewStatus.success,
-                  () {
-                    ref.read(actionReviewProvider.notifier).updateReviewStatus(ActionReviewStatus.success);
-                    _complete(); // Fast completion
-                  },
-                ),
+              _buildRegretOption(
+                'ない',
+                Icons.sentiment_very_satisfied,
+                RegretLevel.none,
+                state.regretLevel == RegretLevel.none,
+                () {
+                  ref.read(actionReviewProvider.notifier).updateRegretLevel(RegretLevel.none);
+                  _complete(); // Fast completion for no regret
+                },
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildLargeSelectButton(
-                  'いいえ',
-                  Icons.highlight_off,
-                  state.reviewStatus == ActionReviewStatus.failed,
-                  () {
-                    ref.read(actionReviewProvider.notifier).updateReviewStatus(ActionReviewStatus.failed);
-                    _next();
-                  },
-                ),
+              const SizedBox(height: 12),
+              _buildRegretOption(
+                '少しある',
+                Icons.sentiment_neutral,
+                RegretLevel.aLittle,
+                state.regretLevel == RegretLevel.aLittle,
+                () {
+                  ref.read(actionReviewProvider.notifier).updateRegretLevel(RegretLevel.aLittle);
+                  _next();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildRegretOption(
+                'ある',
+                Icons.sentiment_very_dissatisfied,
+                RegretLevel.much,
+                state.regretLevel == RegretLevel.much,
+                () {
+                  ref.read(actionReviewProvider.notifier).updateRegretLevel(RegretLevel.much);
+                  _next();
+                },
               ),
             ],
           ),
@@ -246,21 +255,36 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     );
   }
 
-  Widget _buildLargeSelectButton(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildRegretOption(String label, IconData icon, RegretLevel level, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 120,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: AppDesign.actionButtonDecoration(selected: isSelected),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Icon(icon, color: isSelected ? Colors.black : Colors.white54, size: 32),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: AppDesign.actionButtonTextStyle(selected: isSelected).copyWith(fontSize: 18),
+            Icon(icon, color: isSelected ? Colors.black : Colors.white54, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppDesign.actionButtonTextStyle(selected: isSelected).copyWith(fontSize: 18),
+                  ),
+                  Text(
+                    '${level.score}pt',
+                    style: TextStyle(
+                      color: isSelected ? Colors.black54 : Colors.white38,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            if (isSelected) const Icon(Icons.check, color: Colors.black),
           ],
         ),
       ),

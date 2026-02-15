@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decision_tracker/domain/models/constellation_models.dart';
 import 'package:decision_tracker/domain/providers/constellation_providers.dart';
 import 'package:decision_tracker/domain/providers/app_providers.dart';
-import 'package:decision_tracker/presentation/pages/decision_list_page.dart';
 import 'package:decision_tracker/data/local/database.dart';
+import '../widgets/decision_detail_sheet.dart';
 
 class ConstellationPage extends ConsumerStatefulWidget {
   const ConstellationPage({super.key});
@@ -444,7 +444,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   }
 
   Widget _buildNodeCard(ConstellationNode node) {
-    final color = _getNodeColor(node.type);
+    final color = HSVColor.fromAHSV(1.0, node.hue, 0.7, 0.9).toColor();
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -497,14 +497,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     );
   }
 
-  Color _getNodeColor(ConstellationNodeType type) {
-    switch (type) {
-      case ConstellationNodeType.decision: return const Color(0xFF38BDF8);
-      case ConstellationNodeType.retro: return const Color(0xFFFB7185);
-      case ConstellationNodeType.declaration: return const Color(0xFFFBBF24);
-      case ConstellationNodeType.check: return const Color(0xFF34D399);
-    }
-  }
 
   Future<void> _showDetail(ConstellationNode node) async {
     Decision? decision;
@@ -593,43 +585,74 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
     // 4. Nodes
     final now = DateTime.now();
+    final double pulse = (math.sin(now.millisecondsSinceEpoch / 1000 * math.pi) + 1) / 2; // 0.0 to 1.0
+
     for (int i = 0; i < nodes.length; i++) {
       if (i >= revealedCount) continue;
 
       final node = nodes[i];
       final isSelected = node.id == selectedId;
-      final color = _getNodeColor(node.type);
+      final bool isReviewed = node.isReviewed;
+      final int score = node.score;
+      
+      // Thinking Lineage Color (Deterministic from Provider)
+      // High saturation and value for a "poppy", vibrant look
+      final Color baseColor = HSVColor.fromAHSV(1.0, node.hue, 0.9, 1.0).toColor();
       
       final ageHours = now.difference(node.date).inHours;
       final ageFactor = (1.0 - (ageHours / 168.0)).clamp(0.4, 1.0);
       
-      // Glow
-      final glowPaint = Paint()
-        ..color = color.withValues(alpha: (isSelected ? 0.4 : 0.2) * ageFactor)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, isSelected ? 15 : 8);
-      canvas.drawCircle(node.position, 15 + (isSelected ? 5 : 0), glowPaint);
+      // Luminosity Factor based on score (5-3-1)
+      double luminosity = isReviewed 
+          ? (score == 5 ? 1.6 : (score == 3 ? 1.1 : 0.7))
+          : 0.3; // Seed luminosity
 
-      // Core
-      final starPaint = Paint()..color = isSelected ? Colors.white : color;
-      canvas.drawCircle(node.position, (isSelected ? 6 : 4) * ageFactor, starPaint);
+      // 1. Outer Halo (Large, very faint)
+      final double haloOpacity = isReviewed 
+          ? (0.15 * luminosity) // Toned down
+          : (0.1 * pulse); 
+          
+      if (haloOpacity > 0.01) {
+        final haloPaint = Paint()
+          ..color = baseColor.withValues(alpha: haloOpacity * ageFactor)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12 * luminosity); // Reduced blur
+        canvas.drawCircle(node.position, 18 * luminosity * ageFactor, haloPaint); // Reduced size
+      }
+
+      // 2. Inner Glow (Bright, centered)
+      if (isReviewed || isSelected) {
+        final glowPaint = Paint()
+          ..color = baseColor.withValues(alpha: (isSelected ? 0.7 : 0.5 * luminosity) * ageFactor)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, (10 * luminosity) + (isSelected ? 5 : 0));
+        canvas.drawCircle(node.position, (12 * luminosity) + (isSelected ? 5 : 0), glowPaint);
+      }
+
+
+      // 4. White Core (The hot center)
+      final corePaint = Paint()..color = Colors.white.withValues(alpha: isReviewed ? 1.0 : 0.7);
+      final double coreSize = (isReviewed ? (isSelected ? 4.0 : 3.0) : 1.5) * ageFactor;
+      canvas.drawCircle(node.position, coreSize, corePaint);
       
-      // Ring
-      final ringPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.1)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5;
-      canvas.drawCircle(node.position, 10 * ageFactor, ringPaint);
+      // 5. Category Colored Skin (Just around the core)
+      if (isReviewed) {
+        final skinPaint = Paint()
+          ..color = baseColor.withValues(alpha: 0.8 * ageFactor)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2;
+        canvas.drawCircle(node.position, coreSize + 0.5, skinPaint);
+      }
+
+      // 6. Interaction Ring
+      if (isSelected) {
+        final ringPaint = Paint()
+          ..color = Colors.white.withValues(alpha: 0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5;
+        canvas.drawCircle(node.position, (coreSize + 8) * ageFactor, ringPaint);
+      }
     }
   }
 
-  Color _getNodeColor(ConstellationNodeType type) {
-    switch (type) {
-      case ConstellationNodeType.decision: return const Color(0xFF38BDF8);
-      case ConstellationNodeType.retro: return const Color(0xFFFB7185);
-      case ConstellationNodeType.declaration: return const Color(0xFFFBBF24);
-      case ConstellationNodeType.check: return const Color(0xFF34D399);
-    }
-  }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;

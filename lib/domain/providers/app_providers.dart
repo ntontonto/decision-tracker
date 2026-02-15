@@ -96,36 +96,49 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
     final retroAt = _calculateRetroAt(state.retroOffset!);
     String? id;
 
-    if (state.editingId != null) {
-      await repository.updateDecision(
-        id: state.editingId!,
-        text: state.text,
-        driver: state.driver!,
-        gain: state.gain,
-        lose: state.lose,
-        note: state.note,
-        retroOffset: state.retroOffset!,
-        retroAt: retroAt,
-      );
-      id = state.editingId;
-    } else {
-      id = await repository.createDecision(
-        text: state.text,
-        driver: state.driver!,
-        gain: state.gain,
-        lose: state.lose,
-        note: state.note,
-        retroOffset: state.retroOffset!,
-        retroAt: retroAt,
-      );
+    try {
+      if (state.editingId != null) {
+        print('DEBUG: Calling repository.updateDecision for id: ${state.editingId}');
+        await repository.updateDecision(
+          id: state.editingId!,
+          text: state.text,
+          driver: state.driver!,
+          gain: state.gain,
+          lose: state.lose,
+          note: state.note,
+          retroOffset: state.retroOffset!,
+          retroAt: retroAt,
+        );
+        id = state.editingId;
+        print('DEBUG: repository.updateDecision completed for id: $id');
+      } else {
+        print('DEBUG: Calling repository.createDecision with text: ${state.text}');
+        id = await repository.createDecision(
+          text: state.text,
+          driver: state.driver!,
+          gain: state.gain,
+          lose: state.lose,
+          note: state.note,
+          retroOffset: state.retroOffset!,
+          retroAt: retroAt,
+        );
+        print('DEBUG: repository.createDecision returned id: $id');
+      }
+      
+      print('DEBUG: Invalidating providers...');
+      // Invalidate providers to refresh other screens
+      ref.invalidate(allDecisionsProvider);
+      ref.invalidate(pendingDecisionsProvider);
+      
+      print('DEBUG: Resetting wizard state...');
+      reset();
+      print('DEBUG: Save process complete. Returning id: $id');
+      return id;
+    } catch (e, stack) {
+      print('DEBUG: ERROR DURING SAVE: $e');
+      print('DEBUG: STACK TRACE: $stack');
+      rethrow;
     }
-    
-    // Invalidate providers to refresh other screens
-    ref.invalidate(allDecisionsProvider);
-    ref.invalidate(pendingDecisionsProvider);
-    
-    reset();
-    return id;
   }
 
   void restore(LogWizardState status) {
@@ -219,13 +232,7 @@ final allDecisionsStreamProvider = StreamProvider<List<Decision>>((ref) {
   return ref.watch(repositoryProvider).watchDecisions();
 });
 
-final reviewForLogProvider = FutureProvider.family<Review?, String>((ref, id) {
-  return ref.watch(repositoryProvider).getReviewForLog(id);
-});
-
-final allReviewsProvider = FutureProvider<List<Review>>((ref) {
-  return ref.watch(repositoryProvider).getAllReviews();
-});
+// Obsolete: reviewForLogProvider and allReviewsProvider removed as reviews are integrated into decisions
 
 // --- Success Notification ---
 

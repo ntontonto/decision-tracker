@@ -298,7 +298,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
         ref.read(retroWizardProvider.notifier).setRegretLevel(val);
         if (val != null) _next();
       },
-      labelBuilder: (v) => v.label,
+      labelBuilder: (v) => '${v.label} (${v.score}pt)',
       scrollController: ScrollController(),
     );
   }
