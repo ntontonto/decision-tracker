@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum DriverType {
   pleasure,
   curiosity,
@@ -22,53 +24,7 @@ enum DriverType {
   }
 }
 
-enum GainType {
-  skills,
-  money,
-  time,
-  relationships,
-  reputation,
-  fun,
-  rest,
-  peace,
-  mentalMargine;
 
-  String get label {
-    switch (this) {
-      case GainType.skills: return '知識・スキル';
-      case GainType.money: return 'お金';
-      case GainType.time: return '時間';
-      case GainType.relationships: return '人間関係';
-      case GainType.reputation: return '評判・信用';
-      case GainType.fun: return '楽しさ';
-      case GainType.rest: return '休息';
-      case GainType.peace: return '安心';
-      case GainType.mentalMargine: return '精神的余裕';
-    }
-  }
-}
-
-enum LoseType {
-  time,
-  money,
-  freedom,
-  energy,
-  health,
-  relationships,
-  mentalMargine;
-
-  String get label {
-    switch (this) {
-      case LoseType.time: return '時間';
-      case LoseType.money: return 'お金';
-      case LoseType.freedom: return '自由';
-      case LoseType.energy: return '体力';
-      case LoseType.health: return '健康';
-      case LoseType.relationships: return '人間関係';
-      case LoseType.mentalMargine: return '精神的余裕';
-    }
-  }
-}
 
 enum RetroOffsetType {
   now,
@@ -159,6 +115,55 @@ enum ActionReviewStatus {
       case ActionReviewStatus.success: return '実践できた';
       case ActionReviewStatus.failed: return '実践できなかった';
       case ActionReviewStatus.dropped: return '中断した';
+    }
+  }
+}
+
+enum ValueItem {
+  skills,
+  money,
+  time,
+  relationships,
+  reputation,
+  fun,
+  rest,
+  peace,
+  mentalMargine,
+  freedom,
+  energy,
+  health;
+
+  String get label {
+    switch (this) {
+      case ValueItem.skills: return '知識・スキル';
+      case ValueItem.money: return 'お金';
+      case ValueItem.time: return '時間';
+      case ValueItem.relationships: return '人間関係';
+      case ValueItem.reputation: return '評判・信用';
+      case ValueItem.fun: return '楽しさ';
+      case ValueItem.rest: return '休息';
+      case ValueItem.peace: return '安心';
+      case ValueItem.mentalMargine: return '精神的余裕';
+      case ValueItem.freedom: return '自由';
+      case ValueItem.energy: return '体力';
+      case ValueItem.health: return '健康';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case ValueItem.skills: return Icons.psychology;
+      case ValueItem.money: return Icons.payments;
+      case ValueItem.time: return Icons.history;
+      case ValueItem.relationships: return Icons.groups;
+      case ValueItem.reputation: return Icons.verified;
+      case ValueItem.fun: return Icons.celebration;
+      case ValueItem.rest: return Icons.bedtime;
+      case ValueItem.peace: return Icons.vaping_rooms;
+      case ValueItem.mentalMargine: return Icons.self_improvement;
+      case ValueItem.freedom: return Icons.lock;
+      case ValueItem.energy: return Icons.battery_alert;
+      case ValueItem.health: return Icons.favorite_border;
     }
   }
 }

@@ -7,6 +7,7 @@ import '../../domain/providers/app_providers.dart';
 import '../theme/app_design.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
+import 'wizard_reflection_step.dart';
 
 class LogWizardSheet extends ConsumerStatefulWidget {
   final String? initialText;
@@ -104,10 +105,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
   }
 
   void _nextStep() {
-    final state = ref.read(logWizardProvider);
-    if (_currentStep == 4 && state.retroOffset == RetroOffsetType.now) {
-      _saveDecision();
-    } else if (_currentStep < 5) {
+    if (_currentStep < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -134,9 +132,8 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
   bool _isStepValid(int step, LogWizardState state) {
     if (step == 0) return state.text.trim().isNotEmpty;
     if (step == 1) return state.driver != null;
-    if (step == 2) return true; // Q3: Gain (Optional)
-    if (step == 3) return true; // Q4: Lose (Optional)
-    if (step == 4) return state.retroOffset != null;
+    if (step == 2) return true; // Reflection (Optional)
+    if (step == 3) return state.retroOffset != null;
     return true;
   }
 
@@ -220,7 +217,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         }
       },
       child: WizardScaffold(
-        totalSteps: 6,
+        totalSteps: 5,
         currentStep: _currentStep,
         onBack: _prevStep,
         onNext: () {
@@ -243,7 +240,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
           
           if (page == 0) {
             _q1FocusNode.requestFocus();
-          } else if (page == 5) {
+          } else if (page == 4) {
             _q6FocusNode.requestFocus();
           } else {
             FocusScope.of(context).unfocus();
@@ -252,28 +249,21 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         children: [
           _buildQ1Content(state),
           _buildEnumStep<DriverType>(
-            'Q2: なぜそれをした？',
-            '動機を選択してください',
+            '動機は？',
+            'なぜそれをしたのか、動機を選択してください',
             DriverType.values,
             state.driver,
             (val) => ref.read(logWizardProvider.notifier).updateDriver(val),
           ),
-          _buildEnumStep<GainType>(
-            'Q3: 得たものは？',
-            'ポジティブな変化を選択してください',
-            GainType.values,
-            state.gain,
-            (val) => ref.read(logWizardProvider.notifier).updateGain(val),
-          ),
-          _buildEnumStep<LoseType>(
-            'Q4: 失ったものは？',
-            'ネガティブな変化を選択してください',
-            LoseType.values,
-            state.lose,
-            (val) => ref.read(logWizardProvider.notifier).updateLose(val),
+          WizardReflectionStep(
+            selectedGain: state.gain,
+            selectedLose: state.lose,
+            onGainSelect: (val) => ref.read(logWizardProvider.notifier).updateGain(val),
+            onLoseSelect: (val) => ref.read(logWizardProvider.notifier).updateLose(val),
+            onComplete: _nextStep,
           ),
           _buildEnumStep<RetroOffsetType>(
-            'Q5: 効果が感じられるのは？',
+            'いつ頃振り返る？',
             '振り返るタイミングを選択してください',
             RetroOffsetType.values,
             state.retroOffset,
@@ -309,7 +299,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
-          Text('Q1: 今日は何をした？', style: AppDesign.titleStyle.copyWith(fontSize: 22)),
+          Text('記録したい出来事は？', style: AppDesign.titleStyle.copyWith(fontSize: 22)),
           const SizedBox(height: 16),
           TextField(
             controller: _textController,

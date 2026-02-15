@@ -21,8 +21,8 @@ final repositoryProvider = Provider<DecisionRepository>((ref) {
 class LogWizardState {
   final String text;
   final DriverType? driver;
-  final GainType? gain;
-  final LoseType? lose;
+  final ValueItem? gain;
+  final ValueItem? lose;
   final String? note;
   final RetroOffsetType? retroOffset;
   final Decision? previousDecision;
@@ -42,8 +42,8 @@ class LogWizardState {
   LogWizardState copyWith({
     String? text,
     DriverType? Function()? driver,
-    GainType? Function()? gain,
-    LoseType? Function()? lose,
+    ValueItem? Function()? gain,
+    ValueItem? Function()? lose,
     String? Function()? note,
     RetroOffsetType? Function()? retroOffset,
     Decision? Function()? previousDecision,
@@ -85,8 +85,8 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
   }
 
   void updateDriver(DriverType? driver) => state = state.copyWith(driver: () => driver);
-  void updateGain(GainType? gain) => state = state.copyWith(gain: () => gain);
-  void updateLose(LoseType? lose) => state = state.copyWith(lose: () => lose);
+  void updateGain(ValueItem? gain) => state = state.copyWith(gain: () => gain);
+  void updateLose(ValueItem? lose) => state = state.copyWith(lose: () => lose);
   void updateNote(String? note) => state = state.copyWith(note: () => note);
   void updateRetroOffset(RetroOffsetType? offset) => state = state.copyWith(retroOffset: () => offset);
 
