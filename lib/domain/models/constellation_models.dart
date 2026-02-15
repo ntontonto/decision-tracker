@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 
 enum ConstellationNodeType {
   decision,
-  retro,
   declaration,
-  check, // Action Review
 }
 
 class ConstellationNode {
@@ -18,6 +16,9 @@ class ConstellationNode {
   final dynamic originalData;
   final int generation;
   final String chainId; 
+  final bool isReviewed;
+  final int score; // 1, 3, 5 or 0 if not reviewed
+  final double hue; // Deterministic color hue
 
   ConstellationNode({
     required this.id,
@@ -29,6 +30,9 @@ class ConstellationNode {
     required this.originalData,
     required this.generation,
     required this.chainId,
+    this.isReviewed = false,
+    this.score = 0,
+    required this.hue,
   });
 
   ConstellationNode copy({
@@ -45,6 +49,9 @@ class ConstellationNode {
       originalData: originalData,
       generation: generation,
       chainId: chainId,
+      isReviewed: isReviewed,
+      score: score,
+      hue: hue,
     );
   }
 }

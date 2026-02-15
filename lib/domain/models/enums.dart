@@ -97,6 +97,14 @@ enum RegretLevel {
       case RegretLevel.much: return 'ある';
     }
   }
+
+  int get score {
+    switch (this) {
+      case RegretLevel.none: return 5;
+      case RegretLevel.aLittle: return 3;
+      case RegretLevel.much: return 1;
+    }
+  }
 }
 
 enum DeclarationStatus {
@@ -105,19 +113,7 @@ enum DeclarationStatus {
   superseded;
 }
 
-enum ActionReviewStatus {
-  success,
-  failed,
-  dropped;
-
-  String get label {
-    switch (this) {
-      case ActionReviewStatus.success: return '実践できた';
-      case ActionReviewStatus.failed: return '実践できなかった';
-      case ActionReviewStatus.dropped: return '中断した';
-    }
-  }
-}
+// ActionReviewStatus removed in favor of RegretLevel
 
 enum ValueItem {
   skills,

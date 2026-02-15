@@ -54,7 +54,7 @@ class DeclarationWizardState {
 class ActionReviewState {
   final Declaration? declaration;
   final int currentStep;
-  final ActionReviewStatus? reviewStatus;
+  final RegretLevel? regretLevel;
   final String? failureReason;
 
   // JSON-driven selections
@@ -72,7 +72,7 @@ class ActionReviewState {
   ActionReviewState({
     this.declaration,
     this.currentStep = 0,
-    this.reviewStatus,
+    this.regretLevel,
     this.failureReason,
     this.blockerKey,
     this.solutionKey,
@@ -85,7 +85,7 @@ class ActionReviewState {
   ActionReviewState copyWith({
     Declaration? declaration,
     int? currentStep,
-    ActionReviewStatus? reviewStatus,
+    RegretLevel? regretLevel,
     String? failureReason,
     String? blockerKey,
     String? solutionKey,
@@ -97,7 +97,7 @@ class ActionReviewState {
     return ActionReviewState(
       declaration: declaration ?? this.declaration,
       currentStep: currentStep ?? this.currentStep,
-      reviewStatus: reviewStatus ?? this.reviewStatus,
+      regretLevel: regretLevel ?? this.regretLevel,
       failureReason: failureReason ?? this.failureReason,
       blockerKey: blockerKey ?? this.blockerKey,
       solutionKey: solutionKey ?? this.solutionKey,
@@ -179,8 +179,8 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
     );
   }
 
-  void updateReviewStatus(ActionReviewStatus status) {
-    state = state.copyWith(reviewStatus: status);
+  void updateRegretLevel(RegretLevel level) {
+    state = state.copyWith(regretLevel: level);
   }
 
   void updateFailureReason(String reason) {
@@ -216,7 +216,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
 
   Future<void> complete({bool shouldReDeclare = false}) async {
     final declaration = state.declaration;
-    if (declaration == null || state.reviewStatus == null) return;
+    if (declaration == null || state.regretLevel == null) return;
 
     final repo = ref.read(repositoryProvider);
     
@@ -224,7 +224,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
       // 1. Mark current as superseded
       await repo.completeDeclaration(
         id: declaration.id,
-        reviewStatus: state.reviewStatus!,
+        regretLevel: state.regretLevel!,
         nextStatus: DeclarationStatus.superseded,
       );
 
@@ -242,7 +242,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
       // Normal completion
       await repo.completeDeclaration(
         id: declaration.id,
-        reviewStatus: state.reviewStatus!,
+        regretLevel: state.regretLevel!,
         nextStatus: DeclarationStatus.completed,
       );
     }

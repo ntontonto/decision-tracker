@@ -4,14 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decision_tracker/domain/models/constellation_models.dart';
 import 'package:decision_tracker/domain/providers/app_providers.dart';
 import 'package:decision_tracker/domain/providers/declaration_providers.dart';
+import 'package:decision_tracker/domain/models/enums.dart';
 import 'package:decision_tracker/data/local/database.dart';
 
 final constellationProvider = FutureProvider<LearningGraph>((ref) async {
   final decisions = await ref.watch(allDecisionsProvider.future);
   final allDeclarations = await ref.watch(actionGoalsProvider.future);
-  final allReviews = await ref.watch(allReviewsProvider.future);
   
-  debugPrint('ConstellationProvider: decisions=${decisions.length}, declarations=${allDeclarations.length}, reviews=${allReviews.length}');
+  debugPrint('ConstellationProvider: decisions=${decisions.length}, declarations=${allDeclarations.length}');
+  
+  double getBaseHue(DriverType driver) {
+    switch (driver) {
+      case DriverType.pleasure: return 300;   // Magenta / Hot Pink
+      case DriverType.curiosity: return 190;  // Vivid Cyan
+      case DriverType.expression: return 280; // Vibrant Purple
+      case DriverType.investment: return 50;  // Bright Gold
+      case DriverType.habit: return 130;      // Fresh Green
+      case DriverType.requested: return 30;   // Bright Orange
+      case DriverType.reputation: return 220; // Sky Blue
+      case DriverType.guilt: return 10;       // Vivid Red
+    }
+  }
+
+  double getJitter(String id, double range) {
+    final random = math.Random(id.hashCode);
+    return (random.nextDouble() - 0.5) * range;
+  }
   
   final List<ConstellationNode> nodes = [];
   final List<ConstellationEdge> edges = [];
@@ -42,6 +60,7 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
     );
 
     final String decisionNodeId = 'dec_${decision.id}';
+    final bool isReviewed = decision.status == DecisionStatus.reviewed;
     
     nodes.add(ConstellationNode(
       id: decisionNodeId,
@@ -53,37 +72,16 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
       originalData: decision,
       generation: 0,
       chainId: chainId,
+      isReviewed: isReviewed,
+      score: decision.score ?? 0,
+      hue: (getBaseHue(decision.driver) + getJitter(decision.id, 40)) % 360,
     ));
 
-    // 1. Review
-    final review = allReviews.where((r) => r.logId == decision.id).firstOrNull;
+    final double parentHue = nodes.last.hue;
+
     String lastNodeId = decisionNodeId;
     Offset lastPos = Offset(initialX, initialY);
     int currentGen = 1;
-
-    if (review != null) {
-      final String retroId = 'retro_${decision.id}';
-      // Branch out slightly
-      final branchAngle = random.nextDouble() * math.pi * 2;
-      final branchDist = 80.0 + random.nextDouble() * 40.0;
-      final posRetro = lastPos + Offset(math.cos(branchAngle) * branchDist, math.sin(branchAngle) * branchDist);
-      
-      nodes.add(ConstellationNode(
-        id: retroId,
-        type: ConstellationNodeType.retro,
-        position: posRetro,
-        velocity: initialVel * 0.9, // Follow root but slightly slower
-        date: review.reviewedAt,
-        label: review.memo ?? '振り返り',
-        originalData: review,
-        generation: currentGen++,
-        chainId: chainId,
-      ));
-      
-      edges.add(ConstellationEdge(lastNodeId, retroId));
-      lastNodeId = retroId;
-      lastPos = posRetro;
-    }
 
     // 2. Declarations
     final logDeclarations = allDeclarations.where((d) => d.logId == decision.id).toList();
@@ -92,9 +90,11 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
     while (currentDecl != null) {
       final String declId = 'decl_${currentDecl.id}';
       final branchAngle = random.nextDouble() * math.pi * 2;
-      final branchDist = 80.0 + random.nextDouble() * 40.0;
+      final branchDist = 100.0 + random.nextDouble() * 50.0;
       final posDecl = lastPos + Offset(math.cos(branchAngle) * branchDist, math.sin(branchAngle) * branchDist);
       
+      final bool isDeclCompleted = currentDecl.completedAt != null;
+
       nodes.add(ConstellationNode(
         id: declId,
         type: ConstellationNodeType.declaration,
@@ -105,34 +105,15 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
         originalData: currentDecl,
         generation: currentGen++,
         chainId: chainId,
+        isReviewed: isDeclCompleted,
+        score: currentDecl.score ?? 0,
+        // Significant shift from parent (120 degrees + larger jitter)
+        hue: (parentHue + 120 + getJitter(currentDecl.id.toString(), 100)) % 360,
       ));
       
       edges.add(ConstellationEdge(lastNodeId, declId));
       lastNodeId = declId;
       lastPos = posDecl;
-
-      if (currentDecl.completedAt != null) {
-        final String checkId = 'check_${currentDecl.id}';
-        final checkAngle = random.nextDouble() * math.pi * 2;
-        final checkDist = 60.0;
-        final posCheck = lastPos + Offset(math.cos(checkAngle) * checkDist, math.sin(checkAngle) * checkDist);
-        
-        nodes.add(ConstellationNode(
-          id: checkId,
-          type: ConstellationNodeType.check,
-          position: posCheck,
-          velocity: initialVel * 0.7,
-          date: currentDecl.completedAt!,
-          label: '実践確認',
-          originalData: currentDecl,
-          generation: currentGen++,
-          chainId: chainId,
-        ));
-        
-        edges.add(ConstellationEdge(lastNodeId, checkId));
-        lastNodeId = checkId;
-        lastPos = posCheck;
-      }
 
       final int nextParentId = currentDecl.id;
       currentDecl = logDeclarations.where((d) => d.parentId == nextParentId).firstOrNull;

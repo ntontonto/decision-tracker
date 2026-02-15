@@ -156,14 +156,11 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
   }
 
   Future<void> save() async {
-    if (state.decision == null) return;
+    if (state.decision == null || state.regretLevel == null) return;
 
     await ref.read(repositoryProvider).createReview(
       logId: state.decision!.id,
-      execution: ExecutionStatus.yes, // Default for new flow
-      convictionScore: 10,           // Default for new flow
-      wouldRepeat: state.regretLevel == RegretLevel.none,
-      regretLevel: state.regretLevel,
+      regretLevel: state.regretLevel!,
       reasonKey: state.reasonKey,
       solution: state.solution,
       successFactor: state.successFactor,
@@ -174,7 +171,6 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
     // Refresh providers
     ref.invalidate(pendingDecisionsProvider);
     ref.invalidate(allDecisionsProvider);
-    ref.invalidate(reviewForLogProvider(state.decision!.id));
   }
 }
 

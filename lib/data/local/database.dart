@@ -21,20 +21,10 @@ class Decisions extends Table {
   IntColumn get status => intEnum<DecisionStatus>()();
   DateTimeColumn get lastUsedAt => dateTime()();
 
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class Reviews extends Table {
-  TextColumn get logId => text().references(Decisions, #id)();
-  DateTimeColumn get reviewedAt => dateTime()();
-  IntColumn get execution => intEnum<ExecutionStatus>()();
-  IntColumn get convictionScore => integer()(); // 0..10
-  BoolColumn get wouldRepeat => boolean()();
-  IntColumn get adjustment => intEnum<AdjustmentType>().nullable()();
-
-  // New learning loop columns
+  // Integrated Retro Data
+  DateTimeColumn get reviewedAt => dateTime().nullable()();
   IntColumn get regretLevel => intEnum<RegretLevel>().nullable()();
+  IntColumn get score => integer().nullable()(); // 1, 3, 5
   TextColumn get reasonKey => text().nullable()();
   TextColumn get solution => text().nullable()();
   TextColumn get successFactor => text().nullable()();
@@ -42,7 +32,7 @@ class Reviews extends Table {
   TextColumn get memo => text().nullable()();
 
   @override
-  Set<Column> get primaryKey => {logId};
+  Set<Column> get primaryKey => {id};
 }
 
 class Declarations extends Table {
@@ -59,74 +49,35 @@ class Declarations extends Table {
   DateTimeColumn get reviewAt => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
 
-  // Execution & Chaining (Version 4/5)
+  // Execution & Chaining
   DateTimeColumn get completedAt => dateTime().nullable()();
   IntColumn get status => intEnum<DeclarationStatus>().withDefault(Constant(DeclarationStatus.active.index))();
   IntColumn get parentId => integer().nullable()();
-  IntColumn get lastReviewStatus => intEnum<ActionReviewStatus>().nullable()();
+  
+  // Unified Retro for Declarations
+  IntColumn get regretLevel => intEnum<RegretLevel>().nullable()();
+  IntColumn get score => integer().nullable()(); // 1, 3, 5
 }
 
-@DriftDatabase(tables: [Decisions, Reviews, Declarations])
+@DriftDatabase(tables: [Decisions, Declarations])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
+      onCreate: (m) async {
+        await m.createAll();
+      },
       onUpgrade: (m, from, to) async {
-        if (from < 2) {
-          // Add new columns to Reviews
-          await m.addColumn(reviews, reviews.regretLevel);
-          await m.addColumn(reviews, reviews.reasonKey);
-          await m.addColumn(reviews, reviews.solution);
-          await m.addColumn(reviews, reviews.successFactor);
-          await m.addColumn(reviews, reviews.reproductionStrategy);
-          await m.addColumn(reviews, reviews.memo);
+        // Fresh start: drop and recreate everything
+        for (final table in allTables) {
+          await m.deleteTable(table.actualTableName);
         }
-        if (from < 3) {
-          // Create Declarations table
-          await m.createTable(declarations);
-        }
-        if (from < 4) {
-          // Update Declarations table for review flow
-          await m.addColumn(declarations, declarations.completedAt);
-          await m.addColumn(declarations, declarations.status);
-          await m.addColumn(declarations, declarations.parentId);
-          await m.addColumn(declarations, declarations.lastReviewStatus);
-        }
-        if (from < 6) {
-          // Unify Gain/Lose to ValueItem.
-          // Since they are already INTEGER columns, we just need to remap values for 'lose'.
-          // Gain mapping is 1:1 for the first 9 items.
-          
-          await m.database.transaction(() async {
-            // Remap lose values
-            // 0: time -> 2
-            // 1: money -> 1
-            // 2: freedom -> 9
-            // 3: energy -> 10
-            // 4: health -> 11
-            // 5: relationships -> 3
-            // 6: mental_margine -> 8
-            
-            // Safer to use a case statement
-            await m.database.customStatement('''
-              UPDATE decisions SET lose = CASE 
-                WHEN lose = 0 THEN 2
-                WHEN lose = 1 THEN 1
-                WHEN lose = 2 THEN 9
-                WHEN lose = 3 THEN 10
-                WHEN lose = 4 THEN 11
-                WHEN lose = 5 THEN 3
-                WHEN lose = 6 THEN 8
-                ELSE lose
-              END;
-            ''');
-          });
-        }
+        await m.createAll();
       },
     );
   }

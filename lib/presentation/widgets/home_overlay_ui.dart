@@ -7,6 +7,7 @@ import '../theme/app_design.dart';
 import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
 import '../widgets/action_review_wizard_sheet.dart';
+import 'reaction_test_buttons.dart';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
   const HomeOverlayUI({super.key});
@@ -126,17 +127,24 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
   }
 
   Widget _buildAddButton() {
-    return SizedBox(
-      width: 56,
-      height: 56,
-      child: FloatingActionButton(
-        onPressed: () => _showLogWizard(context),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 32),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const ReactionTestButtons(),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: FloatingActionButton(
+            onPressed: () => _showLogWizard(context),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add, size: 32),
+          ),
+        ),
+      ],
     );
   }
 

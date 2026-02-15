@@ -50,16 +50,15 @@ final learningThreadProvider = FutureProvider.family<List<LearningThreadNode>, S
     generation: gen++,
   ));
 
-  // 2. Fetch the Review for this Decision
-  final review = await ref.watch(reviewForLogProvider(logId).future);
-  if (review != null) {
+  // 2. Fetch the Review for this Decision (Reviews are now integrated into Decisions)
+  if (decision.reviewedAt != null) {
     thread.add(LearningThreadNode(
       id: 'retro_$logId',
       type: LearningNodeType.retro,
-      date: review.reviewedAt,
+      date: decision.reviewedAt!,
       title: '振り返り',
-      description: review.memo ?? '振り返りを実施しました',
-      originalData: review,
+      description: decision.memo ?? '振り返りを実施しました',
+      originalData: decision,
       generation: gen++,
     ));
   }
@@ -91,7 +90,7 @@ final learningThreadProvider = FutureProvider.family<List<LearningThreadNode>, S
         type: LearningNodeType.check,
         date: current.completedAt!,
         title: '実践の確認',
-        description: current.lastReviewStatus == ActionReviewStatus.success 
+        description: current.regretLevel == RegretLevel.none 
             ? '目標を達成しました！' 
             : '課題が見つかりました',
         originalData: current,
