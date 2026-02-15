@@ -50,23 +50,23 @@ class $DecisionsTable extends Decisions
         requiredDuringInsert: true,
       ).withConverter<DriverType>($DecisionsTable.$converterdriver);
   @override
-  late final GeneratedColumnWithTypeConverter<GainType?, int> gain =
+  late final GeneratedColumnWithTypeConverter<ValueItem?, int> gain =
       GeneratedColumn<int>(
         'gain',
         aliasedName,
         true,
         type: DriftSqlType.int,
         requiredDuringInsert: false,
-      ).withConverter<GainType?>($DecisionsTable.$convertergainn);
+      ).withConverter<ValueItem?>($DecisionsTable.$convertergainn);
   @override
-  late final GeneratedColumnWithTypeConverter<LoseType?, int> lose =
+  late final GeneratedColumnWithTypeConverter<ValueItem?, int> lose =
       GeneratedColumn<int>(
         'lose',
         aliasedName,
         true,
         type: DriftSqlType.int,
         requiredDuringInsert: false,
-      ).withConverter<LoseType?>($DecisionsTable.$converterlosen);
+      ).withConverter<ValueItem?>($DecisionsTable.$converterlosen);
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -264,13 +264,13 @@ class $DecisionsTable extends Decisions
 
   static JsonTypeConverter2<DriverType, int, int> $converterdriver =
       const EnumIndexConverter<DriverType>(DriverType.values);
-  static JsonTypeConverter2<GainType, int, int> $convertergain =
-      const EnumIndexConverter<GainType>(GainType.values);
-  static JsonTypeConverter2<GainType?, int?, int?> $convertergainn =
+  static JsonTypeConverter2<ValueItem, int, int> $convertergain =
+      const EnumIndexConverter<ValueItem>(ValueItem.values);
+  static JsonTypeConverter2<ValueItem?, int?, int?> $convertergainn =
       JsonTypeConverter2.asNullable($convertergain);
-  static JsonTypeConverter2<LoseType, int, int> $converterlose =
-      const EnumIndexConverter<LoseType>(LoseType.values);
-  static JsonTypeConverter2<LoseType?, int?, int?> $converterlosen =
+  static JsonTypeConverter2<ValueItem, int, int> $converterlose =
+      const EnumIndexConverter<ValueItem>(ValueItem.values);
+  static JsonTypeConverter2<ValueItem?, int?, int?> $converterlosen =
       JsonTypeConverter2.asNullable($converterlose);
   static JsonTypeConverter2<RetroOffsetType, int, int>
   $converterretroOffsetType = const EnumIndexConverter<RetroOffsetType>(
@@ -285,8 +285,8 @@ class Decision extends DataClass implements Insertable<Decision> {
   final String textContent;
   final DateTime createdAt;
   final DriverType driver;
-  final GainType? gain;
-  final LoseType? lose;
+  final ValueItem? gain;
+  final ValueItem? lose;
   final String? note;
   final RetroOffsetType retroOffsetType;
   final DateTime retroAt;
@@ -418,8 +418,8 @@ class Decision extends DataClass implements Insertable<Decision> {
     String? textContent,
     DateTime? createdAt,
     DriverType? driver,
-    Value<GainType?> gain = const Value.absent(),
-    Value<LoseType?> lose = const Value.absent(),
+    Value<ValueItem?> gain = const Value.absent(),
+    Value<ValueItem?> lose = const Value.absent(),
     Value<String?> note = const Value.absent(),
     RetroOffsetType? retroOffsetType,
     DateTime? retroAt,
@@ -514,8 +514,8 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
   final Value<String> textContent;
   final Value<DateTime> createdAt;
   final Value<DriverType> driver;
-  final Value<GainType?> gain;
-  final Value<LoseType?> lose;
+  final Value<ValueItem?> gain;
+  final Value<ValueItem?> lose;
   final Value<String?> note;
   final Value<RetroOffsetType> retroOffsetType;
   final Value<DateTime> retroAt;
@@ -592,8 +592,8 @@ class DecisionsCompanion extends UpdateCompanion<Decision> {
     Value<String>? textContent,
     Value<DateTime>? createdAt,
     Value<DriverType>? driver,
-    Value<GainType?>? gain,
-    Value<LoseType?>? lose,
+    Value<ValueItem?>? gain,
+    Value<ValueItem?>? lose,
     Value<String?>? note,
     Value<RetroOffsetType>? retroOffsetType,
     Value<DateTime>? retroAt,
@@ -2226,8 +2226,8 @@ typedef $$DecisionsTableCreateCompanionBuilder =
       required String textContent,
       required DateTime createdAt,
       required DriverType driver,
-      Value<GainType?> gain,
-      Value<LoseType?> lose,
+      Value<ValueItem?> gain,
+      Value<ValueItem?> lose,
       Value<String?> note,
       required RetroOffsetType retroOffsetType,
       required DateTime retroAt,
@@ -2241,8 +2241,8 @@ typedef $$DecisionsTableUpdateCompanionBuilder =
       Value<String> textContent,
       Value<DateTime> createdAt,
       Value<DriverType> driver,
-      Value<GainType?> gain,
-      Value<LoseType?> lose,
+      Value<ValueItem?> gain,
+      Value<ValueItem?> lose,
       Value<String?> note,
       Value<RetroOffsetType> retroOffsetType,
       Value<DateTime> retroAt,
@@ -2323,13 +2323,13 @@ class $$DecisionsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnWithTypeConverterFilters<GainType?, GainType, int> get gain =>
+  ColumnWithTypeConverterFilters<ValueItem?, ValueItem, int> get gain =>
       $composableBuilder(
         column: $table.gain,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnWithTypeConverterFilters<LoseType?, LoseType, int> get lose =>
+  ColumnWithTypeConverterFilters<ValueItem?, ValueItem, int> get lose =>
       $composableBuilder(
         column: $table.lose,
         builder: (column) => ColumnWithTypeConverterFilters(column),
@@ -2501,10 +2501,10 @@ class $$DecisionsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<DriverType, int> get driver =>
       $composableBuilder(column: $table.driver, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<GainType?, int> get gain =>
+  GeneratedColumnWithTypeConverter<ValueItem?, int> get gain =>
       $composableBuilder(column: $table.gain, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<LoseType?, int> get lose =>
+  GeneratedColumnWithTypeConverter<ValueItem?, int> get lose =>
       $composableBuilder(column: $table.lose, builder: (column) => column);
 
   GeneratedColumn<String> get note =>
@@ -2610,8 +2610,8 @@ class $$DecisionsTableTableManager
                 Value<String> textContent = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DriverType> driver = const Value.absent(),
-                Value<GainType?> gain = const Value.absent(),
-                Value<LoseType?> lose = const Value.absent(),
+                Value<ValueItem?> gain = const Value.absent(),
+                Value<ValueItem?> lose = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<RetroOffsetType> retroOffsetType = const Value.absent(),
                 Value<DateTime> retroAt = const Value.absent(),
@@ -2638,8 +2638,8 @@ class $$DecisionsTableTableManager
                 required String textContent,
                 required DateTime createdAt,
                 required DriverType driver,
-                Value<GainType?> gain = const Value.absent(),
-                Value<LoseType?> lose = const Value.absent(),
+                Value<ValueItem?> gain = const Value.absent(),
+                Value<ValueItem?> lose = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 required RetroOffsetType retroOffsetType,
                 required DateTime retroAt,

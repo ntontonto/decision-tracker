@@ -13,8 +13,8 @@ class Decisions extends Table {
   TextColumn get textContent => text()();
   DateTimeColumn get createdAt => dateTime()();
   IntColumn get driver => intEnum<DriverType>()();
-  IntColumn get gain => intEnum<GainType>().nullable()();
-  IntColumn get lose => intEnum<LoseType>().nullable()();
+  IntColumn get gain => intEnum<ValueItem>().nullable()();
+  IntColumn get lose => intEnum<ValueItem>().nullable()();
   TextColumn get note => text().nullable()();
   IntColumn get retroOffsetType => intEnum<RetroOffsetType>()();
   DateTimeColumn get retroAt => dateTime()();
@@ -71,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -97,26 +97,35 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(declarations, declarations.parentId);
           await m.addColumn(declarations, declarations.lastReviewStatus);
         }
-        if (from < 5) {
-          // In v5, we officially treat parentId as an Int.
-          // Since parentId was already added in v4 (but as Text), we might need to recreate or handle data.
-          // However, for simplicity in this dev environment where data is fresh, 
-          // we modify the schema and ensure the code treats it correctly.
-          // In a production environment, we would use m.alterTable or custom SQL to cast the column.
-          // For Drift, changing a column type often requires table recreation or careful SQL.
-          // Here we use a safe approach of re-adding/modifying if possible.
+        if (from < 6) {
+          // Unify Gain/Lose to ValueItem.
+          // Since they are already INTEGER columns, we just need to remap values for 'lose'.
+          // Gain mapping is 1:1 for the first 9 items.
           
-          // NOTE: If parentId was Text, we drop it and add as Int.
-          // Since we are in development, we'll use a pragmatic approach.
-          try {
-            await m.database.customStatement('ALTER TABLE declarations RENAME COLUMN parent_id TO parent_id_old;');
-            await m.addColumn(declarations, declarations.parentId);
-            await m.database.customStatement('UPDATE declarations SET parent_id = CAST(parent_id_old AS INTEGER);');
-            // We can't easily drop columns in SQLite < 3.35, but RENAME is safer.
-          } catch (e) {
-            // If column didn't exist or rename fails, just add it.
-            await m.addColumn(declarations, declarations.parentId);
-          }
+          await m.database.transaction(() async {
+            // Remap lose values
+            // 0: time -> 2
+            // 1: money -> 1
+            // 2: freedom -> 9
+            // 3: energy -> 10
+            // 4: health -> 11
+            // 5: relationships -> 3
+            // 6: mental_margine -> 8
+            
+            // Safer to use a case statement
+            await m.database.customStatement('''
+              UPDATE decisions SET lose = CASE 
+                WHEN lose = 0 THEN 2
+                WHEN lose = 1 THEN 1
+                WHEN lose = 2 THEN 9
+                WHEN lose = 3 THEN 10
+                WHEN lose = 4 THEN 11
+                WHEN lose = 5 THEN 3
+                WHEN lose = 6 THEN 8
+                ELSE lose
+              END;
+            ''');
+          });
         }
       },
     );
