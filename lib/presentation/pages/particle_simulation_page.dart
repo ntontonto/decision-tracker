@@ -474,12 +474,6 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
       }
     });
 
-    // Also auto-trigger on success notifications
-    ref.listen(successNotificationProvider, (previous, next) {
-      if (next.isVisible && next.message.contains('いいね')) {
-        _triggerReaction(ParticleReaction.celebrate);
-      }
-    });
 
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -5,6 +5,7 @@ import '../../data/local/database.dart';
 import '../../data/repositories/decision_repository.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/review_proposal.dart';
+import 'reaction_providers.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -249,13 +250,17 @@ class SuccessNotificationState {
 }
 
 class SuccessNotificationNotifier extends StateNotifier<SuccessNotificationState> {
+  final Ref ref;
   Timer? _timer;
 
-  SuccessNotificationNotifier() : super(SuccessNotificationState());
+  SuccessNotificationNotifier(this.ref) : super(SuccessNotificationState());
 
   void show({required String message, void Function(BuildContext, WidgetRef)? onFix}) {
     _timer?.cancel();
     state = SuccessNotificationState(isVisible: true, message: message, onFix: onFix);
+    
+    // Trigger celebration reaction
+    ref.read(reactionProvider.notifier).trigger(ParticleReaction.celebrate);
     
     _timer = Timer(const Duration(seconds: 5), () {
       hide();
@@ -269,5 +274,5 @@ class SuccessNotificationNotifier extends StateNotifier<SuccessNotificationState
 }
 
 final successNotificationProvider = StateNotifierProvider<SuccessNotificationNotifier, SuccessNotificationState>((ref) {
-  return SuccessNotificationNotifier();
+  return SuccessNotificationNotifier(ref);
 });
