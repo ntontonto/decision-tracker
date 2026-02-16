@@ -36,18 +36,44 @@ class ReflectionMetrics {
   );
 }
 
-/// Provider that calculates reflection metrics from the database
-final reflectionMetricsProvider = FutureProvider<ReflectionMetrics>((ref) async {
+/// Private providers to watch table updates
+final _decisionsStreamProvider = StreamProvider((ref) {
   final db = ref.watch(databaseProvider);
+  return db.select(db.decisions).watch();
+});
+
+final _declarationsStreamProvider = StreamProvider((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.select(db.declarations).watch();
+});
+
+/// Provider that calculates reflection metrics from the database
+/// Updates automatically when decisions or declarations tables change
+final reflectionMetricsProvider = Provider<AsyncValue<ReflectionMetrics>>((ref) {
+  final decisionsAsync = ref.watch(_decisionsStreamProvider);
+  final declarationsAsync = ref.watch(_declarationsStreamProvider);
+  
+  // Return loading/error if upstream providers are not ready
+  if (decisionsAsync.isLoading || declarationsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  
+  if (decisionsAsync.hasError) {
+    return AsyncValue.error(decisionsAsync.error!, decisionsAsync.stackTrace!);
+  }
+  
+  if (declarationsAsync.hasError) {
+    return AsyncValue.error(declarationsAsync.error!, declarationsAsync.stackTrace!);
+  }
+  
+  final allDecisions = decisionsAsync.value ?? [];
+  final allDeclarations = declarationsAsync.value ?? [];
+  
   final now = DateTime.now();
   
   // Calculate date ranges
   final last7Days = now.subtract(const Duration(days: 7));
   final last30Days = now.subtract(const Duration(days: 30));
-  
-  // Fetch all decisions and declarations
-  final allDecisions = await (db.select(db.decisions)).get();
-  final allDeclarations = await (db.select(db.declarations)).get();
   
   // 1. Review Completion Rate (last 7 days)
   final decisionsScheduledLast7Days = allDecisions.where((d) {
@@ -119,10 +145,10 @@ final reflectionMetricsProvider = FutureProvider<ReflectionMetrics>((ref) async 
       ? allScores.reduce((a, b) => a + b) / allScores.length
       : 3.0; // Default to neutral score
   
-  return ReflectionMetrics(
+  return AsyncValue.data(ReflectionMetrics(
     reviewCompletionRate: reviewCompletionRate.clamp(0.0, 1.0),
     intrinsicMotivationRatio: intrinsicMotivationRatio.clamp(0.0, 1.0),
     inputFrequency: inputFrequency.clamp(0, 7),
     satisfactionScoreAverage: satisfactionScoreAverage.clamp(1.0, 5.0),
-  );
+  ));
 });
