@@ -606,22 +606,48 @@ class ConstellationPhysicsPainter extends CustomPainter {
       final ageFactor = (1.0 - (ageHours / 168.0)).clamp(0.4, 1.0);
       
       // Luminosity Factor based on score (5-3-1)
+      // Unreviewed nodes now match the base luminosity of score 1 (0.7)
       double luminosity = isReviewed 
           ? (score == 5 ? 1.6 : (score == 3 ? 1.1 : 0.7))
-          : 0.3; // Seed luminosity
-
-      // 1. Concentric Rings (Modern "Drop Candy" Style)
-      final double ringOpacityFactor = ageFactor * (isReviewed ? 1.0 : pulse * 0.5);
-      final ringPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5;
+          : 1.1; // Balanced seed luminosity (matches score 3)
 
       // Time and Star-specific Randoms
-      final double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+      final double time = now.millisecondsSinceEpoch / 1000.0;
       final int seed = node.id.hashCode;
       final random = math.Random(seed);
       final double starDir = random.nextBool() ? 1.0 : -1.0;
       final double starSpeedMult = 0.7 + (random.nextDouble() * 0.8);
+
+      // Flicker Factor for unreviewed nodes (Staccato / Broken Bulb)
+      double flickerFactor = 1.0;
+      if (!isReviewed) {
+        final double t = time + (seed % 100);
+        // Base irregular wobble
+        double wobble = (math.sin(t * 2.5).abs() * 0.6) + (math.sin(t * 15.0).abs() * 0.2);
+        
+        // Sudden sharp "on/off" flickers (Broken bulb effect)
+        // High frequency noise-like oscillation
+        final double staccato = math.sin(t * 30.0) * math.sin(t * 47.0);
+        if (staccato > 0.5) {
+          wobble *= 0.2; // Sharp dimming
+        } else if (staccato < -0.85) {
+          wobble = 0.02; // Almost total blackout
+        }
+
+        // Periodic "power failure" (Deep fade every few seconds)
+        final double powerPulse = (math.sin(t * 0.6) + 1.0) / 2.0; 
+        if (powerPulse < 0.25) {
+           wobble *= (powerPulse * 4.0).clamp(0.1, 1.0);
+        }
+
+        flickerFactor = (wobble + 0.2).clamp(0.01, 1.0);
+      }
+
+      // 1. Concentric Rings (Modern "Drop Candy" Style)
+      final double ringOpacityFactor = ageFactor * (isReviewed ? 1.0 : (pulse * 0.5 * flickerFactor));
+      final ringPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5;
 
       // Orbital Satellites Count based on score
       // 5 pt -> 3 satellites, 3 pt -> 2 satellites, 1 pt/seed -> 1 satellite
@@ -634,7 +660,9 @@ class ConstellationPhysicsPainter extends CustomPainter {
       ringPaint.color = baseColor.withValues(alpha: 0.15 * ringOpacityFactor);
       canvas.drawCircle(node.position, outerRadius, ringPaint);
 
-      final satellitePaint = Paint()..color = Colors.white.withValues(alpha: 0.6 * ringOpacityFactor);
+      final satellitePaint = Paint()..color = Colors.white.withValues(
+        alpha: 0.6 * ringOpacityFactor * (isReviewed ? 1.0 : flickerFactor)
+      );
 
       // Draw Outer Satellites
       for (int i = 0; i < satelliteCount; i++) {
@@ -675,15 +703,19 @@ class ConstellationPhysicsPainter extends CustomPainter {
       }
 
 
-      // 4. White Core with Candy Highlight
-      final double coreSize = (isReviewed ? (isSelected ? 4.0 : 3.0) : 1.8) * ageFactor;
+      // 4. White Core with Candy Highlight (Slightly larger for visibility)
+      final double coreSize = (isReviewed ? (isSelected ? 4.5 : 3.5) : 2.2) * ageFactor;
       
       // Main Core
-      final corePaint = Paint()..color = isReviewed ? baseColor : baseColor.withValues(alpha: 0.6);
+      final corePaint = Paint()..color = isReviewed 
+          ? baseColor 
+          : baseColor.withValues(alpha: 0.6 * flickerFactor);
       canvas.drawCircle(node.position, coreSize, corePaint);
       
       // Glossy Highlight (White, slightly offset)
-      final highlightPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
+      final highlightPaint = Paint()..color = Colors.white.withValues(
+        alpha: (isReviewed ? 0.8 : 0.4 * flickerFactor)
+      );
       canvas.drawCircle(
         node.position - Offset(coreSize * 0.3, coreSize * 0.3), 
         coreSize * 0.4, 
