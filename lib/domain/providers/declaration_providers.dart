@@ -252,6 +252,13 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
     reset();
   }
 
+  Future<void> skip() async {
+    if (state.declaration == null) return;
+    await ref.read(repositoryProvider).skipDeclaration(state.declaration!.id);
+    ref.invalidate(pendingDeclarationsProvider);
+    reset();
+  }
+
   void reset() {
     state = ActionReviewState();
   }

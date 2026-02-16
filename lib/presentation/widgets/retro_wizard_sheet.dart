@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/retro_providers.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/reaction_providers.dart';
 import '../theme/app_design.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
@@ -328,7 +329,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           
           // Date chip-style heading
           Container(
@@ -342,33 +343,85 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
               dateStr,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             '出来事を振り返りましょう',
             style: AppDesign.titleStyle.copyWith(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           
           // Main content card
           _buildMainContentCard(d),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
           
           // Value trade-off section
           _buildValueFlowSection(d),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
           
           // Expandable note section (if exists)
           if (d.note != null && d.note!.isNotEmpty)
             _buildExpandableNote(d.note!),
+          
+          const SizedBox(height: 24),
+          
+          // Skip button
+          Center(
+            child: TextButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => BackdropFilter(
+                    filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.srcOver),
+                    child: AlertDialog(
+                      backgroundColor: AppDesign.glassBackgroundColor,
+                      title: const Text('振り返らずに終わりますか？', style: TextStyle(color: Colors.white)),
+                      content: const Text('この判断はホーム画面に表示されなくなります（星座には残ります）。', style: TextStyle(color: Colors.white70)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('キャンセル', style: TextStyle(color: Colors.white)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                          child: const Text('終わる'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ) ?? false;
+
+                if (confirmed && mounted) {
+                  await ref.read(retroWizardProvider.notifier).skip();
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ref.read(successNotificationProvider.notifier).show(
+                      message: '次回は振り返りしてくれると嬉しいな',
+                      icon: Icons.sentiment_neutral,
+                      reaction: ParticleReaction.jitter,
+                    );
+                  }
+                }
+              },
+              child: Text(
+                '振り返りせず終わる',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
           
           const SizedBox(height: 40),
         ],
@@ -379,7 +432,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
   Widget _buildMainContentCard(dynamic decision) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -389,13 +442,13 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
             Colors.white.withValues(alpha: 0.03),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -407,31 +460,31 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
             decision.textContent,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              height: 1.4,
+              height: 1.3,
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           
           // Divider
           Container(
             height: 1,
-            width: 40,
+            width: 30,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.white38, Colors.white10],
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           
           // Motivation with icon
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
@@ -440,10 +493,10 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
                 child: Icon(
                   decision.driver.icon,
                   color: Colors.white70,
-                  size: 18,
+                  size: 16,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -451,17 +504,17 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
                     '動機',
                     style: TextStyle(
                       color: Colors.white38,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     decision.driver.label,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -478,17 +531,8 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: Text(
-            '価値のトレードオフ',
-            style: AppDesign.sectionTitleStyle,
-          ),
-        ),
-        const SizedBox(height: 20),
-        
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(24),
@@ -568,7 +612,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         
         Container(
           width: 72,
@@ -598,12 +642,12 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 2),
         Text(
           hasValue ? value.label : 'なし',
           style: TextStyle(
             color: hasValue ? Colors.white : Colors.white24,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
           ),
           textAlign: TextAlign.center,

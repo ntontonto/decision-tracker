@@ -173,6 +173,13 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
     ref.invalidate(allDecisionsProvider);
   }
 
+  Future<void> skip() async {
+    if (state.decision == null) return;
+    await ref.read(repositoryProvider).skipDecision(state.decision!.id);
+    ref.invalidate(pendingDecisionsProvider);
+    ref.invalidate(allDecisionsProvider);
+  }
+
   void reset() {
     state = RetroWizardState(metadata: state.metadata, isLoading: false);
   }

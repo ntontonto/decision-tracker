@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/declaration_providers.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/reaction_providers.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/practice_review_model.dart';
 import '../theme/app_design.dart';
@@ -301,6 +302,57 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
               ),
             ],
           ),
+          const SizedBox(height: 60),
+          // Skip button
+          Center(
+            child: TextButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => BackdropFilter(
+                    filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.srcOver),
+                    child: AlertDialog(
+                      backgroundColor: AppDesign.glassBackgroundColor,
+                      title: const Text('振り返らずに終わりますか？', style: TextStyle(color: Colors.white)),
+                      content: const Text('この実践はホーム画面に表示されなくなります（星座には残ります）。', style: TextStyle(color: Colors.white70)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('キャンセル', style: TextStyle(color: Colors.white)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                          child: const Text('終わる'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ) ?? false;
+
+                if (confirmed && mounted) {
+                  await ref.read(actionReviewProvider.notifier).skip();
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ref.read(successNotificationProvider.notifier).show(
+                      message: '次回は振り返りしてくれると嬉しいな',
+                      icon: Icons.sentiment_neutral,
+                      reaction: ParticleReaction.jitter,
+                    );
+                  }
+                }
+              },
+              child: Text(
+                '振り返りせず終わる',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
         ],
       ),
     );
