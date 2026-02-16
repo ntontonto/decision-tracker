@@ -320,7 +320,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     final d = state.decision!;
     
     // Format date as "YYYY年MM月DD日"
-    final dateStr = '${d.retroAt.year}年${d.retroAt.month}月${d.retroAt.day}日';
+    final dateStr = '${d.createdAt.year}年${d.createdAt.month}月${d.createdAt.day}日';
     
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -328,22 +328,43 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           
-          // Date-based heading
-          Text(
-            '$dateStrの出来事を振り返りましょう',
-            style: AppDesign.titleStyle.copyWith(fontSize: 20),
+          // Date chip-style heading
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Text(
+              dateStr,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          Text(
+            '出来事を振り返りましょう',
+            style: AppDesign.titleStyle.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 32),
           
           // Main content card
           _buildMainContentCard(d),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
           
           // Value trade-off section
-          _buildValueTradeOffSection(d),
-          const SizedBox(height: 24),
+          _buildValueFlowSection(d),
+          const SizedBox(height: 40),
           
           // Expandable note section (if exists)
           if (d.note != null && d.note!.isNotEmpty)
@@ -357,8 +378,27 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
 
   Widget _buildMainContentCard(dynamic decision) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppDesign.cardDecoration(),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.08),
+            Colors.white.withValues(alpha: 0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -367,33 +407,40 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
             decision.textContent,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               height: 1.4,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
           // Divider
           Container(
             height: 1,
-            color: Colors.white.withValues(alpha: 0.1),
+            width: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.white38, Colors.white10],
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
           // Motivation with icon
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Icon(
                   decision.driver.icon,
                   color: Colors.white70,
-                  size: 20,
+                  size: 18,
                 ),
               ),
               const SizedBox(width: 12),
@@ -402,7 +449,12 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
                 children: [
                   Text(
                     '動機',
-                    style: AppDesign.sectionTitleStyle.copyWith(fontSize: 11),
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -422,119 +474,141 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     );
   }
 
-  Widget _buildValueTradeOffSection(dynamic decision) {
+  Widget _buildValueFlowSection(dynamic decision) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '価値のトレードオフ',
-          style: AppDesign.sectionTitleStyle,
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '価値のトレードオフ',
+            style: AppDesign.sectionTitleStyle,
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         
-        Row(
-          children: [
-            Expanded(
-              child: _buildValueSocket(
-                title: '失ったもの',
-                value: decision.lose,
-                isLose: true,
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Row(
+            children: [
+              // Loss
+              Expanded(
+                child: _buildFlowItem(
+                  label: '失ったもの',
+                  value: decision.lose,
+                  color: Colors.redAccent,
+                  isLoss: true,
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildValueSocket(
-                title: '得たもの',
-                value: decision.gain,
-                isLose: false,
+              
+              // Animated Connector
+              SizedBox(
+                width: 60,
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Colors.white24,
+                      size: 24,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 2,
+                      width: 30,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.redAccent.withValues(alpha: 0.3),
+                            Colors.greenAccent.withValues(alpha: 0.3),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              
+              // Gain
+              Expanded(
+                child: _buildFlowItem(
+                  label: '得たもの',
+                  value: decision.gain,
+                  color: Colors.greenAccent,
+                  isLoss: false,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildValueSocket({
-    required String title,
+  Widget _buildFlowItem({
+    required String label,
     required dynamic value,
-    required bool isLose,
+    required Color color,
+    required bool isLoss,
   }) {
-    final color = isLose ? Colors.redAccent : Colors.greenAccent;
     final hasValue = value != null;
     
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: hasValue 
-            ? color.withValues(alpha: 0.15)
-            : Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: hasValue ? color.withValues(alpha: 0.5) : Colors.white12,
-          width: hasValue ? 2 : 1,
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          // Title
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+        const SizedBox(height: 16),
+        
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: hasValue 
+                ? color.withValues(alpha: 0.1)
+                : Colors.white.withValues(alpha: 0.03),
+            border: Border.all(
+              color: hasValue ? color.withValues(alpha: 0.4) : Colors.white12,
+              width: 1.5,
+            ),
+            boxShadow: hasValue ? [
+              BoxShadow(
+                color: color.withValues(alpha: 0.15),
+                blurRadius: 15,
+                spreadRadius: 2,
+              )
+            ] : [],
+          ),
+          child: Center(
+            child: Icon(
+              hasValue ? value.icon : (isLoss ? Icons.remove : Icons.add),
+              color: hasValue ? Colors.white : Colors.white10,
+              size: 28,
             ),
           ),
-          const SizedBox(height: 12),
-          
-          // Icon and label
-          if (hasValue) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: 0.2),
-                border: Border.all(color: color, width: 2),
-              ),
-              child: Icon(
-                value.icon,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value.label,
-              style: AppDesign.valueLabelStyle,
-              textAlign: TextAlign.center,
-            ),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
-                border: Border.all(color: Colors.white12, width: 1),
-              ),
-              child: Icon(
-                isLose ? Icons.remove_circle_outline : Icons.add_circle_outline,
-                color: Colors.white24,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'なし',
-              style: TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          hasValue ? value.label : 'なし',
+          style: TextStyle(
+            color: hasValue ? Colors.white : Colors.white24,
+            fontSize: 13,
+            fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
