@@ -644,7 +644,8 @@ class ConstellationPhysicsPainter extends CustomPainter {
       }
 
       // 1. Concentric Rings (Modern "Drop Candy" Style)
-      final double ringOpacityFactor = ageFactor * (isReviewed ? 1.0 : (pulse * 0.5 * flickerFactor));
+      final double localPulse = (math.sin((time + (seed % 100)) * (math.pi + (seed % 10) * 0.1)) + 1) / 2;
+      final double ringOpacityFactor = ageFactor * (isReviewed ? 1.0 : (localPulse * 0.5 * flickerFactor));
       final ringPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.5;
@@ -704,7 +705,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
 
       // 4. White Core with Candy Highlight (Slightly larger for visibility)
-      final double coreSize = (isReviewed ? (isSelected ? 4.5 : 3.5) : 2.2) * ageFactor;
+      final double coreSize = (isReviewed ? (isSelected ? 4.5 : 3.5) : 6.4) * ageFactor;
       
       // Main Core
       final corePaint = Paint()..color = isReviewed 
