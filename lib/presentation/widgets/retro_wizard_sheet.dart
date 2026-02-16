@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/retro_providers.dart';
 import '../../domain/providers/app_providers.dart';
+import '../theme/app_design.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
 import 'declaration_wizard_sheet.dart';
@@ -138,6 +139,32 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     }
   }
 
+  Future<bool> _confirmDiscard() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => BackdropFilter(
+            filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.srcOver),
+            child: AlertDialog(
+              backgroundColor: AppDesign.glassBackgroundColor,
+              title: const Text('破棄しますか？', style: TextStyle(color: Colors.white)),
+              content: const Text('入力内容は保存されません。', style: TextStyle(color: Colors.white70)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('入力に戻る', style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                  child: const Text('破棄する'),
+                ),
+              ],
+            ),
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(retroWizardProvider);
@@ -147,28 +174,55 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
 
     final totalSteps = 4; // 0 to 3
 
-    return WizardScaffold(
-      key: _scaffoldKey,
-      totalSteps: totalSteps,
-      currentStep: state.currentStep,
-      onBack: _back,
-      onNext: _next,
-      onClose: () => Navigator.pop(context),
-      pageController: _pageController,
-      showErrorGlow: _showErrorGlow,
-      scrollController: ScrollController(),
-      onPageChanged: (page) {
-        _onInteraction();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final confirmed = await _confirmDiscard();
+        if (confirmed && context.mounted) {
+          ref.read(retroWizardProvider.notifier).reset();
+          Navigator.of(context).pop();
+        }
       },
-      bottomNavigationBar: _buildBottomNavigation(state),
-      children: [
+      child: WizardScaffold(
+        key: _scaffoldKey,
+        totalSteps: totalSteps,
+        currentStep: state.currentStep,
+        onBack: () async {
+          if (state.currentStep > 0) {
+            _back();
+          } else {
+            final confirmed = await _confirmDiscard();
+            if (confirmed && mounted) {
+              ref.read(retroWizardProvider.notifier).reset();
+              Navigator.pop(context);
+            }
+          }
+        },
+        onNext: _next,
+        onClose: () async {
+          final confirmed = await _confirmDiscard();
+          if (confirmed && mounted) {
+            ref.read(retroWizardProvider.notifier).reset();
+            Navigator.pop(context);
+          }
+        },
+        pageController: _pageController,
+        showErrorGlow: _showErrorGlow,
+        scrollController: ScrollController(),
+        onPageChanged: (page) {
+          _onInteraction();
+        },
+        bottomNavigationBar: _buildBottomNavigation(state),
+        children: [
         _buildStep0(state),
         _buildStep1(state),
         _buildStep2(state),
         _buildStep3(state),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBottomNavigation(RetroWizardState state) {
     // Only show the action buttons on the final step.

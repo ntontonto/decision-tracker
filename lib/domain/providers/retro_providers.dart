@@ -172,6 +172,10 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
     ref.invalidate(pendingDecisionsProvider);
     ref.invalidate(allDecisionsProvider);
   }
+
+  void reset() {
+    state = RetroWizardState(metadata: state.metadata, isLoading: false);
+  }
 }
 
 final retroWizardProvider = StateNotifierProvider<RetroWizardNotifier, RetroWizardState>((ref) {

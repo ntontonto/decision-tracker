@@ -7,6 +7,7 @@ import '../theme/app_design.dart';
 import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
 import '../widgets/action_review_wizard_sheet.dart';
+import '../widgets/review_proposal_card.dart';
 import 'reaction_test_buttons.dart';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
@@ -64,45 +65,9 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
                 return Row(
                   children: [
                     Expanded(
-                      child: InkWell(
+                      child: ReviewProposalCard(
+                        item: proposal,
                         onTap: () => _startReviewFlow(context, proposal),
-                        borderRadius: BorderRadius.circular(40),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          decoration: AppDesign.glassDecoration(
-                            borderRadius: 40,
-                            showBorder: false,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    proposal.type == ProposalType.decisionRetro 
-                                        ? Icons.history 
-                                        : Icons.check_circle_outline,
-                                    size: 14,
-                                    color: AppDesign.textSecondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    proposal.title,
-                                    style: AppDesign.subtitleStyle,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                proposal.description,
-                                style: AppDesign.bodyStyle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                     const SizedBox(width: 12),

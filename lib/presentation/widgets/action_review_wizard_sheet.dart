@@ -152,8 +152,38 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     );
   }
 
-  void _skip() {
-    Navigator.pop(context);
+  Future<bool> _confirmDiscard() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => BackdropFilter(
+            filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.srcOver),
+            child: AlertDialog(
+              backgroundColor: AppDesign.glassBackgroundColor,
+              title: const Text('破棄しますか？', style: TextStyle(color: Colors.white)),
+              content: const Text('入力内容は保存されません。', style: TextStyle(color: Colors.white70)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('入力に戻る', style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                  child: const Text('破棄する'),
+                ),
+              ],
+            ),
+          ),
+        ) ??
+        false;
+  }
+
+  void _skip() async {
+    final confirmed = await _confirmDiscard();
+    if (confirmed && mounted) {
+      ref.read(actionReviewProvider.notifier).reset();
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -161,20 +191,40 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     final state = ref.watch(actionReviewProvider);
     final reviewMapAsync = ref.watch(practiceReviewMapProvider);
 
-    return WizardScaffold(
-      totalSteps: _getTotalSteps(state),
-      currentStep: state.currentStep,
-      onBack: state.currentStep > 0 ? _back : null,
-      onNext: _next,
-      onClose: _skip,
-      pageController: _pageController,
-      showErrorGlow: _showErrorGlow,
-      scrollController: ScrollController(),
-      onPageChanged: (page) {
-        ref.read(actionReviewProvider.notifier).updateCurrentStep(page);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final confirmed = await _confirmDiscard();
+        if (confirmed && context.mounted) {
+          ref.read(actionReviewProvider.notifier).reset();
+          Navigator.of(context).pop();
+        }
       },
-      bottomNavigationBar: _buildBottomNavigation(state),
-      children: [
+      child: WizardScaffold(
+        totalSteps: _getTotalSteps(state),
+        currentStep: state.currentStep,
+        onBack: () async {
+          if (state.currentStep > 0) {
+            _back();
+          } else {
+            final confirmed = await _confirmDiscard();
+            if (confirmed && mounted) {
+              ref.read(actionReviewProvider.notifier).reset();
+              Navigator.pop(context);
+            }
+          }
+        },
+        onNext: _next,
+        onClose: _skip,
+        pageController: _pageController,
+        showErrorGlow: _showErrorGlow,
+        scrollController: ScrollController(),
+        onPageChanged: (page) {
+          ref.read(actionReviewProvider.notifier).updateCurrentStep(page);
+        },
+        bottomNavigationBar: _buildBottomNavigation(state),
+        children: [
         _buildStep1(state),
         if (state.regretLevel != RegretLevel.none) ...[
           reviewMapAsync.when(
@@ -189,8 +239,9 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
           ),
         ],
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStep1(ActionReviewState state) {
     return SingleChildScrollView(

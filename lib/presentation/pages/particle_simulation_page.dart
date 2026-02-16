@@ -193,7 +193,8 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
       
       // Decay reaction factor
       if (_reactionFactor > 0) {
-        _reactionFactor -= 0.005; // ~3 seconds to decay
+        double decayRate = _activeReaction == ParticleReaction.celebrate ? 0.002 : 0.005;
+        _reactionFactor -= decayRate;
         if (_reactionFactor < 0) {
           _reactionFactor = 0;
           _activeReaction = ParticleReaction.none;
@@ -207,9 +208,9 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
         // Soft wandering when idle
         // Base frequencies/amplitudes scaled by activity
         // Reaction boost for activity
-        double activityBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 2.0 : 0.0;
+        double activityBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 2.5 : 0.0;
         double freqScale = _targetActivity + activityBoost;
-        double ampScale = math.sqrt(_targetActivity) + activityBoost * 0.5; 
+        double ampScale = math.sqrt(_targetActivity) + activityBoost * 0.8; 
         
         double driftX = math.sin(_time * 0.0005 * freqScale) * 40.0 * ampScale + 
                         math.cos(_time * 0.0003 * freqScale) * 20.0 * ampScale;
@@ -304,8 +305,8 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
         if (toTargetCenter.distance > 10.0) {
           Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
           
-          double vortexBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 0.8 : 0.0;
-          double orbitSpeed = ((_vortexStrength + vortexBoost) * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.5 + 1.0);
+          double vortexBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 1.2 : 0.0;
+          double orbitSpeed = ((_vortexStrength + vortexBoost) * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.4 + 1.0);
           p.vel += tangential * orbitSpeed;
         }
 
@@ -387,7 +388,14 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
           sizeFactor = sizeFactor.clamp(SimConfig.minSizeFactor, 1.0);
         }
 
-        p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor;
+        double reactionSizeBoost = 1.0;
+        if (_activeReaction == ParticleReaction.celebrate && _reactionFactor > 0) {
+          // Rapid pulsation effect during celebration
+          double pulse = math.sin(_time * 0.03 + p.phase * 10.0) * 0.25 * _reactionFactor;
+          reactionSizeBoost = 1.2 + pulse;
+        }
+
+        p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor * reactionSizeBoost;
         
         // --- Reaction Visuals ---
         if (_reactionFactor > 0) {
@@ -428,7 +436,9 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
           if (dist > 0.1) {
             // Centrifugal-like push during peak reaction
             // Strongest in the middle of the reaction phase
-            double pushStrength = math.sin(_reactionFactor * math.pi) * 0.15;
+            // Stronger centrifugal-like push during peak reaction
+            // Strongest in the middle of the reaction phase, exponentially falls off
+            double pushStrength = math.sin(_reactionFactor * math.pi) * 0.2;
             p.vel += (fromCenter / dist) * pushStrength;
           }
         }
