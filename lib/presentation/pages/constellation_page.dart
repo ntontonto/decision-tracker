@@ -548,12 +548,6 @@ class ConstellationPhysicsPainter extends CustomPainter {
        );
     }
 
-    // 2. Boundbox
-    final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawRect(Offset.zero & size, borderPaint);
 
     final linePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.2)
