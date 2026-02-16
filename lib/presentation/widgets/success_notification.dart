@@ -14,6 +14,7 @@ class SuccessNotification extends ConsumerStatefulWidget {
 class _SuccessNotificationState extends ConsumerState<SuccessNotification> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
+  double _dragOffset = 0;
 
   @override
   void initState() {
@@ -34,12 +35,19 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
     super.dispose();
   }
 
+  void _resetDrag() {
+    setState(() {
+      _dragOffset = 0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(successNotificationProvider);
     
     ref.listen(successNotificationProvider, (prev, next) {
       if (next.isVisible) {
+        _resetDrag();
         _controller.forward();
       } else {
         _controller.reverse();
@@ -49,50 +57,83 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
     return SlideTransition(
       position: _slideAnimation,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Reduced vertical padding
-            decoration: BoxDecoration(
-              color: AppDesign.glassBackgroundColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppDesign.glassBorderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    state.message,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragUpdate: (details) {
+            setState(() {
+              // Only allow upward drag, and limit it
+              _dragOffset = (_dragOffset + details.delta.dy).clamp(-100.0, 20.0);
+            });
+          },
+          onVerticalDragEnd: (details) {
+            if (_dragOffset < -50 || (details.primaryVelocity ?? 0) < -300) {
+              ref.read(successNotificationProvider.notifier).hide();
+            } else {
+              // Snap back
+              setState(() {
+                _dragOffset = 0;
+              });
+            }
+          },
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: _dragOffset, end: _dragOffset),
+            duration: const Duration(milliseconds: 50),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, value),
+                child: child,
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: (1.0 + _dragOffset / 100.0).clamp(0.2, 1.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Reduced vertical padding
+                  decoration: BoxDecoration(
+                    color: AppDesign.glassBackgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppDesign.glassBorderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ),
-                if (state.onFix != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        state.onFix?.call(context, ref);
-                        ref.read(successNotificationProvider.notifier).hide();
-                      },
-                      child: const Text(
-                        '修正する',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          state.message,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                         ),
                       ),
-                    ),
+                      if (state.onFix != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: GestureDetector(
+                            onTap: () {
+                              state.onFix?.call(context, ref);
+                              ref.read(successNotificationProvider.notifier).hide();
+                            },
+                            child: const Text(
+                              '修正する',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const _ProgressIndicator(),
+                    ],
                   ),
-                const _ProgressIndicator(),
-              ],
+                ),
+              ),
             ),
           ),
         ),
