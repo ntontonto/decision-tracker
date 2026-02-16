@@ -318,7 +318,9 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
   Widget _buildStep0(RetroWizardState state) {
     if (state.decision == null) return const SizedBox.shrink();
     final d = state.decision!;
-    final dateStr = '${d.retroAt.year}/${d.retroAt.month}/${d.retroAt.day}';
+    
+    // Format date as "YYYY年MM月DD日"
+    final dateStr = '${d.retroAt.year}年${d.retroAt.month}月${d.retroAt.day}日';
     
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -326,18 +328,247 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoItem('設定日時', dateStr),
-          _buildInfoItem('Q1: 今日は何をした？', d.textContent),
-          _buildInfoItem('Q2: なぜそれをした？', d.driver.label),
-          if (d.gain != null)
-            _buildInfoItem('Q3: 得たものは？', d.gain!.label),
-          if (d.lose != null)
-            _buildInfoItem('Q4: 失ったものは？', d.lose!.label),
-          if (d.note != null && d.note!.isNotEmpty)
-            _buildInfoItem('Q6: 将来の自分への一言', d.note!),
+          const SizedBox(height: 12),
+          
+          // Date-based heading
+          Text(
+            '$dateStrの出来事を振り返りましょう',
+            style: AppDesign.titleStyle.copyWith(fontSize: 20),
+          ),
           const SizedBox(height: 24),
-          const Text('これらを振り返ってみましょう。', style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
+          
+          // Main content card
+          _buildMainContentCard(d),
+          const SizedBox(height: 24),
+          
+          // Value trade-off section
+          _buildValueTradeOffSection(d),
+          const SizedBox(height: 24),
+          
+          // Expandable note section (if exists)
+          if (d.note != null && d.note!.isNotEmpty)
+            _buildExpandableNote(d.note!),
+          
           const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainContentCard(dynamic decision) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: AppDesign.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            decision.textContent,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Divider
+          Container(
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
+          const SizedBox(height: 16),
+          
+          // Motivation with icon
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  decision.driver.icon,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '動機',
+                    style: AppDesign.sectionTitleStyle.copyWith(fontSize: 11),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    decision.driver.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValueTradeOffSection(dynamic decision) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '価値のトレードオフ',
+          style: AppDesign.sectionTitleStyle,
+        ),
+        const SizedBox(height: 16),
+        
+        Row(
+          children: [
+            Expanded(
+              child: _buildValueSocket(
+                title: '失ったもの',
+                value: decision.lose,
+                isLose: true,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildValueSocket(
+                title: '得たもの',
+                value: decision.gain,
+                isLose: false,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildValueSocket({
+    required String title,
+    required dynamic value,
+    required bool isLose,
+  }) {
+    final color = isLose ? Colors.redAccent : Colors.greenAccent;
+    final hasValue = value != null;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: hasValue 
+            ? color.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasValue ? color.withValues(alpha: 0.5) : Colors.white12,
+          width: hasValue ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Title
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Icon and label
+          if (hasValue) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.2),
+                border: Border.all(color: color, width: 2),
+              ),
+              child: Icon(
+                value.icon,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value.label,
+              style: AppDesign.valueLabelStyle,
+              textAlign: TextAlign.center,
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+                border: Border.all(color: Colors.white12, width: 1),
+              ),
+              child: Icon(
+                isLose ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                color: Colors.white24,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'なし',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableNote(String note) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppDesign.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.message_outlined,
+                color: Colors.white54,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '将来の自分への一言',
+                style: AppDesign.sectionTitleStyle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            note,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
@@ -427,17 +658,4 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
-        ],
-      ),
-    );
-  }
 }
