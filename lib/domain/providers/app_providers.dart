@@ -200,7 +200,7 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
   final decisions = await ref.watch(pendingDecisionsProvider.future);
   final declarations = await ref.watch(pendingDeclarationsProvider.future);
   
-  final List<ReviewProposal> proposals = [
+  final List<ReviewProposal> allProposals = [
     ...decisions.map((d) => ReviewProposal(
       id: d.id,
       title: '${d.retroAt.month}/${d.retroAt.day} を振り返りませんか？',
@@ -218,6 +218,9 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
       originalData: d,
     )),
   ];
+
+  // Filter by unified time window
+  final proposals = allProposals.where((p) => p.isReviewableNow).toList();
 
   // Sort by targetDate (oldest first to ensure they get reviewed)
   proposals.sort((a, b) => a.targetDate.compareTo(b.targetDate));

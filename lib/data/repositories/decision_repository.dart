@@ -164,10 +164,8 @@ class DecisionRepository {
   }
 
   Future<List<Declaration>> getPendingDeclarations() {
-    final now = DateTime.now();
     return (db.select(db.declarations)
           ..where((t) => t.status.equals(DeclarationStatus.active.index))
-          ..where((t) => t.reviewAt.isSmallerOrEqualValue(now))
           ..orderBy([
             (t) => OrderingTerm(expression: t.reviewAt, mode: OrderingMode.asc)
           ]))
