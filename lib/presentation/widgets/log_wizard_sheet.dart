@@ -124,6 +124,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     } else {
       final confirmed = await _confirmDiscard();
       if (confirmed && mounted) {
+        ref.read(logWizardProvider.notifier).reset();
         Navigator.of(context).pop();
       }
     }
@@ -229,7 +230,10 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         },
         onClose: () async {
           final confirmed = await _confirmDiscard();
-          if (confirmed && mounted) Navigator.pop(context);
+          if (confirmed && mounted) {
+            ref.read(logWizardProvider.notifier).reset();
+            Navigator.pop(context);
+          }
         },
         pageController: _pageController,
         showErrorGlow: _showErrorGlow,

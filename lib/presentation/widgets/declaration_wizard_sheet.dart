@@ -111,34 +111,85 @@ class _DeclarationWizardSheetState extends ConsumerState<DeclarationWizardSheet>
     }
   }
 
-  void _skip() {
-    Navigator.pop(context);
+  Future<bool> _confirmDiscard() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => BackdropFilter(
+            filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.srcOver),
+            child: AlertDialog(
+              backgroundColor: AppDesign.glassBackgroundColor,
+              title: const Text('破棄しますか？', style: TextStyle(color: Colors.white)),
+              content: const Text('入力内容は保存されません。', style: TextStyle(color: Colors.white70)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('入力に戻る', style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                  child: const Text('破棄する'),
+                ),
+              ],
+            ),
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _skip() async {
+    final confirmed = await _confirmDiscard();
+    if (confirmed && mounted) {
+      ref.read(declarationWizardProvider.notifier).reset();
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(declarationWizardProvider);
     
-    return WizardScaffold(
-      totalSteps: 2,
-      currentStep: state.currentStep,
-      onBack: state.currentStep > 0 ? _back : null,
-      onNext: _next,
-      onClose: _skip,
-      pageController: _pageController,
-      showErrorGlow: _showErrorGlow,
-      scrollController: ScrollController(),
-      onPageChanged: (page) {
-        ref.read(declarationWizardProvider.notifier).updateCurrentStep(page);
-        FocusScope.of(context).unfocus();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final confirmed = await _confirmDiscard();
+        if (confirmed && context.mounted) {
+          ref.read(declarationWizardProvider.notifier).reset();
+          Navigator.of(context).pop();
+        }
       },
-      bottomNavigationBar: _buildBottomNavigation(state),
-      children: [
+      child: WizardScaffold(
+        totalSteps: 2,
+        currentStep: state.currentStep,
+        onBack: () async {
+          if (state.currentStep > 0) {
+            _back();
+          } else {
+            final confirmed = await _confirmDiscard();
+            if (confirmed && mounted) {
+              ref.read(declarationWizardProvider.notifier).reset();
+              Navigator.pop(context);
+            }
+          }
+        },
+        onNext: _next,
+        onClose: _skip,
+        pageController: _pageController,
+        showErrorGlow: _showErrorGlow,
+        scrollController: ScrollController(),
+        onPageChanged: (page) {
+          ref.read(declarationWizardProvider.notifier).updateCurrentStep(page);
+          FocusScope.of(context).unfocus();
+        },
+        bottomNavigationBar: _buildBottomNavigation(state),
+        children: [
         _buildStep1(state),
         _buildStep2(state),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStep1(DeclarationWizardState state) {
     return SingleChildScrollView(
