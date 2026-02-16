@@ -1,13 +1,20 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../local/database.dart';
 import '../../domain/models/enums.dart';
+import '../../core/services/notification_service.dart';
 
 class DecisionRepository {
   final AppDatabase db;
   final Uuid _uuid = const Uuid();
+  final TimeOfDay Function() getNotificationTime;
+  final bool Function() areNotificationsEnabled;
 
-  DecisionRepository(this.db);
+  DecisionRepository(this.db, {
+    required this.getNotificationTime,
+    required this.areNotificationsEnabled,
+  });
 
   // --- Decisions ---
 
@@ -68,6 +75,12 @@ class DecisionRepository {
           ),
         );
     print('DEBUG: Database insert completed for id: $id');
+    
+    // Schedule notification for this retro date
+    if (areNotificationsEnabled()) {
+      await _rescheduleNotificationForDate(retroAt);
+    }
+    
     return id;
   }
 
@@ -81,6 +94,10 @@ class DecisionRepository {
     required RetroOffsetType retroOffset,
     required DateTime retroAt,
   }) async {
+    // Get old retro date before update
+    final oldDecision = await (db.select(db.decisions)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final oldRetroAt = oldDecision?.retroAt;
+    
     await (db.update(db.decisions)..where((t) => t.id.equals(id))).write(
       DecisionsCompanion(
         textContent: Value(text),
@@ -93,6 +110,19 @@ class DecisionRepository {
         lastUsedAt: Value(DateTime.now()),
       ),
     );
+    
+    // Reschedule notifications if date changed
+    if (areNotificationsEnabled() && oldRetroAt != null) {
+      final oldDate = DateTime(oldRetroAt.year, oldRetroAt.month, oldRetroAt.day);
+      final newDate = DateTime(retroAt.year, retroAt.month, retroAt.day);
+      
+      if (oldDate != newDate) {
+        await _rescheduleNotificationForDate(oldRetroAt);
+        await _rescheduleNotificationForDate(retroAt);
+      } else {
+        await _rescheduleNotificationForDate(retroAt);
+      }
+    }
   }
 
   Future<void> updateLastUsed(String id) async {
@@ -102,11 +132,19 @@ class DecisionRepository {
   }
 
   Future<void> skipDecision(String id) async {
+    // Get retro date before skipping
+    final decision = await (db.select(db.decisions)..where((t) => t.id.equals(id))).getSingleOrNull();
+    
     await (db.update(db.decisions)..where((t) => t.id.equals(id))).write(
       const DecisionsCompanion(
         status: Value(DecisionStatus.skipped),
       ),
     );
+    
+    // Reschedule notification for this date (to reflect remaining items)
+    if (areNotificationsEnabled() && decision != null) {
+      await _rescheduleNotificationForDate(decision.retroAt);
+    }
   }
 
   // --- Reviews (Integrated into Decisions) ---
@@ -120,6 +158,9 @@ class DecisionRepository {
     String? reproductionStrategy,
     String? memo,
   }) async {
+    // Get retro date before review
+    final decision = await (db.select(db.decisions)..where((t) => t.id.equals(logId))).getSingleOrNull();
+    
     await (db.update(db.decisions)..where((t) => t.id.equals(logId))).write(
       DecisionsCompanion(
         status: const Value(DecisionStatus.reviewed),
@@ -134,6 +175,11 @@ class DecisionRepository {
         lastUsedAt: Value(DateTime.now()),
       ),
     );
+    
+    // Reschedule notification for this date (to reflect remaining items)
+    if (areNotificationsEnabled() && decision != null) {
+      await _rescheduleNotificationForDate(decision.retroAt);
+    }
   }
 
   // --- Retro Logic ---
@@ -218,5 +264,15 @@ class DecisionRepository {
             (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
           ]))
         .watch();
+  }
+  
+  // Helper method to reschedule notification for a specific date
+  Future<void> _rescheduleNotificationForDate(DateTime retroAt) async {
+    final date = DateTime(retroAt.year, retroAt.month, retroAt.day);
+    await NotificationService().scheduleDailyNotification(
+      date: date,
+      time: getNotificationTime(),
+      repository: this,
+    );
   }
 }

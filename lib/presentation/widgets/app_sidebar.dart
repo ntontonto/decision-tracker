@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_design.dart';
 import '../pages/constellation_page.dart';
+import '../pages/settings_page.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -63,6 +64,20 @@ class AppSidebar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ConstellationPage()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings, color: AppDesign.textSecondary),
+                  title: const Text(
+                    '設定',
+                    style: TextStyle(color: AppDesign.textPrimary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsPage()),
                     );
                   },
                 ),

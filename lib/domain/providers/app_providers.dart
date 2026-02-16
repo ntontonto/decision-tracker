@@ -7,6 +7,7 @@ import '../../data/repositories/decision_repository.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/review_proposal.dart';
 import 'reaction_providers.dart';
+import 'settings_provider.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -14,8 +15,12 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final repositoryProvider = Provider<DecisionRepository>((ref) {
-  return DecisionRepository(ref.watch(databaseProvider));
+final decisionRepositoryProvider = Provider<DecisionRepository>((ref) {
+  return DecisionRepository(
+    ref.watch(databaseProvider),
+    getNotificationTime: () => ref.read(settingsProvider).notificationTime,
+    areNotificationsEnabled: () => ref.read(settingsProvider).notificationsEnabled,
+  );
 });
 
 // --- Wizard State ---
@@ -178,23 +183,23 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
 }
 
 final logWizardProvider = StateNotifierProvider<LogWizardNotifier, LogWizardState>((ref) {
-  return LogWizardNotifier(ref.watch(repositoryProvider), ref);
+  return LogWizardNotifier(ref.watch(decisionRepositoryProvider), ref);
 });
 
 // --- Suggestions ---
 
 final searchSuggestionsProvider = FutureProvider.family<List<Decision>, String>((ref, query) {
-  return ref.watch(repositoryProvider).searchDecisions(query);
+  return ref.watch(decisionRepositoryProvider).searchDecisions(query);
 });
 
 // --- Retro Providers ---
 
 final pendingDecisionsProvider = FutureProvider<List<Decision>>((ref) {
-  return ref.watch(repositoryProvider).getPendingDecisions();
+  return ref.watch(decisionRepositoryProvider).getPendingDecisions();
 });
 
 final pendingDeclarationsProvider = FutureProvider<List<Declaration>>((ref) {
-  return ref.watch(repositoryProvider).getPendingDeclarations();
+  return ref.watch(decisionRepositoryProvider).getPendingDeclarations();
 });
 
 final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) async {
@@ -236,11 +241,11 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
 });
 
 final allDecisionsProvider = FutureProvider<List<Decision>>((ref) {
-  return ref.watch(repositoryProvider).getAllDecisions();
+  return ref.watch(decisionRepositoryProvider).getAllDecisions();
 });
 
 final allDecisionsStreamProvider = StreamProvider<List<Decision>>((ref) {
-  return ref.watch(repositoryProvider).watchDecisions();
+  return ref.watch(decisionRepositoryProvider).watchDecisions();
 });
 
 // Obsolete: reviewForLogProvider and allReviewsProvider removed as reviews are integrated into decisions
