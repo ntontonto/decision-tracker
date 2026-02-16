@@ -231,7 +231,10 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           gradient: RadialGradient(
             center: Alignment.center,
             radius: 1.5,
-            colors: [Color(0xFF020617), Colors.black],
+            colors: [
+              Color(0xFF0F172A), // Deep Navy
+              Color(0xFF020617), // Very Dark charcoal-purple
+            ],
           ),
         ),
       ),
@@ -596,50 +599,133 @@ class ConstellationPhysicsPainter extends CustomPainter {
       final int score = node.score;
       
       // Thinking Lineage Color (Deterministic from Provider)
-      // High saturation and value for a "poppy", vibrant look
-      final Color baseColor = HSVColor.fromAHSV(1.0, node.hue, 0.9, 1.0).toColor();
+      // Drop Candy: High saturation (0.85) and max value (1.0)
+      final Color baseColor = HSVColor.fromAHSV(1.0, node.hue, 0.85, 1.0).toColor();
       
       final ageHours = now.difference(node.date).inHours;
       final ageFactor = (1.0 - (ageHours / 168.0)).clamp(0.4, 1.0);
       
       // Luminosity Factor based on score (5-3-1)
+      // Unreviewed nodes now match the base luminosity of score 1 (0.7)
       double luminosity = isReviewed 
           ? (score == 5 ? 1.6 : (score == 3 ? 1.1 : 0.7))
-          : 0.3; // Seed luminosity
+          : 1.1; // Balanced seed luminosity (matches score 3)
 
-      // 1. Outer Halo (Large, very faint)
-      final double haloOpacity = isReviewed 
-          ? (0.15 * luminosity) // Toned down
-          : (0.1 * pulse); 
-          
-      if (haloOpacity > 0.01) {
-        final haloPaint = Paint()
-          ..color = baseColor.withValues(alpha: haloOpacity * ageFactor)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12 * luminosity); // Reduced blur
-        canvas.drawCircle(node.position, 18 * luminosity * ageFactor, haloPaint); // Reduced size
+      // Time and Star-specific Randoms
+      final double time = now.millisecondsSinceEpoch / 1000.0;
+      final int seed = node.id.hashCode;
+      final random = math.Random(seed);
+      final double starDir = random.nextBool() ? 1.0 : -1.0;
+      final double starSpeedMult = 0.7 + (random.nextDouble() * 0.8);
+
+      // Flicker Factor for unreviewed nodes (Staccato / Broken Bulb)
+      double flickerFactor = 1.0;
+      if (!isReviewed) {
+        final double t = time + (seed % 100);
+        // Base irregular wobble
+        double wobble = (math.sin(t * 2.5).abs() * 0.6) + (math.sin(t * 15.0).abs() * 0.2);
+        
+        // Sudden sharp "on/off" flickers (Broken bulb effect)
+        // High frequency noise-like oscillation
+        final double staccato = math.sin(t * 30.0) * math.sin(t * 47.0);
+        if (staccato > 0.5) {
+          wobble *= 0.2; // Sharp dimming
+        } else if (staccato < -0.85) {
+          wobble = 0.02; // Almost total blackout
+        }
+
+        // Periodic "power failure" (Deep fade every few seconds)
+        final double powerPulse = (math.sin(t * 0.6) + 1.0) / 2.0; 
+        if (powerPulse < 0.25) {
+           wobble *= (powerPulse * 4.0).clamp(0.1, 1.0);
+        }
+
+        flickerFactor = (wobble + 0.2).clamp(0.01, 1.0);
       }
 
-      // 2. Inner Glow (Bright, centered)
+      // 1. Concentric Rings (Modern "Drop Candy" Style)
+      final double ringOpacityFactor = ageFactor * (isReviewed ? 1.0 : (pulse * 0.5 * flickerFactor));
+      final ringPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5;
+
+      // Orbital Satellites Count based on score
+      // 5 pt -> 3 satellites, 3 pt -> 2 satellites, 1 pt/seed -> 1 satellite
+      final int satelliteCount = node.isReviewed 
+          ? (node.score == 5 ? 3 : (node.score == 3 ? 2 : 1)) 
+          : 1;
+
+      // Outer Ring
+      final double outerRadius = 18 * luminosity * ageFactor;
+      ringPaint.color = baseColor.withValues(alpha: 0.15 * ringOpacityFactor);
+      canvas.drawCircle(node.position, outerRadius, ringPaint);
+
+      final satellitePaint = Paint()..color = Colors.white.withValues(
+        alpha: 0.6 * ringOpacityFactor * (isReviewed ? 1.0 : flickerFactor)
+      );
+
+      // Draw Outer Satellites
+      for (int i = 0; i < satelliteCount; i++) {
+        final double offset = (i * (math.pi * 2 / satelliteCount)) + (seed % 100);
+        final double angle = (time * 0.8 * starSpeedMult * starDir) + offset;
+        final Offset satellitePos = node.position + Offset(
+          math.cos(angle) * outerRadius,
+          math.sin(angle) * outerRadius,
+        );
+        canvas.drawCircle(satellitePos, 0.8, satellitePaint);
+      }
+
+      if (isReviewed) {
+        // Middle ring for reviewed nodes
+        final double middleRadius = 12 * luminosity * ageFactor;
+        ringPaint.color = baseColor.withValues(alpha: 0.3 * ringOpacityFactor);
+        canvas.drawCircle(node.position, middleRadius, ringPaint);
+
+        // Inner Satellites (sharing same direction but faster)
+        for (int i = 0; i < (satelliteCount > 1 ? 1 : 0); i++) {
+          final double offset = (seed % 50).toDouble();
+          final double angle = (time * 1.5 * starSpeedMult * starDir) + offset;
+          final Offset satellitePos = node.position + Offset(
+            math.cos(angle) * middleRadius,
+            math.sin(angle) * middleRadius,
+          );
+          canvas.drawCircle(satellitePos, 0.6, satellitePaint);
+        }
+      }
+
+      // 2. Inner Ring / Glow (Sharp)
       if (isReviewed || isSelected) {
-        final glowPaint = Paint()
-          ..color = baseColor.withValues(alpha: (isSelected ? 0.7 : 0.5 * luminosity) * ageFactor)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, (10 * luminosity) + (isSelected ? 5 : 0));
-        canvas.drawCircle(node.position, (12 * luminosity) + (isSelected ? 5 : 0), glowPaint);
+        final innerGlowPaint = Paint()
+          ..color = baseColor.withValues(alpha: (isSelected ? 0.4 : 0.25 * luminosity) * ageFactor)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0;
+        canvas.drawCircle(node.position, (isSelected ? 10.0 : 8.0) * luminosity, innerGlowPaint);
       }
 
 
-      // 4. White Core (The hot center)
-      final corePaint = Paint()..color = Colors.white.withValues(alpha: isReviewed ? 1.0 : 0.7);
-      final double coreSize = (isReviewed ? (isSelected ? 4.0 : 3.0) : 1.5) * ageFactor;
+      // 4. White Core with Candy Highlight (Slightly larger for visibility)
+      final double coreSize = (isReviewed ? (isSelected ? 4.5 : 3.5) : 2.2) * ageFactor;
+      
+      // Main Core
+      final corePaint = Paint()..color = isReviewed 
+          ? baseColor 
+          : baseColor.withValues(alpha: 0.6 * flickerFactor);
       canvas.drawCircle(node.position, coreSize, corePaint);
       
-      // 5. Category Colored Skin (Just around the core)
+      // Glossy Highlight (White, slightly offset)
+      final highlightPaint = Paint()..color = Colors.white.withValues(
+        alpha: (isReviewed ? 0.8 : 0.4 * flickerFactor)
+      );
+      canvas.drawCircle(
+        node.position - Offset(coreSize * 0.3, coreSize * 0.3), 
+        coreSize * 0.4, 
+        highlightPaint
+      );
+
+      // 5. White Hot Center (Internal, sharp)
       if (isReviewed) {
-        final skinPaint = Paint()
-          ..color = baseColor.withValues(alpha: 0.8 * ageFactor)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2;
-        canvas.drawCircle(node.position, coreSize + 0.5, skinPaint);
+        final centerPaint = Paint()..color = Colors.white.withValues(alpha: 0.4);
+        canvas.drawCircle(node.position, coreSize * 0.3, centerPaint);
       }
 
       // 6. Interaction Ring

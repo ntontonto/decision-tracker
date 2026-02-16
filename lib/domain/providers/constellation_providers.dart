@@ -15,14 +15,14 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
   
   double getBaseHue(DriverType driver) {
     switch (driver) {
-      case DriverType.pleasure: return 300;   // Magenta / Hot Pink
-      case DriverType.curiosity: return 190;  // Vivid Cyan
-      case DriverType.expression: return 280; // Vibrant Purple
-      case DriverType.investment: return 50;  // Bright Gold
-      case DriverType.habit: return 130;      // Fresh Green
-      case DriverType.requested: return 30;   // Bright Orange
-      case DriverType.reputation: return 220; // Sky Blue
-      case DriverType.guilt: return 10;       // Vivid Red
+      case DriverType.pleasure: return 320;   // Vivid Pink
+      case DriverType.curiosity: return 180;  // Cyan (Electric)
+      case DriverType.expression: return 270; // Vivid Violet
+      case DriverType.investment: return 45;  // Bright Gold
+      case DriverType.habit: return 140;      // Candy Green
+      case DriverType.requested: return 20;   // Bright Red-Orange
+      case DriverType.reputation: return 210; // Azure Blue
+      case DriverType.guilt: return 0;        // Pure Red
     }
   }
 
