@@ -147,7 +147,7 @@ class DeclarationWizardNotifier extends StateNotifier<DeclarationWizardState> {
     final decision = state.decision;
     if (decision == null || state.reviewAt == null) return;
 
-    await ref.read(repositoryProvider).createDeclaration(
+    await ref.read(decisionRepositoryProvider).createDeclaration(
       logId: decision.id,
       originalText: decision.textContent,
       reasonLabel: state.reasonLabel ?? '',
@@ -218,7 +218,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
     final declaration = state.declaration;
     if (declaration == null || state.regretLevel == null) return;
 
-    final repo = ref.read(repositoryProvider);
+    final repo = ref.read(decisionRepositoryProvider);
     
     if (shouldReDeclare && state.nextReviewAt != null) {
       // 1. Mark current as superseded
@@ -254,7 +254,7 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
 
   Future<void> skip() async {
     if (state.declaration == null) return;
-    await ref.read(repositoryProvider).skipDeclaration(state.declaration!.id);
+    await ref.read(decisionRepositoryProvider).skipDeclaration(state.declaration!.id);
     ref.invalidate(pendingDeclarationsProvider);
     reset();
   }
@@ -273,7 +273,7 @@ final declarationWizardProvider = StateNotifierProvider<DeclarationWizardNotifie
 });
 
 final actionGoalsProvider = StreamProvider<List<Declaration>>((ref) {
-  return ref.watch(repositoryProvider).watchDeclarations();
+  return ref.watch(decisionRepositoryProvider).watchDeclarations();
 });
 
 final practiceReviewMapProvider = FutureProvider<ActionReviewMap>((ref) async {

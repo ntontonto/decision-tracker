@@ -158,7 +158,7 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
   Future<void> save() async {
     if (state.decision == null || state.regretLevel == null) return;
 
-    await ref.read(repositoryProvider).createReview(
+    await ref.read(decisionRepositoryProvider).createReview(
       logId: state.decision!.id,
       regretLevel: state.regretLevel!,
       reasonKey: state.reasonKey,
@@ -175,7 +175,7 @@ class RetroWizardNotifier extends StateNotifier<RetroWizardState> {
 
   Future<void> skip() async {
     if (state.decision == null) return;
-    await ref.read(repositoryProvider).skipDecision(state.decision!.id);
+    await ref.read(decisionRepositoryProvider).skipDecision(state.decision!.id);
     ref.invalidate(pendingDecisionsProvider);
     ref.invalidate(allDecisionsProvider);
   }

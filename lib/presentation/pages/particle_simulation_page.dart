@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/reaction_providers.dart';
-import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/reflection_metrics_provider.dart';
 
 /// Configuration parameters for the simulation.
 class SimConfig {
@@ -125,12 +125,14 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
   double _nextVortexSwitchTime = 15000.0; // Random switch interval
   Size _screenSize = Size.zero;
 
-  // Live Tuning Parameters
+  // Live Tuning Parameters (driven by reflection metrics)
   double _vortexStrength = SimConfig.vortexStrength;
   double _targetActivity = SimConfig.targetActivity;
   double _heartbeatInterval = SimConfig.heartbeatInterval;
   double _heartbeatStrength = SimConfig.heartbeatStrength;
-  final bool _showDebugUI = false;
+  
+  // Current metrics for display
+  ReflectionMetrics _currentMetrics = ReflectionMetrics.empty;
 
   // Reaction Parameters
   double _reactionFactor = 0.0;
@@ -483,6 +485,37 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
         _triggerReaction(next.type);
       }
     });
+    
+    // Watch reflection metrics and update particle parameters
+    final metricsAsync = ref.watch(reflectionMetricsProvider);
+    
+    metricsAsync.whenData((metrics) {
+      if (_currentMetrics != metrics) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _currentMetrics = metrics;
+              
+              // Map metrics to particle parameters
+              // Vortex: 0~1 → 0~0.6
+              _vortexStrength = metrics.reviewCompletionRate * 0.6;
+              
+              // Activity: 0~1 → 0~3.0
+              _targetActivity = metrics.intrinsicMotivationRatio * 3.0;
+              
+              // Pulse Interval: 0~7 days → 60000~1000ms (inverted)
+              // More frequent input = shorter interval (faster pulse)
+              final inputRatio = metrics.inputFrequency / 7.0;
+              _heartbeatInterval = 60000.0 - (inputRatio * 59000.0);
+              
+              // Pulse Power: 1~5 score → 0~0.5
+              // Map 1-5 to 0-0.5 linearly
+              _heartbeatStrength = ((metrics.satisfactionScoreAverage - 1.0) / 4.0) * 0.5;
+            });
+          }
+        });
+      }
+    });
 
 
     return LayoutBuilder(
@@ -520,73 +553,13 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
                 ),
               ),
             ),
-            // Debug Panel (Hidden by default, can be toggled via external means if needed)
-            if (_showDebugUI)
-              Positioned(
-                top: 50,
-                right: 20,
-                child: _buildDebugPanel(),
-              ),
           ],
         );
       },
     );
   }
+  
 
-  Widget _buildDebugPanel() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          width: 250,
-          padding: const EdgeInsets.all(16),
-          color: Colors.white.withValues(alpha: 0.1),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSlider("Vortex", _vortexStrength, 0.0, 0.6, (v) => setState(() => _vortexStrength = v)),
-              _buildSlider("Activity", _targetActivity, 0.0, 3.0, (v) => setState(() => _targetActivity = v)),
-              _buildSlider("Pulse Interval", _heartbeatInterval, 1000.0, 60000.0, (v) => setState(() => _heartbeatInterval = v)),
-              _buildSlider("Pulse Power", _heartbeatStrength, 0.0, 0.5, (v) => setState(() => _heartbeatStrength = v)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlider(String label, double value, double min, double max, ValueChanged<double> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
-            Text(value.toStringAsFixed(2), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 2,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-          ),
-          child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            activeColor: Colors.white70,
-            inactiveColor: Colors.white12,
-            onChanged: onChanged,
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
 }
 
 class ParticlePainter extends CustomPainter {

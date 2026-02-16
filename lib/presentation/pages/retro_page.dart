@@ -96,7 +96,7 @@ class RetroPage extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('キャンセル')),
           ElevatedButton(
             onPressed: () async {
-              await ref.read(repositoryProvider).snoozeReviews(ids);
+              await ref.read(decisionRepositoryProvider).snoozeReviews(ids);
               ref.invalidate(pendingDecisionsProvider);
               ref.invalidate(allDecisionsProvider);
               if (context.mounted) Navigator.pop(context);

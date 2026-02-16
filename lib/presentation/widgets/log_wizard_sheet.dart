@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/settings_provider.dart';
+import '../../core/services/notification_service.dart';
 import '../theme/app_design.dart';
 import 'wizard_scaffold.dart';
 import 'wizard_selection_step.dart';
@@ -179,6 +181,13 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     
     setState(() => _isSaving = true);
     final savedId = await ref.read(logWizardProvider.notifier).save();
+    
+    // Request notification permission on first save
+    final settings = ref.read(settingsProvider);
+    if (!settings.hasRequestedPermission) {
+      await NotificationService().requestPermission();
+      await ref.read(settingsProvider.notifier).markPermissionRequested();
+    }
     
     if (mounted) {
       // With canPop: _isSaving, this will pop without triggering confirmation
