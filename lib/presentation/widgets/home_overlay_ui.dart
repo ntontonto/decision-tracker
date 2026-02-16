@@ -34,7 +34,7 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
   }
 
   void _startRotation() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted) return;
       setState(() {
         _currentIndex++;
@@ -67,6 +67,7 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
                     Expanded(
                       child: ReviewProposalCard(
                         item: proposal,
+                        refreshTrigger: _currentIndex,
                         onTap: () => _startReviewFlow(context, proposal),
                       ),
                     ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../utils/date_utils.dart';
 import '../../data/local/database.dart';
 import '../../data/repositories/decision_repository.dart';
 import '../../domain/models/enums.dart';
@@ -201,22 +202,28 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
   final declarations = await ref.watch(pendingDeclarationsProvider.future);
   
   final List<ReviewProposal> allProposals = [
-    ...decisions.map((d) => ReviewProposal(
-      id: d.id,
-      title: '${d.retroAt.month}/${d.retroAt.day} を振り返りませんか？',
-      description: d.textContent,
-      targetDate: d.retroAt,
-      type: ProposalType.decisionRetro,
-      originalData: d,
-    )),
-    ...declarations.map((d) => ReviewProposal(
-      id: d.id.toString(),
-      title: '実践を確認しますか？',
-      description: d.declarationText,
-      targetDate: d.reviewAt,
-      type: ProposalType.actionReview,
-      originalData: d,
-    )),
+    ...decisions.map((d) {
+      final relativeDate = AppDateUtils.getRelativeDateString(d.createdAt);
+      return ReviewProposal(
+        id: d.id,
+        title: '${relativeDate}の出来事を振り返る？',
+        description: d.textContent,
+        targetDate: d.retroAt,
+        type: ProposalType.decisionRetro,
+        originalData: d,
+      );
+    }),
+    ...declarations.map((d) {
+      final relativeDate = AppDateUtils.getRelativeDateString(d.createdAt);
+      return ReviewProposal(
+        id: d.id.toString(),
+        title: '${relativeDate}に決めた実践を振り返る？',
+        description: d.declarationText,
+        targetDate: d.reviewAt,
+        type: ProposalType.actionReview,
+        originalData: d,
+      );
+    }),
   ];
 
   // Filter by unified time window
