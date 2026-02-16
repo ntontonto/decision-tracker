@@ -97,4 +97,28 @@ class AppDesign {
     color: textPrimary,
     fontWeight: FontWeight.w600,
   );
+
+  // --- Card Styles ---
+  static BoxDecoration cardDecoration({
+    double borderRadius = 16.0,
+  }) {
+    return BoxDecoration(
+      color: glassBackgroundColor,
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: Border.all(color: glassBorderColor, width: glassBorderWidth),
+    );
+  }
+
+  static const TextStyle sectionTitleStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.bold,
+    color: textMuted,
+    letterSpacing: 0.8,
+  );
+
+  static const TextStyle valueLabelStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
 }

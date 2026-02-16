@@ -22,6 +22,19 @@ enum DriverType {
       case DriverType.guilt: return '罪悪感を減らすため';
     }
   }
+
+  IconData get icon {
+    switch (this) {
+      case DriverType.pleasure: return Icons.sentiment_satisfied;
+      case DriverType.curiosity: return Icons.lightbulb_outline;
+      case DriverType.expression: return Icons.palette;
+      case DriverType.investment: return Icons.trending_up;
+      case DriverType.habit: return Icons.repeat;
+      case DriverType.requested: return Icons.person_outline;
+      case DriverType.reputation: return Icons.visibility;
+      case DriverType.guilt: return Icons.psychology_alt;
+    }
+  }
 }
 
 
