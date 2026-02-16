@@ -101,6 +101,14 @@ class DecisionRepository {
     );
   }
 
+  Future<void> skipDecision(String id) async {
+    await (db.update(db.decisions)..where((t) => t.id.equals(id))).write(
+      const DecisionsCompanion(
+        status: Value(DecisionStatus.skipped),
+      ),
+    );
+  }
+
   // --- Reviews (Integrated into Decisions) ---
 
   Future<void> createReview({
@@ -183,6 +191,14 @@ class DecisionRepository {
         status: Value(nextStatus),
         regretLevel: Value(regretLevel),
         score: Value(regretLevel.score),
+      ),
+    );
+  }
+
+  Future<void> skipDeclaration(int id) async {
+    await (db.update(db.declarations)..where((t) => t.id.equals(id))).write(
+      const DeclarationsCompanion(
+        status: Value(DeclarationStatus.skipped),
       ),
     );
   }

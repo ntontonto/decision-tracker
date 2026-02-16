@@ -65,7 +65,8 @@ enum RetroOffsetType {
 
 enum DecisionStatus {
   pending,
-  reviewed;
+  reviewed,
+  skipped;
 }
 
 enum ExecutionStatus {
@@ -123,7 +124,8 @@ enum RegretLevel {
 enum DeclarationStatus {
   active,
   completed,
-  superseded;
+  superseded,
+  skipped;
 }
 
 // ActionReviewStatus removed in favor of RegretLevel

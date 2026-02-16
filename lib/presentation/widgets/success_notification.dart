@@ -105,6 +105,14 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
                   ),
                   child: Row(
                     children: [
+                      if (state.icon != null) ...[
+                        Icon(
+                          state.icon,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                       Expanded(
                         child: Text(
                           state.message,

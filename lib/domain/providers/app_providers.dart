@@ -250,11 +250,13 @@ final allDecisionsStreamProvider = StreamProvider<List<Decision>>((ref) {
 class SuccessNotificationState {
   final bool isVisible;
   final String message;
+  final IconData? icon;
   final void Function(BuildContext, WidgetRef)? onFix;
 
   SuccessNotificationState({
     this.isVisible = false,
     this.message = '',
+    this.icon,
     this.onFix,
   });
 }
@@ -265,12 +267,22 @@ class SuccessNotificationNotifier extends StateNotifier<SuccessNotificationState
 
   SuccessNotificationNotifier(this.ref) : super(SuccessNotificationState());
 
-  void show({required String message, void Function(BuildContext, WidgetRef)? onFix}) {
+  void show({
+    required String message, 
+    IconData? icon,
+    ParticleReaction reaction = ParticleReaction.celebrate,
+    void Function(BuildContext, WidgetRef)? onFix,
+  }) {
     _timer?.cancel();
-    state = SuccessNotificationState(isVisible: true, message: message, onFix: onFix);
+    state = SuccessNotificationState(
+      isVisible: true, 
+      message: message, 
+      icon: icon,
+      onFix: onFix,
+    );
     
-    // Trigger celebration reaction
-    ref.read(reactionProvider.notifier).trigger(ParticleReaction.celebrate);
+    // Trigger specified reaction
+    ref.read(reactionProvider.notifier).trigger(reaction);
     
     _timer = Timer(const Duration(seconds: 5), () {
       hide();
