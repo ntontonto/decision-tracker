@@ -364,10 +364,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       right: 16,
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white70),
-            onPressed: () => Navigator.pop(context),
-          ),
           const Expanded(
             child: Text(
               'CONSTELLATION',
@@ -380,14 +376,9 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.auto_awesome, color: Colors.white24, size: 20),
-            onPressed: () {
-               setState(() {
-                  _initialized = false;
-                  _revealedCount = 0;
-                  _nodes = [];
-               });
-            },
+            icon: const Icon(Icons.blur_on, color: Colors.white, size: 28),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Return to Vortex',
           ),
         ],
       ),

@@ -138,6 +138,9 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
   double _reactionFactor = 0.0;
   ParticleReaction _activeReaction = ParticleReaction.none;
 
+  // Warp State
+  WarpState _warp = WarpState();
+
   @override
   void initState() {
     super.initState();
@@ -208,8 +211,6 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
         goal = _cursorPos;
       } else {
         // Soft wandering when idle
-        // Base frequencies/amplitudes scaled by activity
-        // Reaction boost for activity
         double activityBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 2.5 : 0.0;
         double freqScale = _targetActivity + activityBoost;
         double ampScale = math.sqrt(_targetActivity) + activityBoost * 0.8; 
@@ -222,16 +223,14 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
       }
       _targetPos = Offset.lerp(_targetPos, goal, SimConfig.targetLerp)!;
 
-      // 0. Dynamic Vortex Direction Reversal
+      // Dynamic Vortex Direction Reversal
       if (_time >= _nextVortexSwitchTime) {
         _targetVortexDir *= -1.0;
-        // Set next switch time (5s to 10s later)
         _nextVortexSwitchTime = _time + 5000.0 + math.Random().nextDouble() * 5000.0;
       }
-      // Extremely smooth transition for reversal (lerp)
       _currentVortexDir = lerpDouble(_currentVortexDir, _targetVortexDir, 0.005)!;
 
-      // 0. Periodic Heartbeat
+      // Periodic Heartbeat
       if (_time - _lastHeartbeatTime >= _heartbeatInterval) {
         _lastHeartbeatTime = _time;
         _ripples.add(Ripple(
@@ -250,7 +249,21 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
 
       // Update particles
       for (var p in _particles) {
-        // 1. Flow Field (Noisier as it goes outwards)
+        // Freeze physics if holding at the destination
+        if (_warp.type == WarpType.holding) {
+          continue;
+        }
+
+        // Warp Scaling
+        double warpSpeedMult = 1.0;
+        if (_warp.type == WarpType.entering) {
+          warpSpeedMult = 1.0 + _warp.factor * 15.0; // Rapidly accelerate
+        } else if (_warp.type == WarpType.exiting) {
+          // High speed return from edge
+          warpSpeedMult = 1.0 + _warp.factor * 8.0; 
+        }
+
+        // 1. Flow Field
         double distToTarget = (p.pos - _targetPos).distance;
         double noiseStrength = SimConfig.flowStrength * (0.5 + distToTarget / 400.0);
         double centerX = _screenSize.width / 2;
@@ -275,7 +288,10 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
 
         // 3. Constant soft attraction to center
         Offset toTargetCenter = _targetPos - p.pos;
-        p.vel += toTargetCenter * p.attractionStiffness;
+        
+        // Boost attraction during return
+        double attractionMult = _warp.type == WarpType.exiting ? 2.5 : 1.0;
+        p.vel += toTargetCenter * p.attractionStiffness * attractionMult;
 
         // 3b. Inter-particle Repulsion
         for (var other in _particles) {
@@ -289,69 +305,61 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
           }
         }
 
-        // Breathing cycle & Dynamic Instability
+        // Warp Force (Centrifugal/Centripetal)
+        Offset warpForce = Offset.zero;
+        if (_warp.type == WarpType.entering) {
+          // Push away from center
+          Offset fromCenter = p.pos - _targetPos;
+          if (fromCenter.distance > 0.1) {
+            warpForce = (fromCenter / fromCenter.distance) * _warp.factor * 2.5;
+          }
+        }
+
+        // Breathing cycle & Dynamic Instability... (rest as before)
         double breathT = (_time / SimConfig.breathPeriod * math.pi * 2 + p.phase);
         double breathSin = math.sin(breathT);
         double breath = breathSin * SimConfig.breathAmplitude;
+        double expansionFactor = math.cos(breathT).clamp(0.0, 1.0);
         
-        // Expansion detection
-        double breathCos = math.cos(breathT);
-        double expansionFactor = breathCos.clamp(0.0, 1.0);
-        
-        // Unified Instability Side-effects
         double instNoiseMult = 1.0 + (expansionFactor * SimConfig.breathInstability * 5.0);
         Offset dynamicFlow = flow * instNoiseMult;
         double currentDamping = SimConfig.damping + (expansionFactor * SimConfig.breathInstability * 0.04).clamp(0.0, 0.05);
 
-        // 3c. Centripetal Rotation (Vortex Effect)
+        // Centripetal Rotation
         if (toTargetCenter.distance > 10.0) {
           Offset tangential = Offset(-toTargetCenter.dy, toTargetCenter.dx) / toTargetCenter.distance;
-          
           double vortexBoost = _activeReaction == ParticleReaction.celebrate ? _reactionFactor * 1.2 : 0.0;
           double orbitSpeed = ((_vortexStrength + vortexBoost) * _currentVortexDir) / (math.sqrt(toTargetCenter.distance) * 0.4 + 1.0);
           p.vel += tangential * orbitSpeed;
         }
 
-        // 3d. Pulse Force (Outward push during expansion)
+        // Pulse Force
         Offset pulseDir = toTargetCenter.distance > 0.1 ? -toTargetCenter / (toTargetCenter.distance + 1) : Offset.zero;
         Offset pulseForce = pulseDir * (expansionFactor * SimConfig.breathInstability * 0.4);
 
-        // 4. Update velocity and position
-        
-        // Add jitter if active
+        // Update velocity and position
         Offset jitter = Offset.zero;
         if (_activeReaction == ParticleReaction.jitter && _reactionFactor > 0) {
           double jitterAmp = _reactionFactor * 5.0;
-          jitter = Offset(
-            math.sin(_time * 0.05 + p.phase) * jitterAmp,
-            math.cos(_time * 0.05 + p.phase) * jitterAmp,
-          );
+          jitter = Offset(math.sin(_time * 0.05 + p.phase) * jitterAmp, math.cos(_time * 0.05 + p.phase) * jitterAmp);
         }
 
-        p.vel = (p.vel + dynamicFlow + rippleForce + pulseForce) * currentDamping;
-        p.pos += (p.vel + jitter);
+        p.vel = (p.vel + dynamicFlow + rippleForce + pulseForce + warpForce) * currentDamping;
+        p.pos += (p.vel * warpSpeedMult + jitter);
 
-        // 5. Alignment & Appearance logic
+        // Alignment & Appearance logic
         double distToCenter = toTargetCenter.distance;
-        
-        // Always face the current wandering or dragged target
         double targetAngle = math.atan2(toTargetCenter.dy, toTargetCenter.dx);
         
-        // Alignment strength based on distance
         double baseStrength = 0.15;
         double alignmentStrength = 0.01;
-        
         if (distToCenter < 600) {
           double t = (distToCenter / 600.0).clamp(0.0, 1.0);
           alignmentStrength = baseStrength * math.pow(1.0 - t, 2.0).toDouble();
           alignmentStrength = alignmentStrength.clamp(0.005, baseStrength);
-          
-          if (_isInteracting) {
-            alignmentStrength *= 1.5;
-          }
+          if (_isInteracting) alignmentStrength *= 1.5;
         }
 
-        // Smoothly rotate
         double diff = targetAngle - p.angle;
         while (diff > math.pi) {
           diff -= math.pi * 2;
@@ -361,96 +369,59 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
         }
         p.angle += diff * alignmentStrength;
         
-        // Eccentricity
         double eccInfluence = (1.0 - (distToCenter / 200.0)).clamp(0.0, 1.0);
         p.eccentricity = lerpDouble(SimConfig.eccentricityFar, SimConfig.eccentricityNear, eccInfluence)!;
 
-        // Distance-based size scaling (Organic Bubble Ring)
+        // Size scaling
         double sizeFactor = SimConfig.minSizeFactor;
         if (distToCenter < SimConfig.sizeScalingRange) {
-          // 1. Wobble the peak radius based on angle and time for a ring-like deformation
           double angle = math.atan2(toTargetCenter.dy, toTargetCenter.dx);
-          double wobble = _noise(
-            math.cos(angle) * 0.5, 
-            math.sin(angle) * 0.5, 
-            _time * SimConfig.sizeNoiseFrequency
-          );
+          double wobble = _noise(math.cos(angle) * 0.5, math.sin(angle) * 0.5, _time * SimConfig.sizeNoiseFrequency);
           double peakedRadius = SimConfig.sizeScalingPeak + (wobble * SimConfig.sizeWobbleStrength);
-
-          // 2. Add local jitter to the distance calculation for diffuse boundaries
           double localNoise = _noise(p.pos.dx * 0.01, p.pos.dy * 0.01, _time * 0.001);
           double jitteredDist = distToCenter + (localNoise * 15.0);
-
           double normalizedDist = (jitteredDist / peakedRadius).clamp(0.0, 5.0);
-          
-          // Bell curve formula to create the ring effect
-          sizeFactor = math.pow(normalizedDist, SimConfig.sizeScalingExponent) * 
-                       math.exp(1.0 - math.pow(normalizedDist, SimConfig.sizeScalingExponent));
-          
+          sizeFactor = math.pow(normalizedDist, SimConfig.sizeScalingExponent) * math.exp(1.0 - math.pow(normalizedDist, SimConfig.sizeScalingExponent));
           sizeFactor = sizeFactor.clamp(SimConfig.minSizeFactor, 1.0);
         }
 
         double reactionSizeBoost = 1.0;
         if (_activeReaction == ParticleReaction.celebrate && _reactionFactor > 0) {
-          // Rapid pulsation effect during celebration
-          double pulse = math.sin(_time * 0.03 + p.phase * 10.0) * 0.25 * _reactionFactor;
-          reactionSizeBoost = 1.2 + pulse;
+          reactionSizeBoost = 1.2 + math.sin(_time * 0.03 + p.phase * 10.0) * 0.25 * _reactionFactor;
         }
 
         p.size = SimConfig.baseSize * (1.0 + breath) * sizeFactor * reactionSizeBoost;
         
-        // --- Reaction Visuals ---
-        if (_reactionFactor > 0) {
-          if (_activeReaction == ParticleReaction.celebrate) {
-            // Vibrant rainbow palette
-            const palette = [
-              Color(0xFFFF3B30), // Red
-              Color(0xFFFF9500), // Orange
-              Color(0xFFFFCC00), // Gold/Yellow
-              Color(0xFF4CD964), // Green
-              Color(0xFF5AC8FA), // Light Blue
-              Color(0xFF007AFF), // Blue
-              Color(0xFF5856D6), // Indigo
-              Color(0xFFAF52DE), // Violet
-            ];
-            
-            // Pick a color based on individual index
-            int idx = (p.celebrateColorIndex * palette.length).floor().clamp(0, palette.length - 1);
-            Color baseColor = palette[idx];
-            
-            // Shimmering gleam (individual oscillation) - Reduced white mix
-            double shimmer = math.sin(_time * 0.015 + p.phase * 5.0) * 0.5 + 0.5;
-            Color gleamColor = Color.lerp(baseColor, Colors.white, shimmer * 0.35)!;
-            
-            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8), gleamColor, _reactionFactor)!;
-          } else if (_activeReaction == ParticleReaction.jitter) {
-            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8), const Color(0xFFFF4500), _reactionFactor)!;
-          }
-        } else {
-          p.color = Colors.white.withValues(alpha: 0.8);
+        // Warp Opacity/Color (Fade out as they warp away)
+        double warpOpacity = 1.0;
+        if (_warp.type == WarpType.entering) {
+          warpOpacity = (1.0 - _warp.factor).clamp(0.0, 1.0);
+        } else if (_warp.type == WarpType.exiting) {
+          // Appear as you return
+          warpOpacity = (1.0 - _warp.factor).clamp(0.0, 1.0);
+        } else if (_warp.type == WarpType.holding) {
+          // Hide while in constellation view
+          warpOpacity = 0.0;
         }
 
-        // --- Reaction Physics: Larger Orbits for Celebrate ---
-        if (_activeReaction == ParticleReaction.celebrate && _reactionFactor > 0.1) {
-          // Push particles outwards from the target center
-          Offset fromCenter = p.pos - _targetPos;
-          double dist = fromCenter.distance;
-          if (dist > 0.1) {
-            // Centrifugal-like push during peak reaction
-            // Strongest in the middle of the reaction phase
-            // Stronger centrifugal-like push during peak reaction
-            // Strongest in the middle of the reaction phase, exponentially falls off
-            double pushStrength = math.sin(_reactionFactor * math.pi) * 0.2;
-            p.vel += (fromCenter / dist) * pushStrength;
+        if (_reactionFactor > 0) {
+          if (_activeReaction == ParticleReaction.celebrate) {
+            const palette = [Color(0xFFFF3B30), Color(0xFFFF9500), Color(0xFFFFCC00), Color(0xFF4CD964), Color(0xFF5AC8FA), Color(0xFF007AFF), Color(0xFF5856D6), Color(0xFFAF52DE)];
+            int idx = (p.celebrateColorIndex * palette.length).floor().clamp(0, palette.length - 1);
+            double shimmer = math.sin(_time * 0.015 + p.phase * 5.0) * 0.5 + 0.5;
+            Color gleamColor = Color.lerp(palette[idx], Colors.white, shimmer * 0.35)!;
+            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8 * warpOpacity), gleamColor.withValues(alpha: warpOpacity), _reactionFactor)!;
+          } else if (_activeReaction == ParticleReaction.jitter) {
+            p.color = Color.lerp(Colors.white.withValues(alpha: 0.8 * warpOpacity), const Color(0xFFFF4500).withValues(alpha: warpOpacity), _reactionFactor)!;
           }
+        } else {
+          p.color = Colors.white.withValues(alpha: 0.8 * warpOpacity);
         }
       }
     });
   }
 
-  // Refined pseudo-noise function for better symmetry and less bias
   double _noise(double x, double y, double z) {
-    // Combine multiple periodic functions with different phase offsets to reduce directional bias
     double n1 = math.sin(x + y) * math.cos(y - z) * math.sin(z + x);
     double n2 = math.sin(x * 1.5 - y * 1.2) * math.cos(y * 1.1 + z * 0.9);
     return (n1 + n2 * 0.5) / 1.5;
@@ -479,53 +450,42 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
 
   @override
   Widget build(BuildContext context) {
-    // Listen to reactions via Riverpod in the build method for side effects
     ref.listen(reactionProvider, (previous, next) {
-      if (next.type != ParticleReaction.none) {
-        _triggerReaction(next.type);
-      }
+      if (next.type != ParticleReaction.none) _triggerReaction(next.type);
     });
+
+    // Warp state listener
+    final warpState = ref.watch(warpProvider);
+    if (_warp != warpState) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _warp = warpState);
+        }
+      });
+    }
     
-    // Watch reflection metrics and update particle parameters
     final metricsAsync = ref.watch(reflectionMetricsProvider);
-    
     metricsAsync.whenData((metrics) {
       if (_currentMetrics != metrics) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              _currentMetrics = metrics;
-              
-              // Map metrics to particle parameters
-              // Vortex: 0~1 → 0~0.6
-              _vortexStrength = metrics.reviewCompletionRate * 0.6;
-              
-              // Activity: 0~1 → 0~3.0
-              _targetActivity = metrics.intrinsicMotivationRatio * 3.0;
-              
-              // Pulse Interval: 0~7 days → 60000~1000ms (inverted)
-              // More frequent input = shorter interval (faster pulse)
-              final inputRatio = metrics.inputFrequency / 7.0;
-              _heartbeatInterval = 60000.0 - (inputRatio * 59000.0);
-              
-              // Pulse Power: 1~5 score → 0~0.5
-              // Map 1-5 to 0-0.5 linearly
-              _heartbeatStrength = ((metrics.satisfactionScoreAverage - 1.0) / 4.0) * 0.5;
-            });
-          }
+          if (mounted) setState(() {
+            _currentMetrics = metrics;
+            _vortexStrength = metrics.reviewCompletionRate * 0.6;
+            _targetActivity = metrics.intrinsicMotivationRatio * 3.0;
+            final inputRatio = metrics.inputFrequency / 7.0;
+            _heartbeatInterval = 60000.0 - (inputRatio * 59000.0);
+            _heartbeatStrength = ((metrics.satisfactionScoreAverage - 1.0) / 4.0) * 0.5;
+          });
         });
       }
     });
 
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        // ... (existing code omitted for brevity in thought, but tool needs exact match)
         if (_screenSize == Size.zero) {
           _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
           _targetPos = Offset(_screenSize.width / 2, _screenSize.height / 2);
           _cursorPos = _targetPos;
-          // Distribute particles initially
           final random = math.Random();
           for (var p in _particles) {
             double r = random.nextDouble() * 200;
@@ -550,6 +510,7 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
                 painter: ParticlePainter(
                   particles: _particles,
                   ripples: _ripples,
+                  warp: _warp,
                 ),
               ),
             ),
@@ -558,15 +519,14 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
       },
     );
   }
-  
-
 }
 
 class ParticlePainter extends CustomPainter {
   final List<Particle> particles;
   final List<Ripple> ripples;
+  final WarpState warp;
 
-  ParticlePainter({required this.particles, required this.ripples});
+  ParticlePainter({required this.particles, required this.ripples, required this.warp});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -577,34 +537,30 @@ class ParticlePainter extends CustomPainter {
         
       canvas.save();
       canvas.translate(p.pos.dx, p.pos.dy);
-      canvas.rotate(p.angle);
       
-      // Draw ellipse
-      // width is size, height is size * eccentricity
+      // Calculate stretch based on velocity and warp
+      double velocityMag = p.vel.distance;
+      double stretch = 1.0;
+      double angle = p.angle;
+
+      if (warp.type != WarpType.none && warp.factor > 0) {
+        // Stretch along travel vector for motion blur
+        stretch = 1.0 + (velocityMag * 2.0 * warp.factor).clamp(0.0, 10.0);
+        angle = math.atan2(p.vel.dy, p.vel.dx);
+      }
+
+      canvas.rotate(angle);
+      
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset.zero,
-          width: p.size,
+          width: p.size * stretch,
           height: p.size * p.eccentricity,
         ),
         paint,
       );
       canvas.restore();
     }
-
-    // Optional: debug ripples
-    /*
-    for (var r in ripples) {
-      canvas.drawCircle(
-        r.origin,
-        r.radius,
-        Paint()
-          ..color = Colors.white.withOpacity(r.life * 0.2)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-    }
-    */
   }
 
   @override
