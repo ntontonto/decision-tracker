@@ -23,7 +23,7 @@ class ConstellationNodeCard extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0), // Use padding for content
+      clipBehavior: Clip.antiAlias, // Prevent sub-pixel overflow artifacts during animation
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
@@ -36,60 +36,44 @@ class ConstellationNodeCard extends ConsumerWidget {
           ),
         ],
       ),
-      child: isExpanded 
-        ? SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildHeader(color),
-                const SizedBox(height: 12),
-                _buildTitle(),
-                const SizedBox(height: 16),
-                if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
-                const SizedBox(height: 24),
-                _buildExtendedContent(color, ref),
-                const SizedBox(height: 20),
-              ],
-            ),
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      child: SingleChildScrollView(
+        physics: isExpanded ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Allow the Column to shrink
+          children: [
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            _buildHeader(color),
+            const SizedBox(height: 12),
+            _buildTitle(),
+            const SizedBox(height: 16),
+            if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
+            if (isExpanded) ...[
+              const SizedBox(height: 24),
+              _buildExtendedContent(color, ref),
+              const SizedBox(height: 20),
+            ] else ...[
               const SizedBox(height: 12),
-              _buildHeader(color),
-              const SizedBox(height: 12),
-              _buildTitle(),
-              const SizedBox(height: 16),
-              if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
-              const SizedBox(height: 8),
               Center(
                 child: Icon(Icons.keyboard_arrow_up, color: color.withValues(alpha: 0.3), size: 20),
               ),
+              const SizedBox(height: 8),
             ],
-          ),
+          ],
+        ),
+      ),
     );
   }
 
