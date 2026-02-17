@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/models/review_proposal.dart';
-import '../theme/app_design.dart';
 import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
 import '../widgets/action_review_wizard_sheet.dart';

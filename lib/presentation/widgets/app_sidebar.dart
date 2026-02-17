@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_design.dart';
-import '../pages/constellation_page.dart';
 import '../pages/settings_page.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -52,20 +51,6 @@ class AppSidebar extends StatelessWidget {
                       style: AppDesign.titleStyle,
                     ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.auto_awesome, color: AppDesign.textSecondary),
-                  title: const Text(
-                    '学びの星座 (Map)',
-                    style: TextStyle(color: AppDesign.textPrimary),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ConstellationPage()),
-                    );
-                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.settings, color: AppDesign.textSecondary),

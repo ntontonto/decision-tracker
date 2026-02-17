@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decision_tracker/domain/models/constellation_models.dart';
+import 'package:decision_tracker/data/local/database.dart';
 import 'package:decision_tracker/domain/providers/constellation_providers.dart';
 import 'package:decision_tracker/domain/providers/app_providers.dart';
-import 'package:decision_tracker/data/local/database.dart';
 import '../widgets/decision_detail_sheet.dart';
 
 class ConstellationPage extends ConsumerStatefulWidget {
@@ -573,7 +573,6 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
     // 4. Nodes
     final now = DateTime.now();
-    final double pulse = (math.sin(now.millisecondsSinceEpoch / 1000 * math.pi) + 1) / 2; // 0.0 to 1.0
 
     for (int i = 0; i < nodes.length; i++) {
       if (i >= revealedCount) continue;
