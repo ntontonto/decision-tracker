@@ -56,17 +56,12 @@ class _MainPageState extends ConsumerState<MainPage> {
                 }
               });
 
-              final curve = Curves.easeInOutQuart;
-              final t = curve.transform(animation.value);
+              final double t = Curves.easeInOutExpo.transform(animation.value);
 
               return FadeTransition(
                 opacity: animation,
-                child: Transform(
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // perspective
-                    ..rotateX((1.0 - t) * -0.35)
-                    ..translate(0.0, (1.0 - t) * -100.0),
-                  alignment: Alignment.center,
+                child: Transform.scale(
+                  scale: 0.8 + (t * 0.2), // Zoom in from 0.8 to 1.0
                   child: child,
                 ),
               );
@@ -87,38 +82,66 @@ class _MainPageState extends ConsumerState<MainPage> {
       backgroundColor: Colors.black,
       drawer: const AppSidebar(),
       resizeToAvoidBottomInset: false, // Prevents elements from jumping when keyboard appears
-      body: Stack(
-        children: [
-          // Background: Particle Simulation
-          const ParticleSimulationPage(),
-
-          // Floating Hamburger Menu Button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            child: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white, size: 32),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            ),
-          ),
+      body: Consumer(
+        builder: (context, ref, child) {
+          final warp = ref.watch(warpProvider);
+          final double t = Curves.easeInOutExpo.transform(warp.factor);
           
-          // Constellation Navigation Button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            right: 16,
-            child: IconButton(
-              icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-              onPressed: _navigateToConstellation,
-              tooltip: 'Go to Constellation',
+          double scale = 1.0;
+          double opacity = 1.0;
+          
+          if (warp.type == WarpType.entering) {
+            scale = 1.0 + (t * 0.5); // Expand up to 1.5x
+            opacity = (1.0 - t).clamp(0.0, 1.0);
+          } else if (warp.type == WarpType.exiting) {
+            scale = 1.0 + (t * 0.5); // Scale back from 1.5x
+            opacity = (1.0 - t).clamp(0.0, 1.0);
+          } else if (warp.type == WarpType.holding) {
+            scale = 1.5;
+            opacity = 0.0;
+          }
+
+          return Opacity(
+            opacity: opacity,
+            child: Transform.scale(
+              scale: scale,
+              child: child,
             ),
-          ),
-
-          // Overlay UI: Proposal Card + FAB
-          const HomeOverlayUI(),
-
-          // Success Notification Toast (TOPMOST Layer)
-          const SuccessNotification(),
-        ],
+          );
+        },
+        child: Stack(
+          children: [
+            // Background: Particle Simulation
+            const ParticleSimulationPage(),
+  
+            // Floating Hamburger Menu Button
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              child: IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white, size: 32),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+            ),
+            
+            // Constellation Navigation Button
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                onPressed: _navigateToConstellation,
+                tooltip: 'Go to Constellation',
+              ),
+            ),
+  
+            // Overlay UI: Proposal Card + FAB
+            const HomeOverlayUI(),
+  
+            // Success Notification Toast (TOPMOST Layer)
+            const SuccessNotification(),
+          ],
+        ),
       ),
     );
   }
