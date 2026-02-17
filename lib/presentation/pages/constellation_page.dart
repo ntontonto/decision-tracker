@@ -345,12 +345,20 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     // Sync PageView
     final pageIndex = _focusedChainNodes.indexWhere((n) => n.id == node.id);
-    if (pageIndex != -1 && _pageController.hasClients && _pageController.page?.round() != pageIndex) {
-      _pageController.animateToPage(
-        pageIndex, 
-        duration: const Duration(milliseconds: 300), 
-        curve: Curves.easeInOut,
-      );
+    if (pageIndex != -1) {
+      if (_pageController.hasClients) {
+        if (_pageController.page?.round() != pageIndex) {
+          _pageController.animateToPage(
+            pageIndex, 
+            duration: const Duration(milliseconds: 300), 
+            curve: Curves.easeInOut,
+          );
+        }
+      } else {
+        // If not yet visible/built, we need to create a new controller with the correct initialPage
+        _pageController.dispose();
+        _pageController = PageController(initialPage: pageIndex);
+      }
     }
 
     _animateCameraToNode(node);
@@ -519,11 +527,13 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             physics: const BouncingScrollPhysics(), // Always allow horizontal swiping
             itemCount: _focusedChainNodes.length,
             onPageChanged: (index) {
-              if (!_isAnimatingCamera) {
-                _animateCameraToNode(_focusedChainNodes[index]);
-                setState(() {
-                   _selectedNodeId = _focusedChainNodes[index].id;
-                });
+              if (_pageController.hasClients && _pageController.page?.round() == index) {
+                if (!_isAnimatingCamera) {
+                  _animateCameraToNode(_focusedChainNodes[index]);
+                  setState(() {
+                    _selectedNodeId = _focusedChainNodes[index].id;
+                  });
+                }
               }
             },
             itemBuilder: (context, index) {
