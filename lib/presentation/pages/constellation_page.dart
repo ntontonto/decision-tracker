@@ -8,6 +8,7 @@ import 'package:decision_tracker/data/local/database.dart';
 import 'package:decision_tracker/domain/providers/constellation_providers.dart';
 import 'package:decision_tracker/domain/providers/app_providers.dart';
 import '../widgets/decision_detail_sheet.dart';
+import '../widgets/constellation_node_card.dart';
 
 class ConstellationPage extends ConsumerStatefulWidget {
   const ConstellationPage({super.key});
@@ -31,6 +32,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   List<ConstellationNode> _focusedChainNodes = [];
   late PageController _pageController;
   bool _isAnimatingCamera = false;
+  bool _isCardExpanded = false;
   
   // Simulation State
   List<ConstellationNode> _nodes = [];
@@ -272,8 +274,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     if (hitNode != null) {
       _focusNode(hitNode);
     } else {
-      // Tap on background - clear focus if not already clear
-      if (_selectedNodeId != null) {
+      // Tap on background
+      if (_isCardExpanded) {
+        // Collapse if expanded
+        setState(() => _isCardExpanded = false);
+      } else if (_selectedNodeId != null) {
+        // Clear focus if not hit and not expanded
         _clearFocus();
       }
     }
@@ -289,6 +295,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             .toList()
           ..sort((a, b) => a.generation.compareTo(b.generation));
       }
+      _isCardExpanded = false;
     });
 
     // Sync PageView
@@ -309,6 +316,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       _selectedNodeId = null;
       _focusedChainId = null;
       _focusedChainNodes = [];
+      _isCardExpanded = false;
     });
   }
 
@@ -409,108 +417,73 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       ),
     );
   }
-
   Widget _buildDetailOverlay() {
     if (_focusedChainNodes.isEmpty) return const SizedBox.shrink();
 
-    return Positioned(
+    final screenHeight = MediaQuery.of(context).size.height;
+    final collapsedHeight = 220.0;
+    final expandedHeight = screenHeight * 0.7;
+    final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.fastOutSlowIn,
       bottom: 0,
       left: 0,
       right: 0,
-      height: 220,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: _focusedChainNodes.length,
-        onPageChanged: (index) {
-          if (!_isAnimatingCamera) {
-            _animateCameraToNode(_focusedChainNodes[index]);
-            setState(() {
-               _selectedNodeId = _focusedChainNodes[index].id;
-            });
+      height: currentHeight,
+      child: GestureDetector(
+        onTap: () {
+          if (!_isCardExpanded) {
+            setState(() => _isCardExpanded = true);
           }
         },
-        itemBuilder: (context, index) {
-          final node = _focusedChainNodes[index];
-          return _buildNodeCard(node);
+        onVerticalDragEnd: (details) {
+          if (details.primaryVelocity! < -500) {
+            // Swipe Up
+            setState(() => _isCardExpanded = true);
+          } else if (details.primaryVelocity! > 500) {
+            // Swipe Down
+            setState(() => _isCardExpanded = false);
+          }
         },
-      ),
-    );
-  }
-
-  Widget _buildNodeCard(ConstellationNode node) {
-    final color = HSVColor.fromAHSV(1.0, node.hue, 0.7, 0.9).toColor();
-    
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  node.type.name.toUpperCase(),
-                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${node.date.month}/${node.date.day}',
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            node.label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: TextButton(
-              onPressed: () => _showDetail(node),
-              child: Text('READ MORE', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.0),
+                Colors.black.withValues(alpha: 0.8),
+              ],
             ),
           ),
-        ],
+          child: PageView.builder(
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(), // Always allow horizontal swiping
+            itemCount: _focusedChainNodes.length,
+            onPageChanged: (index) {
+              if (!_isAnimatingCamera) {
+                _animateCameraToNode(_focusedChainNodes[index]);
+                setState(() {
+                   _selectedNodeId = _focusedChainNodes[index].id;
+                });
+              }
+            },
+            itemBuilder: (context, index) {
+              final node = _focusedChainNodes[index];
+              return ConstellationNodeCard(
+                node: node,
+                isExpanded: _isCardExpanded,
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 
 
-  Future<void> _showDetail(ConstellationNode node) async {
-    Decision? decision;
-    if (node.type == ConstellationNodeType.decision) {
-      decision = node.originalData as Decision;
-    } else {
-      final allDecisions = await ref.read(allDecisionsProvider.future);
-      // Use firstWhereOrNull to avoid crashes if data is missing
-      decision = allDecisions.where((d) => d.id == node.chainId).firstOrNull;
-    }
-
-    if (mounted && decision != null) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => DecisionDetailSheet(decision: decision!),
-      );
-    }
-  }
 }
 
 class ConstellationPhysicsPainter extends CustomPainter {
