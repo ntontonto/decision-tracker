@@ -38,6 +38,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   // Animation state for newly reviewed stars
   final Map<String, double> _glowProgress = {};
   
+  // Sorting & Filtering State
+  ConstellationSortMode _sortMode = ConstellationSortMode.none;
+  ConstellationSortMode? _lastSortMode;
+  ConstellationFilterMode _filterMode = ConstellationFilterMode.all;
+  
+  // Chain Meta Info for sorting
+  Map<String, _ChainMeta> _chainMetas = {};
+  final Set<String> _kickedNodeIds = {};
+  
   // Simulation State
   List<ConstellationNode> _nodes = [];
   List<ConstellationEdge> _edges = [];
@@ -147,8 +156,51 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     // 3. Update Positions & Boundaries
     for (int i = 0; i < _nodes.length; i++) {
-      var vel = _nodes[i].velocity * friction;
-      var pos = _nodes[i].position + vel;
+      var node = _nodes[i];
+      
+      // Dynamic Friction: Increase friction when sorting to settle faster
+      var currentFriction = _sortMode != ConstellationSortMode.none ? 0.85 : friction;
+      var vel = node.velocity * currentFriction;
+      
+      // 4. Target Attraction (Sorting)
+      if (_sortMode != ConstellationSortMode.none) {
+        final meta = _chainMetas[node.chainId];
+        if (meta != null && meta.focusNodeId == node.id && meta.targetY != null) {
+          final dy = meta.targetY! - node.position.dy;
+          final dx = (meta.targetX ?? node.position.dx) - node.position.dx;
+          
+          // Higher spring force for focus nodes, and aggressive damping near target
+          final dist = math.sqrt(dx * dx + dy * dy);
+          final strength = dist > 10 ? 0.1 : 0.2; 
+          
+          // Latter-half Kick: Apply a subtle randomized impulse as nodes approach targets
+          if (dist < 300 && dist > 50 && !_kickedNodeIds.contains(node.id)) {
+            final randomGen = math.Random();
+            if (randomGen.nextDouble() > 0.4) { // 60% chance
+              final nodeRandom = math.Random(node.id.hashCode + _sortMode.index);
+              final kickX = (nodeRandom.nextDouble() - 0.5) * 40; 
+              final kickY = (nodeRandom.nextDouble() - 0.5) * 20;
+              vel = vel + Offset(kickX, kickY);
+            }
+            _kickedNodeIds.add(node.id);
+          }
+
+          vel = Offset(vel.dx + dx * strength, vel.dy + dy * strength);
+        } else if (node.generation > 0) {
+          // 5. Lateral Scatter for Satellites
+          // Push satellites horizontally away from the center to prevent vertical collapse
+          final centerX = _worldSize.width / 2;
+          final dxFromCenter = node.position.dx - centerX;
+          
+          if (dxFromCenter.abs() < 40) {
+             // Slight push based on ID to make it deterministic
+             final pushDir = (node.id.hashCode % 2 == 0) ? 1.0 : -1.0;
+             vel = Offset(vel.dx + pushDir * 0.5, vel.dy);
+          }
+        }
+      }
+
+      var pos = node.position + vel;
 
       // Boundary Bounce
       if (pos.dx < 50 || pos.dx > _worldSize.width - 50) {
@@ -206,6 +258,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             // Trigger sequence
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
+                _calculateChainMetas();
                 setState(() => _showGalaxy = true);
                 _revelationController.forward(from: 0.0);
               }
@@ -239,12 +292,16 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             }
           }
           
+          final filteredNodes = _filterMode == ConstellationFilterMode.unreviewedOnly
+              ? _nodes.where((n) => !n.isReviewed).toList()
+              : _nodes;
+          
           WidgetsBinding.instance.addPostFrameCallback((_) => _initializeViewport(_worldSize));
 
           return Stack(
             children: [
               _buildSpaceBackground(),
-              _buildInteractionLayer(),
+              _buildInteractionLayer(filteredNodes),
               // Passive Interaction Layer: Handle taps without blocking IV scrolls
               Positioned.fill(
                 child: Listener(
@@ -290,7 +347,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     );
   }
 
-  Widget _buildInteractionLayer() {
+  Widget _buildInteractionLayer(List<ConstellationNode> filteredNodes) {
     return AnimatedOpacity(
       opacity: _showGalaxy ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 1000),
@@ -303,11 +360,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         child: CustomPaint(
           size: _worldSize,
           painter: ConstellationPhysicsPainter(
-            nodes: _nodes,
+            nodes: filteredNodes,
             edges: _edges,
             selectedId: _selectedNodeId,
-            revealedCount: _revealedCount,
+            revealedCount: (_filterMode == ConstellationFilterMode.unreviewedOnly) ? filteredNodes.length : _revealedCount,
             glowProgress: Map.from(_glowProgress),
+            sortMode: _sortMode,
+            focusNodeIds: _chainMetas.values.map((m) => m.focusNodeId).toSet(),
+            minTargetY: _chainMetas.isEmpty ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.min),
+            maxTargetY: _chainMetas.isEmpty ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.max),
           ),
         ),
       ),
@@ -436,6 +497,55 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       right: 16,
       child: Row(
         children: [
+          // Sort Menu
+          PopupMenuButton<ConstellationSortMode>(
+            icon: const Icon(Icons.sort, color: Colors.white70),
+            offset: const Offset(0, 40),
+            color: const Color(0xFF1E293B),
+            onSelected: (mode) {
+              setState(() => _sortMode = mode);
+              _calculateChainMetas();
+            },
+            itemBuilder: (context) => ConstellationSortMode.values.map((mode) {
+              final isSelected = _sortMode == mode;
+              return PopupMenuItem(
+                value: mode,
+                child: Text(
+                  mode.label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.cyanAccent : Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(width: 8),
+          // Filter Menu
+          PopupMenuButton<ConstellationFilterMode>(
+            icon: Icon(
+              _filterMode == ConstellationFilterMode.all ? Icons.filter_list : Icons.filter_alt,
+              color: _filterMode == ConstellationFilterMode.all ? Colors.white70 : Colors.cyanAccent,
+            ),
+            offset: const Offset(0, 40),
+            color: const Color(0xFF1E293B),
+            onSelected: (mode) {
+              setState(() => _filterMode = mode);
+            },
+            itemBuilder: (context) => ConstellationFilterMode.values.map((mode) {
+              final isSelected = _filterMode == mode;
+              return PopupMenuItem(
+                value: mode,
+                child: Text(
+                  mode.label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.cyanAccent : Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.blur_on, color: Colors.white, size: 28),
@@ -551,6 +661,128 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 }
 
 
+  void _calculateChainMetas() {
+    if (_sortMode == ConstellationSortMode.none) {
+      _lastSortMode = _sortMode;
+      setState(() => _chainMetas = {});
+      return;
+    }
+
+    // Reset kick tracking when switching sort modes
+    if (_lastSortMode != _sortMode) {
+      _kickedNodeIds.clear();
+      _lastSortMode = _sortMode;
+    }
+
+    final Map<String, List<ConstellationNode>> chains = {};
+    for (final node in _nodes) {
+      chains.putIfAbsent(node.chainId, () => []).add(node);
+    }
+
+    final List<_ChainMeta> sortedMetas = [];
+    chains.forEach((chainId, nodesInChain) {
+      final rootNode = nodesInChain.firstWhere((n) => n.generation == 0);
+      
+      // Find latest action date and unreviewed status
+      DateTime latestDate = rootNode.date;
+      ConstellationNode latestNode = rootNode;
+      ConstellationNode? firstUnreviewedNode;
+
+      // Ensure nodes are sorted by generation to find "first" unreviewed correctly
+      nodesInChain.sort((a, b) => a.generation.compareTo(b.generation));
+
+      for (final node in nodesInChain) {
+        if (node.date.isAfter(latestDate)) {
+          latestDate = node.date;
+          latestNode = node;
+        }
+        if (firstUnreviewedNode == null && !node.isReviewed) {
+          firstUnreviewedNode = node;
+        }
+      }
+
+      final hasUnreviewed = firstUnreviewedNode != null;
+
+      // Determine Focus Node ID based on Sort Mode
+      String focusNodeId = rootNode.id;
+      if (_sortMode == ConstellationSortMode.unreviewedFirst && hasUnreviewed) {
+        focusNodeId = firstUnreviewedNode.id;
+      } else if (_sortMode == ConstellationSortMode.latestActionDate) {
+        focusNodeId = latestNode.id;
+      }
+
+      sortedMetas.add(_ChainMeta(
+        chainId: chainId,
+        rootDate: rootNode.date,
+        latestDate: latestDate,
+        hasUnreviewed: hasUnreviewed,
+        focusNodeId: focusNodeId,
+      ));
+    });
+
+    // Apply Sorting to Metas to determine Target Y
+    if (_sortMode == ConstellationSortMode.unreviewedFirst) {
+      sortedMetas.sort((a, b) {
+        if (a.hasUnreviewed != b.hasUnreviewed) {
+          return a.hasUnreviewed ? -1 : 1;
+        }
+        return b.rootDate.compareTo(a.rootDate);
+      });
+    } else if (_sortMode == ConstellationSortMode.decisionDate) {
+      sortedMetas.sort((a, b) => b.rootDate.compareTo(a.rootDate));
+    } else if (_sortMode == ConstellationSortMode.latestActionDate) {
+      sortedMetas.sort((a, b) => b.latestDate.compareTo(a.latestDate));
+    }
+
+    // List Visibility: tighter spacing (list view style)
+    final worldHeight = _worldSize.height;
+    final worldWidth = _worldSize.width;
+    final paddingY = 600.0;
+    final spacing = 140.0; // Slightly more vertical gap for focus nodes
+    
+    for (int i = 0; i < sortedMetas.length; i++) {
+        sortedMetas[i] = sortedMetas[i].copyWith(
+          targetY: paddingY + (i * spacing),
+          targetX: worldWidth / 2,
+        );
+    }
+
+    setState(() {
+      _chainMetas = {for (var m in sortedMetas) m.chainId: m};
+    });
+  }
+}
+
+class _ChainMeta {
+  final String chainId;
+  final String focusNodeId;
+  final DateTime rootDate;
+  final DateTime latestDate;
+  final bool hasUnreviewed;
+  final double? targetY;
+  final double? targetX;
+
+  _ChainMeta({
+    required this.chainId,
+    required this.focusNodeId,
+    required this.rootDate,
+    required this.latestDate,
+    required this.hasUnreviewed,
+    this.targetY,
+    this.targetX,
+  });
+
+  _ChainMeta copyWith({double? targetY, double? targetX}) {
+    return _ChainMeta(
+      chainId: chainId,
+      focusNodeId: focusNodeId,
+      rootDate: rootDate,
+      latestDate: latestDate,
+      hasUnreviewed: hasUnreviewed,
+      targetY: targetY ?? this.targetY,
+      targetX: targetX ?? this.targetX,
+    );
+  }
 }
 
 class ConstellationPhysicsPainter extends CustomPainter {
@@ -559,6 +791,10 @@ class ConstellationPhysicsPainter extends CustomPainter {
   final String? selectedId;
   final int revealedCount;
   final Map<String, double> glowProgress;
+  final ConstellationSortMode sortMode;
+  final Set<String> focusNodeIds;
+  final double? minTargetY;
+  final double? maxTargetY;
 
   ConstellationPhysicsPainter({
     required this.nodes,
@@ -566,6 +802,10 @@ class ConstellationPhysicsPainter extends CustomPainter {
     this.selectedId,
     required this.revealedCount,
     required this.glowProgress,
+    required this.sortMode,
+    required this.focusNodeIds,
+    this.minTargetY,
+    this.maxTargetY,
   });
 
   @override
@@ -581,7 +821,44 @@ class ConstellationPhysicsPainter extends CustomPainter {
        );
     }
 
+    // 2. Guide Line (Auxiliary Line for sorting) - Drawn in Background Layer
+    if (sortMode != ConstellationSortMode.none && minTargetY != null && maxTargetY != null) {
+      final centerX = size.width / 2;
+      final startY = minTargetY! - 150;
+      final endY = maxTargetY! + 150;
 
+      if (endY > startY) {
+        // Subtle Cyan Glow
+        final glowPaint = Paint()
+          ..color = Colors.cyan.withValues(alpha: 0.15)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6.0
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+        
+        final guidePaint = Paint()
+          ..color = Colors.white.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2;
+          
+        canvas.drawLine(Offset(centerX, startY), Offset(centerX, endY), glowPaint);
+
+        // Dashed Line
+        const dashHeight = 15.0;
+        const dashSpace = 10.0;
+        double currentY = startY;
+        while (currentY < endY) {
+          canvas.drawLine(
+            Offset(centerX, currentY),
+            Offset(centerX, math.min(currentY + dashHeight, endY)),
+            guidePaint,
+          );
+          currentY += dashHeight + dashSpace;
+        }
+      }
+    }
+
+
+    // 2. Edges
     final linePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
@@ -615,6 +892,10 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
     // 4. Nodes
     final now = DateTime.now();
+
+    final datePainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
 
     for (int i = 0; i < nodes.length; i++) {
       if (i >= revealedCount) continue;
@@ -780,6 +1061,36 @@ class ConstellationPhysicsPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5;
         canvas.drawCircle(node.position, (coreSize + 8) * ageFactor, ringPaint);
+      }
+
+      // 7. Sort-specific Labels (Date or Review Status)
+      final bool shouldShowDate = 
+          (sortMode == ConstellationSortMode.decisionDate && node.generation == 0) ||
+          (sortMode == ConstellationSortMode.latestActionDate && focusNodeIds.contains(node.id));
+      
+      final bool shouldShowReviewStatus = 
+          (sortMode == ConstellationSortMode.unreviewedFirst && focusNodeIds.contains(node.id));
+
+      if (shouldShowDate || shouldShowReviewStatus) {
+        String labelText = '';
+        if (shouldShowDate) {
+          labelText = '${node.date.month}/${node.date.day}';
+        } else if (shouldShowReviewStatus) {
+          labelText = node.isReviewed ? '振り返り済み' : '未振り返り';
+        }
+
+        datePainter.text = TextSpan(
+          text: labelText,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.3),
+            fontSize: 14,
+            letterSpacing: 1,
+            fontWeight: FontWeight.w400,
+          ),
+        );
+        datePainter.layout();
+        // Position on the left side
+        datePainter.paint(canvas, node.position + Offset(-datePainter.width - 20, -datePainter.height / 2));
       }
     }
   }
