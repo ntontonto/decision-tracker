@@ -6,6 +6,34 @@ enum ConstellationNodeType {
   declaration,
 }
 
+enum ConstellationSortMode {
+  none,
+  unreviewedFirst,
+  decisionDate,
+  latestActionDate;
+
+  String get label {
+    switch (this) {
+      case ConstellationSortMode.none: return 'なし';
+      case ConstellationSortMode.unreviewedFirst: return '未振り返りが上';
+      case ConstellationSortMode.decisionDate: return '判断日順';
+      case ConstellationSortMode.latestActionDate: return '最新行動日順';
+    }
+  }
+}
+
+enum ConstellationFilterMode {
+  all,
+  unreviewedOnly;
+
+  String get label {
+    switch (this) {
+      case ConstellationFilterMode.all: return 'すべて';
+      case ConstellationFilterMode.unreviewedOnly: return '未振り返りのみ';
+    }
+  }
+}
+
 class ConstellationNode {
   final String id;
   final ConstellationNodeType type;
