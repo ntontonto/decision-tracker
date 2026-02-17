@@ -5,6 +5,8 @@ import 'package:decision_tracker/domain/models/enums.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decision_tracker/domain/providers/retro_providers.dart';
+import 'package:decision_tracker/presentation/widgets/retro_wizard_sheet.dart';
+import 'package:decision_tracker/presentation/widgets/action_review_wizard_sheet.dart';
 
 class ConstellationNodeCard extends ConsumerWidget {
   final ConstellationNode node;
@@ -23,7 +25,7 @@ class ConstellationNodeCard extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0), // Use padding for content
+      clipBehavior: Clip.antiAlias, // Prevent sub-pixel overflow artifacts during animation
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
@@ -36,60 +38,44 @@ class ConstellationNodeCard extends ConsumerWidget {
           ),
         ],
       ),
-      child: isExpanded 
-        ? SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildHeader(color),
-                const SizedBox(height: 12),
-                _buildTitle(),
-                const SizedBox(height: 16),
-                if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
-                const SizedBox(height: 24),
-                _buildExtendedContent(color, ref),
-                const SizedBox(height: 20),
-              ],
-            ),
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      child: SingleChildScrollView(
+        physics: isExpanded ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Allow the Column to shrink
+          children: [
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            _buildHeader(color),
+            const SizedBox(height: 12),
+            _buildTitle(),
+            const SizedBox(height: 16),
+            if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
+            if (isExpanded) ...[
+              const SizedBox(height: 24),
+              _buildExtendedContent(context, color, ref),
+              const SizedBox(height: 20),
+            ] else ...[
               const SizedBox(height: 12),
-              _buildHeader(color),
-              const SizedBox(height: 12),
-              _buildTitle(),
-              const SizedBox(height: 16),
-              if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
-              const SizedBox(height: 8),
               Center(
                 child: Icon(Icons.keyboard_arrow_up, color: color.withValues(alpha: 0.3), size: 20),
               ),
+              const SizedBox(height: 8),
             ],
-          ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -105,11 +91,11 @@ class ConstellationNodeCard extends ConsumerWidget {
         statusColor = color;
         statusIcon = Icons.check_circle_outline;
       } else if (decision.status == DecisionStatus.skipped) {
-        statusText = 'スキップ';
-        statusColor = Colors.white38;
-        statusIcon = Icons.skip_next_outlined;
+        statusText = '振り返り未実施';
+        statusColor = Colors.orangeAccent.withValues(alpha: 0.8);
+        statusIcon = Icons.pending_outlined;
       } else {
-        statusText = '未振り返り';
+        statusText = '振り返り未実施';
         statusColor = Colors.orangeAccent;
         statusIcon = Icons.pending_outlined;
       }
@@ -120,9 +106,9 @@ class ConstellationNodeCard extends ConsumerWidget {
         statusColor = color;
         statusIcon = Icons.task_alt;
       } else if (decl.status == DeclarationStatus.skipped) {
-        statusText = 'スキップ';
-        statusColor = Colors.white38;
-        statusIcon = Icons.block;
+        statusText = '振り返り未実施';
+        statusColor = Colors.orangeAccent.withValues(alpha: 0.8);
+        statusIcon = Icons.pending_outlined;
       } else {
         statusText = '進行中';
         statusColor = Colors.cyanAccent;
@@ -217,9 +203,11 @@ class ConstellationNodeCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildExtendedContent(Color color, WidgetRef ref) {
+  Widget _buildExtendedContent(BuildContext context, Color color, WidgetRef ref) {
     if (node.type == ConstellationNodeType.decision) {
       final decision = node.originalData as Decision;
+      final bool needsRetro = decision.status != DecisionStatus.reviewed;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -243,11 +231,21 @@ class ConstellationNodeCard extends ConsumerWidget {
               _buildDetailItem(Icons.lightbulb_outline, '今後の対策', decision.solution!, Colors.cyanAccent),
             if (decision.memo?.isNotEmpty ?? false)
               _buildDetailItem(Icons.notes, '振り返りメモ', decision.memo!, Colors.white60),
+          ] else if (needsRetro) ...[
+            const SizedBox(height: 8),
+            _buildReflectionPrompt(
+              context, 
+              'この出来事をふりかえりますか？', 
+              color,
+              () => _showRetroWizard(context, decision),
+            ),
           ],
         ],
       );
     } else {
       final decl = node.originalData as Declaration;
+      final bool needsReview = decl.completedAt == null;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -264,9 +262,78 @@ class ConstellationNodeCard extends ConsumerWidget {
             decl.solutionText,
             style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
+          if (needsReview) ...[
+            const SizedBox(height: 24),
+            _buildReflectionPrompt(
+              context, 
+              'この宣言をふりかえりますか？', 
+              color,
+              () => _showActionReviewWizard(context, decl),
+            ),
+          ],
         ],
       );
     }
+  }
+
+  Widget _buildReflectionPrompt(BuildContext context, String message, Color color, VoidCallback onPressed) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            message,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color.withValues(alpha: 0.2),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: color.withValues(alpha: 0.3)),
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome, size: 18),
+                SizedBox(width: 8),
+                Text('ふりかえる', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRetroWizard(BuildContext context, Decision decision) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => RetroWizardSheet(decision: decision),
+    );
+  }
+
+  void _showActionReviewWizard(BuildContext context, Declaration decl) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ActionReviewWizardSheet(declaration: decl),
+    );
   }
 
   String _getReasonLabel(String key, WidgetRef ref) {

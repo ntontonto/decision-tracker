@@ -38,6 +38,8 @@ class ConstellationNode {
   ConstellationNode copy({
     Offset? position,
     Offset? velocity,
+    bool? isReviewed,
+    int? score,
   }) {
     return ConstellationNode(
       id: id,
@@ -49,8 +51,8 @@ class ConstellationNode {
       originalData: originalData,
       generation: generation,
       chainId: chainId,
-      isReviewed: isReviewed,
-      score: score,
+      isReviewed: isReviewed ?? this.isReviewed,
+      score: score ?? this.score,
       hue: hue,
     );
   }

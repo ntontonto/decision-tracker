@@ -33,6 +33,10 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   late PageController _pageController;
   bool _isAnimatingCamera = false;
   bool _isCardExpanded = false;
+  bool _isCardVisible = false;
+  
+  // Animation state for newly reviewed stars
+  final Map<String, double> _glowProgress = {};
   
   // Simulation State
   List<ConstellationNode> _nodes = [];
@@ -78,7 +82,23 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     if (mounted) {
       setState(() {
         _applyPhysics();
+        _updateAnimations();
       });
+    }
+  }
+
+  void _updateAnimations() {
+    final toRemove = <String>[];
+    _glowProgress.forEach((id, progress) {
+      final newProgress = progress - 0.02; // Decrease over ~50 ticks (1 sec at 60fps)
+      if (newProgress <= 0) {
+        toRemove.add(id);
+      } else {
+        _glowProgress[id] = newProgress;
+      }
+    });
+    for (final id in toRemove) {
+      _glowProgress.remove(id);
     }
   }
 
@@ -190,6 +210,33 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                 _revelationController.forward(from: 0.0);
               }
             });
+          } else if (_nodes.isNotEmpty && graph.nodes.isNotEmpty) {
+            // Reactive Sync: Update existing nodes without re-shuffling layout
+            bool changed = false;
+            for (final newNode in graph.nodes) {
+              final existingIdx = _nodes.indexWhere((n) => n.id == newNode.id);
+              if (existingIdx != -1) {
+                final oldNode = _nodes[existingIdx];
+                if (oldNode.isReviewed != newNode.isReviewed || oldNode.score != newNode.score) {
+                  _nodes[existingIdx] = oldNode.copy(
+                    isReviewed: newNode.isReviewed,
+                    score: newNode.score,
+                  );
+                  
+                  // Trigger glow if newly reviewed
+                  if (!oldNode.isReviewed && newNode.isReviewed) {
+                    _glowProgress[newNode.id] = 1.0;
+                  }
+                  changed = true;
+                }
+              }
+            }
+            if (changed) {
+              // We need to trigger a repaint
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() {});
+              });
+            }
           }
           
           WidgetsBinding.instance.addPostFrameCallback((_) => _initializeViewport(_worldSize));
@@ -260,6 +307,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             edges: _edges,
             selectedId: _selectedNodeId,
             revealedCount: _revealedCount,
+            glowProgress: Map.from(_glowProgress),
           ),
         ),
       ),
@@ -275,11 +323,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       _focusNode(hitNode);
     } else {
       // Tap on background
-      if (_isCardExpanded) {
-        // Collapse if expanded
-        setState(() => _isCardExpanded = false);
-      } else if (_selectedNodeId != null) {
-        // Clear focus if not hit and not expanded
+      if (_selectedNodeId != null) {
         _clearFocus();
       }
     }
@@ -296,6 +340,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           ..sort((a, b) => a.generation.compareTo(b.generation));
       }
       _isCardExpanded = false;
+      _isCardVisible = true;
     });
 
     // Sync PageView
@@ -312,11 +357,22 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   }
 
   void _clearFocus() {
+    if (!_isCardVisible) return;
+    
     setState(() {
-      _selectedNodeId = null;
-      _focusedChainId = null;
-      _focusedChainNodes = [];
+      _isCardVisible = false;
       _isCardExpanded = false;
+    });
+    
+    // Delay clearing the data to allow animation to complete
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && !_isCardVisible) {
+        setState(() {
+          _selectedNodeId = null;
+          _focusedChainId = null;
+          _focusedChainNodes = [];
+        });
+      }
     });
   }
 
@@ -372,17 +428,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       right: 16,
       child: Row(
         children: [
-          const Expanded(
-            child: Text(
-              'CONSTELLATION',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.5,
-              ),
-            ),
-          ),
+          const Spacer(),
           IconButton(
             icon: const Icon(Icons.blur_on, color: Colors.white, size: 28),
             onPressed: () => Navigator.pop(context),
@@ -425,14 +471,20 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
 
+    final isShowing = _isCardVisible;
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
       curve: Curves.fastOutSlowIn,
-      bottom: 0,
+      bottom: isShowing ? 0 : -collapsedHeight,
       left: 0,
       right: 0,
       height: currentHeight,
-      child: GestureDetector(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        opacity: isShowing ? 1.0 : 0.0,
+        child: GestureDetector(
         onTap: () {
           if (!_isCardExpanded) {
             setState(() => _isCardExpanded = true);
@@ -444,7 +496,11 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             setState(() => _isCardExpanded = true);
           } else if (details.primaryVelocity! > 500) {
             // Swipe Down
-            setState(() => _isCardExpanded = false);
+            if (_isCardExpanded) {
+              setState(() => _isCardExpanded = false);
+            } else {
+              _clearFocus();
+            }
           }
         },
         child: Container(
@@ -480,8 +536,9 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
 
 }
@@ -491,12 +548,14 @@ class ConstellationPhysicsPainter extends CustomPainter {
   final List<ConstellationEdge> edges;
   final String? selectedId;
   final int revealedCount;
+  final Map<String, double> glowProgress;
 
   ConstellationPhysicsPainter({
     required this.nodes,
     required this.edges,
     this.selectedId,
     required this.revealedCount,
+    required this.glowProgress,
   });
 
   @override
@@ -680,7 +739,25 @@ class ConstellationPhysicsPainter extends CustomPainter {
         highlightPaint
       );
 
-      // 5. White Hot Center (Internal, sharp)
+      // 5. Glow Effect (Dynamic)
+      final double glow = glowProgress[node.id] ?? 0.0;
+      if (glow > 0) {
+        final double glowRadius = coreSize * (1.0 + glow * 4.0);
+        final glowPaint = Paint()
+          ..color = Colors.white.withValues(alpha: glow * 0.8)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10.0 * glow);
+        
+        canvas.drawCircle(node.position, glowRadius, glowPaint);
+        
+        // Secondary outer ring for the pulse
+        final pulsePaint = Paint()
+          ..color = baseColor.withValues(alpha: glow * 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0;
+        canvas.drawCircle(node.position, coreSize * (2.0 + glow * 6.0), pulsePaint);
+      }
+
+      // 6. White Hot Center (Internal, sharp)
       if (isReviewed) {
         final centerPaint = Paint()..color = Colors.white.withValues(alpha: 0.4);
         canvas.drawCircle(node.position, coreSize * 0.3, centerPaint);
