@@ -744,14 +744,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     );
   }
   Widget _buildDetailOverlay() {
-    if (_focusedChainNodes.isEmpty) return const SizedBox.shrink();
-
     final screenHeight = MediaQuery.of(context).size.height;
     final collapsedHeight = 220.0;
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
 
-    final isShowing = _isCardVisible;
+    final isShowing = _isCardVisible && _focusedChainNodes.isNotEmpty;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
@@ -764,63 +762,68 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOut,
         opacity: isShowing ? 1.0 : 0.0,
-        child: GestureDetector(
-        onTap: () {
-          if (!_isCardExpanded) {
-            setState(() => _isCardExpanded = true);
-          }
-        },
-        onVerticalDragEnd: (details) {
-          if (details.primaryVelocity! < -500) {
-            // Swipe Up
-            setState(() => _isCardExpanded = true);
-          } else if (details.primaryVelocity! > 500) {
-            // Swipe Down
-            if (_isCardExpanded) {
-              setState(() => _isCardExpanded = false);
-            } else {
-              _clearFocus();
-            }
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.0),
-                Colors.black.withValues(alpha: 0.8),
-              ],
-            ),
-          ),
-          child: PageView.builder(
-            controller: _pageController,
-            physics: const BouncingScrollPhysics(), // Always allow horizontal swiping
-            itemCount: _focusedChainNodes.length,
-            onPageChanged: (index) {
-              if (_pageController.hasClients && _pageController.page?.round() == index) {
-                if (!_isAnimatingCamera) {
-                  _animateCameraToNode(_focusedChainNodes[index]);
-                  setState(() {
-                    _selectedNodeId = _focusedChainNodes[index].id;
-                  });
+        child: IgnorePointer(
+          ignoring: !isShowing,
+          child: GestureDetector(
+            onTap: () {
+              if (!_isCardExpanded) {
+                setState(() => _isCardExpanded = true);
+              }
+            },
+            onVerticalDragEnd: (details) {
+              if (details.primaryVelocity! < -500) {
+                // Swipe Up
+                setState(() => _isCardExpanded = true);
+              } else if (details.primaryVelocity! > 500) {
+                // Swipe Down
+                if (_isCardExpanded) {
+                  setState(() => _isCardExpanded = false);
+                } else {
+                  _clearFocus();
                 }
               }
             },
-            itemBuilder: (context, index) {
-              final node = _focusedChainNodes[index];
-              return ConstellationNodeCard(
-                node: node,
-                isExpanded: _isCardExpanded,
-              );
-            },
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.0),
+                    Colors.black.withValues(alpha: 0.8),
+                  ],
+                ),
+              ),
+              child: _focusedChainNodes.isEmpty 
+                ? const SizedBox.shrink()
+                : PageView.builder(
+                    controller: _pageController,
+                    physics: const BouncingScrollPhysics(), // Always allow horizontal swiping
+                    itemCount: _focusedChainNodes.length,
+                    onPageChanged: (index) {
+                      if (_pageController.hasClients && _pageController.page?.round() == index) {
+                        if (!_isAnimatingCamera) {
+                          _animateCameraToNode(_focusedChainNodes[index]);
+                          setState(() {
+                            _selectedNodeId = _focusedChainNodes[index].id;
+                          });
+                        }
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      final node = _focusedChainNodes[index];
+                      return ConstellationNodeCard(
+                        node: node,
+                        isExpanded: _isCardExpanded,
+                      );
+                    },
+                  ),
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildVerticalNavigationButtons() {
     final screenHeight = MediaQuery.of(context).size.height;
