@@ -85,21 +85,21 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
               );
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Increased vertical padding from 4 to 8
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: (1.0 + _dragOffset / 100.0).clamp(0.2, 1.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Reduced vertical padding
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Increased vertical padding from 10 to 16
                   decoration: BoxDecoration(
-                    color: AppDesign.glassBackgroundColor,
+                    color: const Color(0xFF1C1C1E), // Opaque dark grey
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppDesign.glassBorderColor),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -108,15 +108,19 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
                       if (state.icon != null) ...[
                         Icon(
                           state.icon,
-                          color: Colors.white70,
-                          size: 20,
+                          color: Colors.white,
+                          size: 24, // Increased from 20
                         ),
                         const SizedBox(width: 12),
                       ],
                       Expanded(
                         child: Text(
                           state.message,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            color: Colors.white, 
+                            fontWeight: FontWeight.w600, // Increased from w500
+                            fontSize: 15, // Added font size
+                          ),
                         ),
                       ),
                       if (state.onFix != null)
@@ -133,6 +137,7 @@ class _SuccessNotificationState extends ConsumerState<SuccessNotification> with 
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
+                                fontSize: 13,
                               ),
                             ),
                           ),
