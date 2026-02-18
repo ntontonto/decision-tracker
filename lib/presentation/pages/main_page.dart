@@ -124,19 +124,8 @@ class _MainPageState extends ConsumerState<MainPage> {
               ),
             ),
             
-            // Constellation Navigation Button
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-                onPressed: _navigateToConstellation,
-                tooltip: 'Go to Constellation',
-              ),
-            ),
-  
             // Overlay UI: Proposal Card + FAB
-            const HomeOverlayUI(),
+            HomeOverlayUI(onConstellationTap: _navigateToConstellation),
   
             // Success Notification Toast (TOPMOST Layer)
             const SuccessNotification(),

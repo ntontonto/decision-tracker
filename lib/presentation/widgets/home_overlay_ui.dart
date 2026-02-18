@@ -7,9 +7,12 @@ import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
 import '../widgets/action_review_wizard_sheet.dart';
 import '../widgets/review_proposal_card.dart';
+import '../theme/app_design.dart';
+import 'dart:ui';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
-  const HomeOverlayUI({super.key});
+  final VoidCallback? onConstellationTap;
+  const HomeOverlayUI({super.key, this.onConstellationTap});
 
   @override
   ConsumerState<HomeOverlayUI> createState() => _HomeOverlayUIState();
@@ -57,20 +60,27 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
                 }
 
                 // Ensure index is within bounds
-                final index = _currentIndex % proposals.length;
-                final proposal = proposals[index];
-
                 return Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Expanded(
-                      child: ReviewProposalCard(
-                        item: proposal,
-                        refreshTrigger: _currentIndex,
-                        onTap: () => _startReviewFlow(context, proposal),
+                    if (proposals.isNotEmpty) 
+                      Expanded(
+                        child: ReviewProposalCard(
+                          item: proposals[_currentIndex % proposals.length],
+                          refreshTrigger: _currentIndex,
+                          onTap: () => _startReviewFlow(context, proposals[_currentIndex % proposals.length]),
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 12),
-                    _buildAddButton(),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildConstellationButton(),
+                        const SizedBox(height: 12),
+                        _buildAddButton(),
+                      ],
+                    ),
                   ],
                 );
               },
@@ -86,7 +96,14 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
   Widget _buildFABOnly() {
     return Align(
       alignment: Alignment.bottomRight,
-      child: _buildAddButton(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildConstellationButton(),
+          const SizedBox(height: 12),
+          _buildAddButton(),
+        ],
+      ),
     );
   }
 
@@ -101,6 +118,24 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
         elevation: 0,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, size: 32),
+      ),
+    );
+  }
+
+  Widget _buildConstellationButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onConstellationTap,
+        borderRadius: BorderRadius.circular(16),
+        child: const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Icon(
+            Icons.auto_awesome,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
       ),
     );
   }
