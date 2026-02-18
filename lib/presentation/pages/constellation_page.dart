@@ -43,6 +43,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   
   // Sorting & Direction State
   ConstellationSortMode _sortMode = ConstellationSortMode.none;
+  List<_ChainMeta> _chainMetasRaw = []; // Helper for indices
+  List<String> _sortedChainIds = [];
   ConstellationSortMode? _lastSortMode;
   bool _isSortDescending = true;
   
@@ -324,6 +326,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
               ),
               _buildHeader(),
               _buildDetailOverlay(),
+              _buildVerticalNavigationButtons(),
               if (!_showGalaxy || _revelationController.isAnimating) 
                 _buildOverlayInstructions(),
             ],
@@ -733,6 +736,90 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   );
 }
 
+  Widget _buildVerticalNavigationButtons() {
+    if (_sortMode == ConstellationSortMode.none) return const SizedBox.shrink();
+    if (_focusedChainNodes.isEmpty) {
+       return const SizedBox.shrink();
+    }
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final collapsedHeight = 220.0;
+    final expandedHeight = screenHeight * 0.7;
+    final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
+    final isShowing = _isCardVisible;
+
+    // Determine if we can go up or down
+    final currentIndex = _sortedChainIds.indexOf(_focusedChainId ?? '');
+    final canGoUp = currentIndex > 0;
+    final canGoDown = currentIndex != -1 && currentIndex < _sortedChainIds.length - 1;
+
+    debugPrint('Navigation Buttons: isShowing=$isShowing, showGalaxy=$_showGalaxy, isAnimating=$_isAnimatingCamera, sortMode=$_sortMode, currentIndex=$currentIndex');
+
+    return AnimatedPositioned(
+      key: const ValueKey('vert_nav_buttons'),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.fastOutSlowIn,
+      bottom: isShowing ? currentHeight + 16 : 32 + MediaQuery.of(context).padding.bottom,
+      right: 20,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        opacity: (_showGalaxy && isShowing) ? 1.0 : 0.0,
+        child: Column(
+          children: [
+            _buildGlassNavButton(
+              icon: Icons.keyboard_arrow_up,
+              onPressed: canGoUp ? () => _navigateVertical(false) : null,
+              enabled: canGoUp,
+            ),
+            const SizedBox(height: 12),
+            _buildGlassNavButton(
+              icon: Icons.keyboard_arrow_down,
+              onPressed: canGoDown ? () => _navigateVertical(true) : null,
+              enabled: canGoDown,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassNavButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool enabled = true,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: enabled ? 0.15 : 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.05),
+              width: 0.5,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(16),
+              child: Icon(
+                icon,
+                color: enabled ? Colors.white : Colors.white24,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
 
   void _calculateChainMetas() {
     if (_sortMode == ConstellationSortMode.none) {
@@ -830,7 +917,59 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     setState(() {
       _chainMetas = {for (var m in sortedMetas) m.chainId: m};
+      _sortedChainIds = sortedMetas.map((m) => m.chainId).toList();
+      _chainMetasRaw = sortedMetas;
     });
+  }
+
+  void _navigateVertical(bool forward) {
+    if (_sortedChainIds.isEmpty || _selectedNodeId == null || _focusedChainId == null) return;
+
+    final currentIndex = _sortedChainIds.indexOf(_focusedChainId!);
+    if (currentIndex == -1) return;
+
+    final targetIndex = forward ? currentIndex + 1 : currentIndex - 1;
+    if (targetIndex < 0 || targetIndex >= _sortedChainIds.length) return;
+
+    final targetChainId = _sortedChainIds[targetIndex];
+    final targetMeta = _chainMetas[targetChainId];
+    if (targetMeta == null) return;
+
+    // Find equivalent node in the target chain
+    // Equivalent is defined as same generation offset relative to focusNode
+    final currentFocusNodeId = _chainMetas[_focusedChainId]?.focusNodeId;
+    final currentNode = _nodes.firstWhere((n) => n.id == _selectedNodeId);
+    final currentFocusNode = _nodes.firstWhere((n) => n.id == currentFocusNodeId);
+    
+    final genDiff = currentNode.generation - currentFocusNode.generation;
+
+    final targetChainNodes = _nodes.where((n) => n.chainId == targetChainId).toList()
+      ..sort((a, b) => a.generation.compareTo(b.generation));
+    
+    final targetFocusNode = targetChainNodes.firstWhere((n) => n.id == targetMeta.focusNodeId);
+    final targetGeneration = targetFocusNode.generation + genDiff;
+
+    // Try to find exact generation, or closest
+    ConstellationNode targetNode = targetFocusNode;
+    int minDiff = 100;
+    for (final node in targetChainNodes) {
+      final diff = (node.generation - targetGeneration).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        targetNode = node;
+      }
+    }
+
+    Offset? targetOverride;
+    if (targetMeta.targetX != null && targetMeta.targetY != null) {
+      // We need to adjust targetY based on the node's generation relative to the focus node
+      // The spacing between generations is roughly 200 in chain-link logic
+      // But in list view, they are all squashed. 
+      // Actually, targetY/targetX in ChainMeta is for the FOCUS star.
+      targetOverride = Offset(targetMeta.targetX!, targetMeta.targetY!);
+    }
+
+    _focusNode(targetNode, targetPosOverride: targetOverride);
   }
 
   void _focusTopStarAfterSort() {
