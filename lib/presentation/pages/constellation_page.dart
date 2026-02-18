@@ -83,9 +83,38 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     _revelationController.addListener(() {
       if (_nodes.isEmpty) return;
+      
+      final t = Curves.easeInOutCubic.transform(_revelationController.value);
+      
+      // Update revealed count
       final count = (Curves.easeIn.transform(_revelationController.value) * _nodes.length).floor();
       if (count != _revealedCount) {
         setState(() => _revealedCount = count);
+      }
+
+      // Update camera zoom-out if not manually interrupted
+      if (!_isAnimatingCamera && !_isDoubleTapDragging && _initialized) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        
+        // Final State (Galaxy View)
+        final finalScale = 0.4;
+        final finalX = (screenWidth - _worldSize.width * finalScale) / 2;
+        final finalY = (screenHeight - _worldSize.height * finalScale) / 2;
+        
+        // Initial State (Zoomed on first star)
+        final startScale = 1.5;
+        final startX = screenWidth / 2 - _nodes[0].position.dx * startScale;
+        final startY = screenHeight / 2 - _nodes[0].position.dy * startScale;
+        
+        // Interpolate
+        final currentScale = startScale + (finalScale - startScale) * t;
+        final currentX = startX + (finalX - startX) * t;
+        final currentY = startY + (finalY - startY) * t;
+        
+        _transformationController.value = Matrix4.identity()
+          ..setTranslationRaw(currentX, currentY, 0)
+          ..scale(currentScale, currentScale, 1.0);
       }
     });
   }
@@ -236,17 +265,19 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
   void _initializeViewport(Size worldSize) {
     if (_initialized) return;
+    if (_nodes.isEmpty) return;
     
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Center on the world
-    final xTranslation = (screenWidth - worldSize.width * 0.4) / 2;
-    final yTranslation = (screenHeight - worldSize.height * 0.4) / 2;
+    // Start zoomed in on the first star
+    const startScale = 1.5;
+    final xTranslation = screenWidth / 2 - _nodes[0].position.dx * startScale;
+    final yTranslation = screenHeight / 2 - _nodes[0].position.dy * startScale;
 
     _transformationController.value = Matrix4.identity()
       ..setTranslationRaw(xTranslation, yTranslation, 0)
-      ..scale(0.4, 0.4, 1.0);
+      ..scale(startScale, startScale, 1.0);
 
     _initialized = true;
   }
@@ -963,7 +994,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     }
 
     // List Visibility: tighter spacing (list view style)
-    final worldHeight = _worldSize.height;
+    // final worldHeight = _worldSize.height; // Remnant of unused code
     final worldWidth = _worldSize.width;
     final paddingY = 600.0;
     final spacing = 140.0; // Slightly more vertical gap for focus nodes
