@@ -1333,22 +1333,36 @@ class ConstellationPhysicsPainter extends CustomPainter {
         canvas.restore();
       }
 
-      // 2. Orbital Satellites (Stardust) - Keep Halos
+      // 2. Orbital Satellites (Stardust) - Randomized Orbits & Speeds
       final int satelliteCount = node.isReviewed 
           ? (node.score == 5 ? 3 : (node.score == 3 ? 2 : 1)) 
           : 1;
       
-      final double orbitalRadius = baseRadius * 4.5;
       final satellitePaint = Paint()..color = Colors.white.withValues(
         alpha: 0.7 * (isReviewed ? 1.0 : flickerFactor) * ageFactor
       );
 
       for (int i = 0; i < satelliteCount; i++) {
-        final double offset = (i * (math.pi * 2 / satelliteCount)) + (seed % 100);
-        final double angle = (time * 0.8 * starSpeedMult * starDir) + offset;
+        // Create a unique seed for each satellite for stable randomness
+        final int satelliteSeed = seed ^ (i * 257);
+        final math.Random satRandom = math.Random(satelliteSeed);
+        
+        // Randomized orbit radius: 1.8 to 6.5 times baseRadius
+        // Increased range and lowered minimum to allow closer orbits and more spread
+        final double satOrbitalRadius = baseRadius * (1.8 + satRandom.nextDouble() * 4.7);
+        
+        // Randomized speed: 0.5 to 1.3 of base speed
+        final double satSpeed = (0.5 + satRandom.nextDouble() * 0.8) * 0.8 * starSpeedMult;
+        
+        // Use uniform direction for all satellites of this star
+        
+        // Randomized initial offset
+        final double satOffset = satRandom.nextDouble() * math.pi * 2;
+        
+        final double angle = (time * satSpeed * starDir) + satOffset;
         final Offset satellitePos = node.position + Offset(
-          math.cos(angle) * orbitalRadius,
-          math.sin(angle) * orbitalRadius,
+          math.cos(angle) * satOrbitalRadius,
+          math.sin(angle) * satOrbitalRadius,
         );
         
         canvas.drawCircle(satellitePos, 0.8, satellitePaint);
