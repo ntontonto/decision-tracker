@@ -714,11 +714,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.blur_on, color: Colors.white, size: 28),
-            onPressed: () => Navigator.pop(context),
-            tooltip: 'Return to Vortex',
-          ),
         ],
       ),
     );
@@ -828,11 +823,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 }
 
   Widget _buildVerticalNavigationButtons() {
-    if (_sortMode == ConstellationSortMode.none) return const SizedBox.shrink();
-    if (_focusedChainNodes.isEmpty) {
-       return const SizedBox.shrink();
-    }
-
     final screenHeight = MediaQuery.of(context).size.height;
     final collapsedHeight = 220.0;
     final expandedHeight = screenHeight * 0.7;
@@ -843,8 +833,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final currentIndex = _sortedChainIds.indexOf(_focusedChainId ?? '');
     final canGoUp = currentIndex > 0;
     final canGoDown = currentIndex != -1 && currentIndex < _sortedChainIds.length - 1;
-
-    debugPrint('Navigation Buttons: isShowing=$isShowing, showGalaxy=$_showGalaxy, isAnimating=$_isAnimatingCamera, sortMode=$_sortMode, currentIndex=$currentIndex');
+    final hasSortArrows = _sortMode != ConstellationSortMode.none && _focusedChainNodes.isNotEmpty;
 
     return AnimatedPositioned(
       key: const ValueKey('vert_nav_buttons'),
@@ -854,19 +843,48 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       right: 20,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
-        opacity: (_showGalaxy && isShowing) ? 1.0 : 0.0,
+        opacity: _showGalaxy ? 1.0 : 0.0,
         child: Column(
           children: [
             _buildGlassNavButton(
-              icon: Icons.keyboard_arrow_up,
-              onPressed: canGoUp ? () => _navigateVertical(false) : null,
-              enabled: canGoUp,
+              icon: Icons.blur_on,
+              onPressed: () => Navigator.pop(context),
+              enabled: true,
             ),
-            const SizedBox(height: 12),
-            _buildGlassNavButton(
-              icon: Icons.keyboard_arrow_down,
-              onPressed: canGoDown ? () => _navigateVertical(true) : null,
-              enabled: canGoDown,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: -1.0, // Top-weighted expansion
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              },
+              child: hasSortArrows
+                  ? Padding(
+                      key: const ValueKey('sorting_arrows'),
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildGlassNavButton(
+                            icon: Icons.keyboard_arrow_up,
+                            onPressed: canGoUp ? () => _navigateVertical(false) : null,
+                            enabled: canGoUp,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildGlassNavButton(
+                            icon: Icons.keyboard_arrow_down,
+                            onPressed: canGoDown ? () => _navigateVertical(true) : null,
+                            enabled: canGoDown,
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('no_arrows')),
             ),
           ],
         ),
