@@ -9,6 +9,8 @@ import 'package:decision_tracker/domain/providers/constellation_providers.dart';
 import 'package:decision_tracker/domain/providers/app_providers.dart';
 import '../widgets/decision_detail_sheet.dart';
 import '../widgets/constellation_node_card.dart';
+import '../theme/app_design.dart';
+import 'dart:ui';
 
 class ConstellationPage extends ConsumerStatefulWidget {
   const ConstellationPage({super.key});
@@ -23,6 +25,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
   // Animation State
   late AnimationController _revelationController;
+  AnimationController? _cameraAnimationController;
   int _revealedCount = 0;
   bool _showGalaxy = false;
   
@@ -38,10 +41,10 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   // Animation state for newly reviewed stars
   final Map<String, double> _glowProgress = {};
   
-  // Sorting & Filtering State
+  // Sorting & Direction State
   ConstellationSortMode _sortMode = ConstellationSortMode.none;
   ConstellationSortMode? _lastSortMode;
-  ConstellationFilterMode _filterMode = ConstellationFilterMode.all;
+  bool _isSortDescending = true;
   
   // Chain Meta Info for sorting
   Map<String, _ChainMeta> _chainMetas = {};
@@ -82,6 +85,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     _transformationController.dispose();
     _pageController.dispose();
     _revelationController.dispose();
+    _cameraAnimationController?.dispose();
     super.dispose();
   }
 
@@ -158,8 +162,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     for (int i = 0; i < _nodes.length; i++) {
       var node = _nodes[i];
       
-      // Dynamic Friction: Increase friction when sorting to settle faster
-      var currentFriction = _sortMode != ConstellationSortMode.none ? 0.85 : friction;
+      // Dynamic Friction: Significant friction when sorting to settle faster
+      var currentFriction = _sortMode != ConstellationSortMode.none ? 0.75 : friction;
       var vel = node.velocity * currentFriction;
       
       // 4. Target Attraction (Sorting)
@@ -169,9 +173,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           final dy = meta.targetY! - node.position.dy;
           final dx = (meta.targetX ?? node.position.dx) - node.position.dx;
           
-          // Higher spring force for focus nodes, and aggressive damping near target
+          // Lower spring force for slower, graceful movement
           final dist = math.sqrt(dx * dx + dy * dy);
-          final strength = dist > 10 ? 0.1 : 0.2; 
+          final strength = dist > 10 ? 0.08 : 0.15; 
+          
+          // Stronger damping to eliminate 'boing' (overshoot)
+          vel = vel * 0.82;
           
           // Latter-half Kick: Apply a subtle randomized impulse as nodes approach targets
           if (dist < 300 && dist > 50 && !_kickedNodeIds.contains(node.id)) {
@@ -292,9 +299,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             }
           }
           
-          final filteredNodes = _filterMode == ConstellationFilterMode.unreviewedOnly
-              ? _nodes.where((n) => !n.isReviewed).toList()
-              : _nodes;
+          final filteredNodes = _nodes;
           
           WidgetsBinding.instance.addPostFrameCallback((_) => _initializeViewport(_worldSize));
 
@@ -363,12 +368,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             nodes: filteredNodes,
             edges: _edges,
             selectedId: _selectedNodeId,
-            revealedCount: (_filterMode == ConstellationFilterMode.unreviewedOnly) ? filteredNodes.length : _revealedCount,
+            revealedCount: _revealedCount,
             glowProgress: Map.from(_glowProgress),
             sortMode: _sortMode,
             focusNodeIds: _chainMetas.values.map((m) => m.focusNodeId).toSet(),
-            minTargetY: _chainMetas.isEmpty ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.min),
-            maxTargetY: _chainMetas.isEmpty ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.max),
+            minTargetY: (_sortMode == ConstellationSortMode.none || _chainMetas.isEmpty) ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.min),
+            maxTargetY: (_sortMode == ConstellationSortMode.none || _chainMetas.isEmpty) ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.max),
           ),
         ),
       ),
@@ -390,7 +395,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     }
   }
 
-  void _focusNode(ConstellationNode node) {
+  void _focusNode(ConstellationNode node, {Offset? targetPosOverride}) {
     setState(() {
       _selectedNodeId = node.id;
       if (_focusedChainId != node.chainId) {
@@ -422,7 +427,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       }
     }
 
-    _animateCameraToNode(node);
+    _animateCameraToNode(node, targetPosOverride: targetPosOverride);
   }
 
   void _clearFocus() {
@@ -445,36 +450,41 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     });
   }
 
-  void _animateCameraToNode(ConstellationNode node) {
+  void _animateCameraToNode(ConstellationNode node, {Offset? targetPosOverride}) {
+    _cameraAnimationController?.stop();
+    _cameraAnimationController?.dispose();
+
     _isAnimatingCamera = true;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     const targetScale = 0.8;
 
-    final targetX = screenWidth / 2 - node.position.dx * targetScale;
-    final targetY = screenHeight / 2 - node.position.dy * targetScale;
+    final basePos = targetPosOverride ?? node.position;
+    final targetX = screenWidth / 2 - basePos.dx * targetScale;
+    final targetY = screenHeight / 2 - basePos.dy * targetScale;
 
     final endMatrix = Matrix4.identity()
       ..setTranslationRaw(targetX, targetY, 0)
       ..scale(targetScale, targetScale, 1.0);
 
     final startMatrix = _transformationController.value;
-    final animation = AnimationController(
+    _cameraAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
 
     final matrixTween = Matrix4Tween(begin: startMatrix, end: endMatrix);
-    animation.addListener(() {
+    _cameraAnimationController!.addListener(() {
       _transformationController.value = matrixTween.evaluate(CurvedAnimation(
-        parent: animation,
+        parent: _cameraAnimationController!,
         curve: Curves.fastOutSlowIn,
       ));
     });
     
-    animation.forward().then((_) {
-      _isAnimatingCamera = false;
-      animation.dispose();
+    _cameraAnimationController!.forward().then((_) {
+      if (mounted) {
+        setState(() => _isAnimatingCamera = false);
+      }
     });
   }
 
@@ -497,54 +507,117 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       right: 16,
       child: Row(
         children: [
-          // Sort Menu
-          PopupMenuButton<ConstellationSortMode>(
-            icon: const Icon(Icons.sort, color: Colors.white70),
-            offset: const Offset(0, 40),
-            color: const Color(0xFF1E293B),
-            onSelected: (mode) {
-              setState(() => _sortMode = mode);
-              _calculateChainMetas();
-            },
-            itemBuilder: (context) => ConstellationSortMode.values.map((mode) {
-              final isSelected = _sortMode == mode;
-              return PopupMenuItem(
-                value: mode,
-                child: Text(
-                  mode.label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.cyanAccent : Colors.white,
-                    fontSize: 14,
+          // Glass Sort Menu Button
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 0.5),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    hoverColor: Colors.transparent,
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: PopupMenuButton<ConstellationSortMode>(
+                    offset: const Offset(0, 48),
+                    elevation: 0,
+                    color: Colors.transparent,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _sortMode == ConstellationSortMode.none 
+                                ? Icons.sort 
+                                : (_isSortDescending ? Icons.expand_more : Icons.expand_less),
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                    onSelected: (mode) {
+                      setState(() {
+                        if (_sortMode == mode) {
+                          _isSortDescending = !_isSortDescending;
+                        } else {
+                          _sortMode = mode;
+                        }
+                      });
+                      _calculateChainMetas();
+                      _focusTopStarAfterSort();
+                    },
+                    itemBuilder: (context) {
+                      return [
+                        PopupMenuItem<ConstellationSortMode>(
+                          enabled: false,
+                          height: 0,
+                          child: Container(),
+                        ),
+                        ...ConstellationSortMode.values
+                          .where((m) => m != ConstellationSortMode.none)
+                          .map((mode) {
+                          final isSelected = _sortMode == mode;
+                          return PopupMenuItem<ConstellationSortMode>(
+                            value: mode,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected 
+                                      ? Colors.white.withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected 
+                                        ? Colors.white.withValues(alpha: 0.3)
+                                        : Colors.white.withValues(alpha: 0.1),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          mode.label,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.white : Colors.white70,
+                                            fontSize: 14,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Icon(
+                                          _isSortDescending ? Icons.expand_more : Icons.expand_less,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ];
+                    },
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(width: 8),
-          // Filter Menu
-          PopupMenuButton<ConstellationFilterMode>(
-            icon: Icon(
-              _filterMode == ConstellationFilterMode.all ? Icons.filter_list : Icons.filter_alt,
-              color: _filterMode == ConstellationFilterMode.all ? Colors.white70 : Colors.cyanAccent,
+              ),
             ),
-            offset: const Offset(0, 40),
-            color: const Color(0xFF1E293B),
-            onSelected: (mode) {
-              setState(() => _filterMode = mode);
-            },
-            itemBuilder: (context) => ConstellationFilterMode.values.map((mode) {
-              final isSelected = _filterMode == mode;
-              return PopupMenuItem(
-                value: mode,
-                child: Text(
-                  mode.label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.cyanAccent : Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-              );
-            }).toList(),
           ),
           const Spacer(),
           IconButton(
@@ -681,7 +754,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     final List<_ChainMeta> sortedMetas = [];
     chains.forEach((chainId, nodesInChain) {
-      final rootNode = nodesInChain.firstWhere((n) => n.generation == 0);
+      final rootNode = nodesInChain.firstWhere((n) => n.generation == 0, orElse: () => nodesInChain.first);
       
       // Find latest action date and unreviewed status
       DateTime latestDate = rootNode.date;
@@ -724,14 +797,22 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     if (_sortMode == ConstellationSortMode.unreviewedFirst) {
       sortedMetas.sort((a, b) {
         if (a.hasUnreviewed != b.hasUnreviewed) {
-          return a.hasUnreviewed ? -1 : 1;
+          return _isSortDescending 
+            ? (a.hasUnreviewed ? -1 : 1)
+            : (a.hasUnreviewed ? 1 : -1);
         }
-        return b.rootDate.compareTo(a.rootDate);
+        return _isSortDescending 
+          ? b.rootDate.compareTo(a.rootDate)
+          : a.rootDate.compareTo(b.rootDate);
       });
     } else if (_sortMode == ConstellationSortMode.decisionDate) {
-      sortedMetas.sort((a, b) => b.rootDate.compareTo(a.rootDate));
+      sortedMetas.sort((a, b) => _isSortDescending 
+        ? b.rootDate.compareTo(a.rootDate)
+        : a.rootDate.compareTo(b.rootDate));
     } else if (_sortMode == ConstellationSortMode.latestActionDate) {
-      sortedMetas.sort((a, b) => b.latestDate.compareTo(a.latestDate));
+      sortedMetas.sort((a, b) => _isSortDescending 
+        ? b.latestDate.compareTo(a.latestDate)
+        : a.latestDate.compareTo(b.latestDate));
     }
 
     // List Visibility: tighter spacing (list view style)
@@ -750,6 +831,34 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     setState(() {
       _chainMetas = {for (var m in sortedMetas) m.chainId: m};
     });
+  }
+
+  void _focusTopStarAfterSort() {
+    if (_chainMetas.isEmpty) return;
+    
+    // The chain metas are already sorted by targetY in _calculateChainMetas
+    // We can just find the one with the minimum targetY
+    _ChainMeta? topMeta;
+    double minY = double.infinity;
+    
+    _chainMetas.forEach((id, meta) {
+      if (meta.targetY != null && meta.targetY! < minY) {
+        minY = meta.targetY!;
+        topMeta = meta;
+      }
+    });
+
+    if (topMeta != null) {
+      final topNode = _nodes.firstWhere((n) => n.id == topMeta!.focusNodeId);
+      // Pass the target destination to ensure camera moves correctly even before star settles
+      Offset? targetOverride;
+      if (topMeta!.targetX != null && topMeta!.targetY != null) {
+        targetOverride = Offset(topMeta!.targetX!, topMeta!.targetY!);
+      }
+      
+      // Force trigger focus animation even if already selected
+      _focusNode(topNode, targetPosOverride: targetOverride);
+    }
   }
 }
 
@@ -822,7 +931,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
     }
 
     // 2. Guide Line (Auxiliary Line for sorting) - Drawn in Background Layer
-    if (sortMode != ConstellationSortMode.none && minTargetY != null && maxTargetY != null) {
+    if (minTargetY != null && maxTargetY != null) {
       final centerX = size.width / 2;
       final startY = minTargetY! - 150;
       final endY = maxTargetY! + 150;

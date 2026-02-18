@@ -15,21 +15,9 @@ enum ConstellationSortMode {
   String get label {
     switch (this) {
       case ConstellationSortMode.none: return 'なし';
-      case ConstellationSortMode.unreviewedFirst: return '未振り返りが上';
-      case ConstellationSortMode.decisionDate: return '判断日順';
-      case ConstellationSortMode.latestActionDate: return '最新行動日順';
-    }
-  }
-}
-
-enum ConstellationFilterMode {
-  all,
-  unreviewedOnly;
-
-  String get label {
-    switch (this) {
-      case ConstellationFilterMode.all: return 'すべて';
-      case ConstellationFilterMode.unreviewedOnly: return '未振り返りのみ';
+      case ConstellationSortMode.unreviewedFirst: return '振り返り未実施↑';
+      case ConstellationSortMode.decisionDate: return 'イベントを入力した日↑';
+      case ConstellationSortMode.latestActionDate: return '行動を宣言した日↑';
     }
   }
 }
