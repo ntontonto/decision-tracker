@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../../data/repositories/decision_repository.dart';
 import '../../data/local/database.dart';
 
@@ -14,6 +15,8 @@ class NotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
+    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
     
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -133,15 +136,15 @@ class NotificationService {
   String _getPeriodText(int days) {
     if (days >= 365) {
       final years = (days / 365).floor();
-      return '${years}年前に';
+      return '$years年前に';
     } else if (days >= 30) {
       final months = (days / 30).floor();
-      return '${months}ヶ月前に';
+      return '$monthsヶ月前に';
     } else if (days >= 7) {
       final weeks = (days / 7).floor();
-      return '${weeks}週間前に';
+      return '$weeks週間前に';
     } else if (days >= 1) {
-      return '${days}日前に';
+      return '$days日前に';
     } else {
       return '今日';
     }
