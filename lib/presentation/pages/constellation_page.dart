@@ -60,6 +60,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
   Offset _lastPointerDownPos = Offset.zero;
 
+  // Double-tap-drag zoom state
+  DateTime? _lastTapTime;
+  Offset? _lastTapPosition;
+  bool _isDoubleTapDragging = false;
+  double _initialScaleOnDoubleTap = 1.0;
+  Offset _doubleTapReferenceScenePos = Offset.zero;
+  Offset _doubleTapStartViewportPos = Offset.zero;
+  bool _isIVEnabled = true;
+
   @override
   void initState() {
     super.initState();
@@ -313,13 +322,62 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
               Positioned.fill(
                 child: Listener(
                   behavior: HitTestBehavior.translucent,
-                  onPointerDown: (event) => _lastPointerDownPos = event.position,
+                  onPointerDown: (event) {
+                    _lastPointerDownPos = event.position;
+                    
+                    final now = DateTime.now();
+                    if (_lastTapTime != null && _lastTapPosition != null) {
+                      final timeDiff = now.difference(_lastTapTime!);
+                      final distDiff = (event.position - _lastTapPosition!).distance;
+                      
+                      // Check for double tap (within 300ms and 40 pixels)
+                      if (timeDiff.inMilliseconds < 300 && distDiff < 40) {
+                        setState(() {
+                          _isDoubleTapDragging = true;
+                          _isIVEnabled = false;
+                          _initialScaleOnDoubleTap = _transformationController.value.getMaxScaleOnAxis();
+                          _doubleTapReferenceScenePos = _transformationController.toScene(event.localPosition);
+                          _doubleTapStartViewportPos = event.localPosition;
+                        });
+                      }
+                    }
+                    _lastTapTime = now;
+                    _lastTapPosition = event.position;
+                  },
+                  onPointerMove: (event) {
+                    if (_isDoubleTapDragging) {
+                      final dy = event.position.dy - _lastTapPosition!.dy;
+                      // Google Maps behavior: swipe down to zoom in, swipe up to zoom out
+                      // Sensitivity factor - adjust as needed
+                      final zoomSensitivity = 0.005;
+                      final scaleFactor = math.exp(dy * zoomSensitivity);
+                      final newScale = (_initialScaleOnDoubleTap * scaleFactor).clamp(0.1, 2.5);
+                      
+                      // Update matrix centering on the reference scene position
+                      final scenePos = _doubleTapReferenceScenePos;
+                      final viewportPos = _doubleTapStartViewportPos;
+                      
+                      // Calculate the new translation to keep the scene point under the pointer
+                      setState(() {
+                        _transformationController.value = Matrix4.identity()
+                          ..translate(viewportPos.dx - scenePos.dx * newScale, viewportPos.dy - scenePos.dy * newScale)
+                          ..scale(newScale);
+                      });
+                    }
+                  },
                   onPointerUp: (event) {
-                    final distance = (event.position - _lastPointerDownPos).distance;
-                    if (distance < 10) { // Genuine tap, not a scroll
-                      final viewportPos = event.localPosition;
-                      final scenePos = _transformationController.toScene(viewportPos);
-                      _handleTapAt(scenePos, viewportPos);
+                    if (_isDoubleTapDragging) {
+                      setState(() {
+                        _isDoubleTapDragging = false;
+                        _isIVEnabled = true;
+                      });
+                    } else {
+                      final distance = (event.position - _lastPointerDownPos).distance;
+                      if (distance < 10) { // Genuine tap, not a scroll
+                        final viewportPos = event.localPosition;
+                        final scenePos = _transformationController.toScene(viewportPos);
+                        _handleTapAt(scenePos, viewportPos);
+                      }
                     }
                   },
                 ),
@@ -365,6 +423,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         boundaryMargin: const EdgeInsets.all(2000),
         minScale: 0.1,
         maxScale: 2.5,
+        panEnabled: _isIVEnabled,
+        scaleEnabled: _isIVEnabled,
         child: CustomPaint(
           size: _worldSize,
           painter: ConstellationPhysicsPainter(
