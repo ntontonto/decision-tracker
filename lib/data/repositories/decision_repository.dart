@@ -266,6 +266,48 @@ class DecisionRepository {
         .watch();
   }
   
+  // --- Deletion ---
+
+  Future<void> deleteDecision(String id) async {
+    // Get retro date before deletion
+    final decision = await (db.select(db.decisions)..where((t) => t.id.equals(id))).getSingleOrNull();
+    
+    await db.transaction(() async {
+      await (db.delete(db.declarations)..where((t) => t.logId.equals(id))).go();
+      await (db.delete(db.decisions)..where((t) => t.id.equals(id))).go();
+    });
+    
+    if (areNotificationsEnabled() && decision != null) {
+      await _rescheduleNotificationForDate(decision.retroAt);
+    }
+  }
+
+  Future<void> deleteDeclaration(int id) async {
+    // Get retro date before deletion
+    final decl = await (db.select(db.declarations)..where((t) => t.id.equals(id))).getSingleOrNull();
+    
+    await db.transaction(() async {
+      final descendants = await _getDescendantIds(id);
+      final allIdsToDelete = [id, ...descendants];
+      await (db.delete(db.declarations)..where((t) => t.id.isIn(allIdsToDelete))).go();
+    });
+    
+    if (areNotificationsEnabled() && decl != null) {
+      await _rescheduleNotificationForDate(decl.reviewAt);
+    }
+  }
+
+  Future<List<int>> _getDescendantIds(int parentId) async {
+    final List<int> ids = [];
+    final children = await (db.select(db.declarations)..where((t) => t.parentId.equals(parentId))).get();
+    
+    for (final child in children) {
+      ids.add(child.id);
+      ids.addAll(await _getDescendantIds(child.id));
+    }
+    return ids;
+  }
+
   // Helper method to reschedule notification for a specific date
   Future<void> _rescheduleNotificationForDate(DateTime retroAt) async {
     final date = DateTime(retroAt.year, retroAt.month, retroAt.day);

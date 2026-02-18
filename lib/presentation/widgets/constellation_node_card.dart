@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:decision_tracker/domain/models/constellation_models.dart';
 import 'package:decision_tracker/data/local/database.dart';
@@ -11,11 +12,13 @@ import 'package:decision_tracker/presentation/widgets/action_review_wizard_sheet
 class ConstellationNodeCard extends ConsumerWidget {
   final ConstellationNode node;
   final bool isExpanded;
+  final VoidCallback? onDelete;
 
   const ConstellationNodeCard({
     super.key,
     required this.node,
     this.isExpanded = false,
+    this.onDelete,
   });
 
   @override
@@ -57,7 +60,7 @@ class ConstellationNodeCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildHeader(color),
+            _buildHeader(context, color, ref),
             const SizedBox(height: 12),
             _buildTitle(),
             const SizedBox(height: 16),
@@ -79,7 +82,7 @@ class ConstellationNodeCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(Color color) {
+  Widget _buildHeader(BuildContext context, Color color, WidgetRef ref) {
     String statusText;
     Color statusColor;
     IconData statusIcon;
@@ -141,8 +144,167 @@ class ConstellationNodeCard extends ConsumerWidget {
           '${node.date.month}/${node.date.day}',
           style: const TextStyle(color: Colors.white38, fontSize: 12),
         ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () => _showDeleteConfirmation(context, ref),
+          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white24),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          splashRadius: 20,
+        ),
       ],
     );
+  }
+
+  Future<void> _showDeleteConfirmation(BuildContext context, WidgetRef ref) async {
+    final bool? result = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+              ),
+              child: AlertDialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                contentPadding: EdgeInsets.zero,
+                content: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      width: 300,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          width: 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.redAccent.withValues(alpha: 0.1),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 32),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            '削除しますか？',
+                            style: TextStyle(
+                              color: Colors.white, 
+                              fontSize: 20, 
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            node.type == ConstellationNodeType.decision 
+                              ? 'この出来事と、それに関連するすべての行動宣言が削除されます。'
+                              : 'この行動宣言と、その先につながるすべての宣言が削除されます。',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6), 
+                              fontSize: 14, 
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white70,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: const Text('キャンセル', style: TextStyle(fontSize: 15)),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.redAccent.withValues(alpha: 0.2),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent.withValues(alpha: 0.25),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        side: BorderSide(
+                                          color: Colors.redAccent.withValues(alpha: 0.4),
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      '削除', 
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result == true && onDelete != null) {
+      onDelete!();
+    }
   }
 
   Widget _buildTitle() {

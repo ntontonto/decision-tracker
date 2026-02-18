@@ -815,6 +815,26 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                       return ConstellationNodeCard(
                         node: node,
                         isExpanded: _isCardExpanded,
+                        onDelete: () async {
+                          // 1. Clear focus immediately to close the card
+                          _clearFocus();
+                          
+                          // 2. Perform deletion
+                          final repo = ref.read(decisionRepositoryProvider);
+                          if (node.type == ConstellationNodeType.decision) {
+                            final decision = node.originalData as Decision;
+                            await repo.deleteDecision(decision.id);
+                          } else {
+                            final decl = node.originalData as Declaration;
+                            await repo.deleteDeclaration(decl.id);
+                          }
+                          
+                          // 3. Invalidate providers to refresh the graph
+                          ref.invalidate(allDecisionsProvider);
+                          ref.invalidate(constellationProvider);
+                          ref.invalidate(pendingDecisionsProvider);
+                          ref.invalidate(pendingDeclarationsProvider);
+                        },
                       );
                     },
                   ),
