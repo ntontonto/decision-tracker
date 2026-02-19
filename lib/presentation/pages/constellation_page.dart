@@ -41,6 +41,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   // Animation state for newly reviewed stars
   final Map<String, double> _glowProgress = {};
   
+  // Entrance & Exit Animations
+  final Map<String, double> _entranceProgress = {};
+  final Map<String, double> _exitProgress = {};
+  final List<ConstellationNode> _zombieNodes = [];
+  final List<ConstellationEdge> _zombieEdges = [];
+  
   // Sorting & Direction State
   ConstellationSortMode _sortMode = ConstellationSortMode.none;
   List<_ChainMeta> _chainMetasRaw = []; // Helper for indices
@@ -57,6 +63,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   List<ConstellationEdge> _edges = [];
   Size _worldSize = const Size(2000, 2000);
   bool _initialized = false;
+  int _settleCooldown = 0;
 
   Offset _lastPointerDownPos = Offset.zero;
 
@@ -132,6 +139,10 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   void _onTick(Duration elapsed) {
     if (_nodes.isEmpty) return;
 
+    if (_settleCooldown > 0) {
+      _settleCooldown--;
+    }
+
     if (mounted) {
       setState(() {
         _applyPhysics();
@@ -141,25 +152,60 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   }
 
   void _updateAnimations() {
-    final toRemove = <String>[];
+    final toRemoveGlow = <String>[];
     _glowProgress.forEach((id, progress) {
       final newProgress = progress - 0.02; // Decrease over ~50 ticks (1 sec at 60fps)
       if (newProgress <= 0) {
-        toRemove.add(id);
+        toRemoveGlow.add(id);
       } else {
         _glowProgress[id] = newProgress;
       }
     });
-    for (final id in toRemove) {
+    for (final id in toRemoveGlow) {
       _glowProgress.remove(id);
+    }
+
+    // Update entrance progress
+    final toRemoveEntrance = <String>[];
+    _entranceProgress.forEach((id, progress) {
+      final newProgress = (progress + 0.03).clamp(0.0, 1.0);
+      if (newProgress >= 1.0) {
+        toRemoveEntrance.add(id);
+      } else {
+        _entranceProgress[id] = newProgress;
+      }
+    });
+    for (final id in toRemoveEntrance) {
+      _entranceProgress.remove(id);
+    }
+
+    // Update exit progress
+    final toRemoveExit = <String>[];
+    _exitProgress.forEach((id, progress) {
+      final newProgress = (progress - 0.03).clamp(0.0, 1.0);
+      if (newProgress <= 0) {
+        toRemoveExit.add(id);
+      } else {
+        _exitProgress[id] = newProgress;
+      }
+    });
+    
+    // Cleanup zombie nodes/edges whose animation finished
+    for (final id in toRemoveExit) {
+      _exitProgress.remove(id);
+      _zombieNodes.removeWhere((n) => n.id == id);
+      _zombieEdges.removeWhere((e) => '${e.fromId}-${e.toId}' == id);
     }
   }
 
   void _applyPhysics() {
     const double friction = 0.98;
+    const double stabilizationFriction = 0.88;
     const double springK = 0.03; // Pull strength
     const double restLength = 80.0; // Desired distance
     const double repulsionK = 50.0; // Avoid overlapping
+
+    final currentBaseFriction = _settleCooldown > 0 ? stabilizationFriction : friction;
 
     // 1. Edge Constraints (Springs)
     for (final edge in _edges) {
@@ -202,8 +248,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     for (int i = 0; i < _nodes.length; i++) {
       var node = _nodes[i];
       
-      // Dynamic Friction: Significant friction when sorting to settle faster
-      var currentFriction = _sortMode != ConstellationSortMode.none ? 0.75 : friction;
+      // Dynamic Friction: Significant friction when sorting or stabilizing to settle faster
+      var currentFriction = (_sortMode != ConstellationSortMode.none) ? 0.75 : currentBaseFriction;
       var vel = node.velocity * currentFriction;
       
       // 4. Target Attraction (Sorting)
@@ -315,14 +361,41 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           } else if (_nodes.isNotEmpty && graph.nodes.isNotEmpty) {
             // Reactive Sync: Update existing nodes without re-shuffling layout
             bool changed = false;
+            
+            // 1. Check for NEW nodes
             for (final newNode in graph.nodes) {
-              final existingIdx = _nodes.indexWhere((n) => n.id == newNode.id);
-              if (existingIdx != -1) {
-                final oldNode = _nodes[existingIdx];
-                if (oldNode.isReviewed != newNode.isReviewed || oldNode.score != newNode.score) {
-                  _nodes[existingIdx] = oldNode.copy(
+              final existsInNodes = _nodes.any((n) => n.id == newNode.id);
+              final existsInZombies = _zombieNodes.any((n) => n.id == newNode.id);
+              
+              if (!existsInNodes && !existsInZombies) {
+                // Truly new node!
+                _nodes.add(newNode);
+                _entranceProgress[newNode.id] = 0.0;
+                _settleCooldown = 120; // Stabilize for 2 seconds
+                
+                // If initial sequence is done, immediately reveal the new star
+                if (!_revelationController.isAnimating) {
+                  _revealedCount = _nodes.length;
+                }
+                
+                changed = true;
+              } else if (existsInNodes) {
+                // Update existing node properties
+                final idx = _nodes.indexWhere((n) => n.id == newNode.id);
+                final oldNode = _nodes[idx];
+                
+                // Detect any visual or data changes
+                bool isDataChanged = oldNode.label != newNode.label || 
+                                    oldNode.originalData != newNode.originalData;
+                bool isStatusChanged = oldNode.isReviewed != newNode.isReviewed || 
+                                      oldNode.score != newNode.score;
+
+                if (isDataChanged || isStatusChanged) {
+                  _nodes[idx] = oldNode.copy(
                     isReviewed: newNode.isReviewed,
                     score: newNode.score,
+                    label: newNode.label,
+                    originalData: newNode.originalData,
                   );
                   
                   // Trigger glow if newly reviewed
@@ -333,7 +406,64 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                 }
               }
             }
+
+            // 2. Check for REMOVED nodes
+            final nodesToRemove = <ConstellationNode>[];
+            for (final oldNode in _nodes) {
+              if (!graph.nodes.any((n) => n.id == oldNode.id)) {
+                nodesToRemove.add(oldNode);
+              }
+            }
+            if (nodesToRemove.isNotEmpty) {
+              for (final node in nodesToRemove) {
+                _nodes.remove(node);
+                _zombieNodes.add(node);
+                _exitProgress[node.id] = 1.0;
+                _entranceProgress.remove(node.id);
+              }
+              changed = true;
+            }
+
+            // 3. Sync Edges
+            // Check for NEW edges
+            for (final newEdge in graph.edges) {
+              final edgeKey = '${newEdge.fromId}-${newEdge.toId}';
+              final existsInEdges = _edges.any((e) => e.fromId == newEdge.fromId && e.toId == newEdge.toId);
+              final existsInZombies = _zombieEdges.any((e) => '${e.fromId}-${e.toId}' == edgeKey);
+              
+              if (!existsInEdges && !existsInZombies) {
+                _edges.add(newEdge);
+                _entranceProgress[edgeKey] = 0.0;
+                changed = true;
+              }
+            }
+            // Check for REMOVED edges
+            final edgesToRemove = <ConstellationEdge>[];
+            for (final oldEdge in _edges) {
+              if (!graph.edges.any((e) => e.fromId == oldEdge.fromId && e.toId == oldEdge.toId)) {
+                edgesToRemove.add(oldEdge);
+              }
+            }
+            if (edgesToRemove.isNotEmpty) {
+              for (final edge in edgesToRemove) {
+                _edges.remove(edge);
+                _zombieEdges.add(edge);
+                final edgeKey = '${edge.fromId}-${edge.toId}';
+                _exitProgress[edgeKey] = 1.0;
+                _entranceProgress.remove(edgeKey);
+              }
+              changed = true;
+            }
+
             if (changed) {
+              // Refresh focused chain nodes if we have a focus
+              if (_focusedChainId != null) {
+                _focusedChainNodes = _nodes
+                    .where((n) => n.chainId == _focusedChainId)
+                    .toList()
+                  ..sort((a, b) => a.generation.compareTo(b.generation));
+              }
+
               // We need to trigger a repaint
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) setState(() {});
@@ -461,9 +591,13 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
           painter: ConstellationPhysicsPainter(
             nodes: filteredNodes,
             edges: _edges,
+            zombieNodes: _zombieNodes,
+            zombieEdges: _zombieEdges,
             selectedId: _selectedNodeId,
             revealedCount: _revealedCount,
             glowProgress: Map.from(_glowProgress),
+            entranceProgress: Map.from(_entranceProgress),
+            exitProgress: Map.from(_exitProgress),
             sortMode: _sortMode,
             focusNodeIds: _chainMetas.values.map((m) => m.focusNodeId).toSet(),
             minTargetY: (_sortMode == ConstellationSortMode.none || _chainMetas.isEmpty) ? null : _chainMetas.values.map((m) => m.targetY!).reduce(math.min),
@@ -1168,9 +1302,13 @@ class _ChainMeta {
 class ConstellationPhysicsPainter extends CustomPainter {
   final List<ConstellationNode> nodes;
   final List<ConstellationEdge> edges;
+  final List<ConstellationNode> zombieNodes;
+  final List<ConstellationEdge> zombieEdges;
   final String? selectedId;
   final int revealedCount;
   final Map<String, double> glowProgress;
+  final Map<String, double> entranceProgress;
+  final Map<String, double> exitProgress;
   final ConstellationSortMode sortMode;
   final Set<String> focusNodeIds;
   final double? minTargetY;
@@ -1179,9 +1317,13 @@ class ConstellationPhysicsPainter extends CustomPainter {
   ConstellationPhysicsPainter({
     required this.nodes,
     required this.edges,
+    required this.zombieNodes,
+    required this.zombieEdges,
     this.selectedId,
     required this.revealedCount,
     required this.glowProgress,
+    required this.entranceProgress,
+    required this.exitProgress,
     required this.sortMode,
     required this.focusNodeIds,
     this.minTargetY,
@@ -1250,24 +1392,42 @@ class ConstellationPhysicsPainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     // 3. Edges
-    for (final edge in edges) {
-      final fromIdx = nodes.indexWhere((n) => n.id == edge.fromId);
-      final toIdx = nodes.indexWhere((n) => n.id == edge.toId);
+    final allEdges = [...edges, ...zombieEdges];
+    final allNodes = [...nodes, ...zombieNodes];
+
+    for (final edge in allEdges) {
+      final fromIdx = allNodes.indexWhere((n) => n.id == edge.fromId);
+      final toIdx = allNodes.indexWhere((n) => n.id == edge.toId);
       if (fromIdx == -1 || toIdx == -1) continue;
       
-      // Only draw if both nodes are revealed
-      if (fromIdx >= revealedCount || toIdx >= revealedCount) continue;
+      final from = allNodes[fromIdx];
+      final to = allNodes[toIdx];
 
-      final from = nodes[fromIdx];
-      final to = nodes[toIdx];
+      // Revealed check for live nodes
+      final bool fromIsLive = nodes.any((n) => n.id == from.id);
+      final bool toIsLive = nodes.any((n) => n.id == to.id);
+      
+      if (fromIsLive && nodes.indexOf(from) >= revealedCount) continue;
+      if (toIsLive && nodes.indexOf(to) >= revealedCount) continue;
 
       final isHighlighted = (selectedId == from.id || selectedId == to.id);
+      final edgeKey = '${edge.fromId}-${edge.toId}';
       
-      if (isHighlighted) {
-         canvas.drawLine(from.position, to.position, highlightLinePaint);
-      } else {
-         canvas.drawLine(from.position, to.position, linePaint);
+      double edgeOpacity = 1.0;
+      if (entranceProgress.containsKey(edgeKey)) {
+        edgeOpacity = entranceProgress[edgeKey]!;
+      } else if (exitProgress.containsKey(edgeKey)) {
+        edgeOpacity = exitProgress[edgeKey]!;
       }
+
+      final Paint currentLinePaint = (isHighlighted ? highlightLinePaint : linePaint);
+      final Color originalColor = currentLinePaint.color;
+      currentLinePaint.color = originalColor.withValues(alpha: originalColor.a * edgeOpacity);
+      
+      canvas.drawLine(from.position, to.position, currentLinePaint);
+      
+      // Restore color for next iteration
+      currentLinePaint.color = originalColor;
     }
 
     // 4. Nodes
@@ -1277,13 +1437,29 @@ class ConstellationPhysicsPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
 
-    for (int i = 0; i < nodes.length; i++) {
-      if (i >= revealedCount) continue;
+    for (int i = 0; i < allNodes.length; i++) {
+      final node = allNodes[i];
+      final bool isZombie = zombieNodes.any((n) => n.id == node.id);
+      
+      if (!isZombie && nodes.indexOf(node) >= revealedCount) continue;
 
-      final node = nodes[i];
       final isSelected = node.id == selectedId;
       final bool isReviewed = node.isReviewed;
       final int score = node.score;
+      
+      // Animation Progress
+      double nodeScale = 1.0;
+      double nodeOpacity = 1.0;
+      
+      if (entranceProgress.containsKey(node.id)) {
+        final t = entranceProgress[node.id]!;
+        nodeScale = 0.8 + (0.2 * t);
+        nodeOpacity = t;
+      } else if (exitProgress.containsKey(node.id)) {
+        final t = exitProgress[node.id]!;
+        nodeScale = t;
+        nodeOpacity = t;
+      }
       
       // Thinking Lineage Color (Deterministic from Provider)
       // Drop Candy: High saturation (0.85) and max value (1.0)
@@ -1326,9 +1502,9 @@ class ConstellationPhysicsPainter extends CustomPainter {
           : 0.9; // Base luminosity for seeds
 
       // 0. Tiny Atmospheric Halo (Tight)
-      final double baseRadius = (isReviewed ? (isSelected ? 5.0 : 4.0) : 3.0) * luminosity * ageFactor;
+      final double baseRadius = (isReviewed ? (isSelected ? 5.0 : 4.0) : 3.0) * luminosity * ageFactor * nodeScale;
       final glowPaint = Paint()
-        ..color = baseColor.withValues(alpha: 0.25 * (isReviewed ? 1.0 : flickerFactor))
+        ..color = baseColor.withValues(alpha: 0.25 * (isReviewed ? 1.0 : flickerFactor) * nodeOpacity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, baseRadius * 1.8);
       canvas.drawCircle(node.position, baseRadius * 1.5, glowPaint);
 
@@ -1349,7 +1525,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
         canvas.rotate(sparkleRotation);
 
         final sparklePaint = Paint()
-          ..color = Colors.white.withValues(alpha: 0.7 * sparkleIntensity * ageFactor)
+          ..color = Colors.white.withValues(alpha: 0.7 * sparkleIntensity * ageFactor * nodeOpacity)
           ..style = PaintingStyle.fill
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5); // Sharper edges than before
 
@@ -1367,7 +1543,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
 
         // Center glow for the sparkle
         final sparkleCenterGlow = Paint()
-          ..color = Colors.white.withValues(alpha: 0.5 * sparkleIntensity)
+          ..color = Colors.white.withValues(alpha: 0.5 * sparkleIntensity * nodeOpacity)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
         canvas.drawCircle(Offset.zero, sparkleSize * 0.3, sparkleCenterGlow);
 
@@ -1380,7 +1556,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
           : 1;
       
       final satellitePaint = Paint()..color = Colors.white.withValues(
-        alpha: 0.7 * (isReviewed ? 1.0 : flickerFactor) * ageFactor
+        alpha: 0.7 * (isReviewed ? 1.0 : flickerFactor) * ageFactor * nodeOpacity
       );
 
       for (int i = 0; i < satelliteCount; i++) {
@@ -1406,29 +1582,29 @@ class ConstellationPhysicsPainter extends CustomPainter {
           math.sin(angle) * satOrbitalRadius,
         );
         
-        canvas.drawCircle(satellitePos, 0.8, satellitePaint);
+        canvas.drawCircle(satellitePos, 0.8 * nodeScale, satellitePaint);
         final tinyGlow = Paint()
-          ..color = Colors.white.withValues(alpha: 0.25)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
-        canvas.drawCircle(satellitePos, 2.5, tinyGlow);
+          ..color = Colors.white.withValues(alpha: 0.25 * nodeOpacity)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2.5 * nodeScale);
+        canvas.drawCircle(satellitePos, 2.5 * nodeScale, tinyGlow);
       }
 
       // 4. Solid Core (Transitioning to White)
       final corePaint = Paint()..color = isReviewed 
-          ? Color.lerp(baseColor, Colors.white, 0.3)! 
-          : baseColor.withValues(alpha: 0.7 * flickerFactor);
+          ? Color.lerp(baseColor, Colors.white, 0.3)!.withValues(alpha: nodeOpacity) 
+          : baseColor.withValues(alpha: 0.7 * flickerFactor * nodeOpacity);
       canvas.drawCircle(node.position, baseRadius, corePaint);
 
       // White Hot Center
       final centerPaint = Paint()..color = Colors.white.withValues(
-        alpha: (isReviewed ? 0.9 : 0.4 * flickerFactor) * ageFactor
+        alpha: (isReviewed ? 0.9 : 0.4 * flickerFactor) * ageFactor * nodeOpacity
       );
       canvas.drawCircle(node.position, baseRadius * (isReviewed ? 0.5 : 0.4), centerPaint);
 
       // 5. Interaction / Selection Ring (Subtle)
       if (isSelected) {
         final selectRingPaint = Paint()
-          ..color = Colors.white.withValues(alpha: 0.2)
+          ..color = Colors.white.withValues(alpha: 0.2 * nodeOpacity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5;
         canvas.drawCircle(node.position, (baseRadius * 6.0) + 5, selectRingPaint);
