@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decision_tracker/domain/providers/retro_providers.dart';
 import 'package:decision_tracker/presentation/widgets/retro_wizard_sheet.dart';
 import 'package:decision_tracker/presentation/widgets/action_review_wizard_sheet.dart';
+import 'package:decision_tracker/domain/providers/declaration_providers.dart';
+
 
 class ConstellationNodeCard extends ConsumerWidget {
   final ConstellationNode node;
@@ -64,7 +66,7 @@ class ConstellationNodeCard extends ConsumerWidget {
             const SizedBox(height: 12),
             _buildTitle(),
             const SizedBox(height: 16),
-            if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color),
+            if (isDecision) _buildDecisionDetails(color) else _buildDeclarationDetails(color, ref),
             if (isExpanded) ...[
               const SizedBox(height: 24),
               _buildExtendedContent(context, color, ref),
@@ -128,22 +130,42 @@ class ConstellationNodeCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            node.type.name.toUpperCase(),
+            node.type == ConstellationNodeType.decision ? 'EVENT' : node.type.name.toUpperCase(),
             style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(width: 8),
-        Icon(statusIcon, size: 14, color: statusColor.withValues(alpha: 0.7)),
-        const SizedBox(width: 4),
-        Text(
-          statusText,
-          style: TextStyle(color: statusColor.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold),
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(statusIcon, size: 14, color: statusColor.withValues(alpha: 0.7)),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  statusText,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: statusColor.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
         ),
         const Spacer(),
+        Icon(Icons.edit_calendar, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+        const SizedBox(width: 4),
         Text(
           '${node.date.month}/${node.date.day}',
           style: const TextStyle(color: Colors.white38, fontSize: 12),
         ),
+        if (node.scheduledReflectionDate != null) ...[
+          const SizedBox(width: 12),
+          Icon(Icons.schedule, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+          const SizedBox(width: 4),
+          Text(
+            '${node.scheduledReflectionDate!.month}/${node.scheduledReflectionDate!.day}',
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+        ],
         const SizedBox(width: 8),
         IconButton(
           onPressed: () => _showDeleteConfirmation(context, ref),
@@ -350,17 +372,34 @@ class ConstellationNodeCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildDeclarationDetails(Color color) {
+  Widget _buildDeclarationDetails(Color color, WidgetRef ref) {
     final decl = node.originalData as Declaration;
+    final bool isCompleted = decl.completedAt != null;
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        _buildInfoChip(
-          icon: Icons.lightbulb,
-          label: decl.reasonLabel,
-          color: color,
-        ),
+        // Hide parent context chip for ongoing declarations
+        if (isCompleted) ...[
+          _buildInfoChip(
+            icon: Icons.lightbulb,
+            label: decl.reasonLabel,
+            color: color.withValues(alpha: 0.5),
+          ),
+          if (decl.blockerKey != null)
+            _buildInfoChip(
+              icon: Icons.block,
+              label: _getBlockerLabel(decl.blockerKey!, ref),
+              color: Colors.orangeAccent,
+            ),
+          if (decl.solutionKey != null)
+            _buildInfoChip(
+              icon: Icons.lightbulb_outline,
+              label: _getSolutionLabel(decl.blockerKey!, decl.solutionKey!, ref),
+              color: Colors.cyanAccent,
+            ),
+        ],
       ],
     );
   }
@@ -501,11 +540,34 @@ class ConstellationNodeCard extends ConsumerWidget {
   String _getReasonLabel(String key, WidgetRef ref) {
     final metadata = ref.watch(retroWizardProvider).metadata;
     if (metadata == null) return key;
-    
+
     try {
       return metadata.reasons.firstWhere((r) => r.key == key).label;
     } catch (_) {
       return key;
+    }
+  }
+
+  String _getBlockerLabel(String key, WidgetRef ref) {
+    final map = ref.watch(practiceReviewMapProvider).value;
+    if (map == null) return key;
+
+    try {
+      return map.blockers.firstWhere((b) => b.key == key).label;
+    } catch (_) {
+      return key;
+    }
+  }
+
+  String _getSolutionLabel(String blockerKey, String solutionKey, WidgetRef ref) {
+    final map = ref.watch(practiceReviewMapProvider).value;
+    if (map == null) return solutionKey;
+
+    try {
+      final blocker = map.blockers.firstWhere((b) => b.key == blockerKey);
+      return blocker.solutions.firstWhere((s) => s.key == solutionKey).label;
+    } catch (_) {
+      return solutionKey;
     }
   }
 

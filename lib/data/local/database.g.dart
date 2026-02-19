@@ -1251,6 +1251,28 @@ class $DeclarationsTable extends Declarations
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _blockerKeyMeta = const VerificationMeta(
+    'blockerKey',
+  );
+  @override
+  late final GeneratedColumn<String> blockerKey = GeneratedColumn<String>(
+    'blocker_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _solutionKeyMeta = const VerificationMeta(
+    'solutionKey',
+  );
+  @override
+  late final GeneratedColumn<String> solutionKey = GeneratedColumn<String>(
+    'solution_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1266,6 +1288,8 @@ class $DeclarationsTable extends Declarations
     parentId,
     regretLevel,
     score,
+    blockerKey,
+    solutionKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1371,6 +1395,21 @@ class $DeclarationsTable extends Declarations
         score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
       );
     }
+    if (data.containsKey('blocker_key')) {
+      context.handle(
+        _blockerKeyMeta,
+        blockerKey.isAcceptableOrUnknown(data['blocker_key']!, _blockerKeyMeta),
+      );
+    }
+    if (data.containsKey('solution_key')) {
+      context.handle(
+        _solutionKeyMeta,
+        solutionKey.isAcceptableOrUnknown(
+          data['solution_key']!,
+          _solutionKeyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1436,6 +1475,14 @@ class $DeclarationsTable extends Declarations
         DriftSqlType.int,
         data['${effectivePrefix}score'],
       ),
+      blockerKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blocker_key'],
+      ),
+      solutionKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}solution_key'],
+      ),
     );
   }
 
@@ -1466,6 +1513,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
   final int? parentId;
   final RegretLevel? regretLevel;
   final int? score;
+  final String? blockerKey;
+  final String? solutionKey;
   const Declaration({
     required this.id,
     required this.logId,
@@ -1480,6 +1529,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     this.parentId,
     this.regretLevel,
     this.score,
+    this.blockerKey,
+    this.solutionKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1511,6 +1562,12 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     if (!nullToAbsent || score != null) {
       map['score'] = Variable<int>(score);
     }
+    if (!nullToAbsent || blockerKey != null) {
+      map['blocker_key'] = Variable<String>(blockerKey);
+    }
+    if (!nullToAbsent || solutionKey != null) {
+      map['solution_key'] = Variable<String>(solutionKey);
+    }
     return map;
   }
 
@@ -1537,6 +1594,12 @@ class Declaration extends DataClass implements Insertable<Declaration> {
       score: score == null && nullToAbsent
           ? const Value.absent()
           : Value(score),
+      blockerKey: blockerKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(blockerKey),
+      solutionKey: solutionKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(solutionKey),
     );
   }
 
@@ -1563,6 +1626,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
         serializer.fromJson<int?>(json['regretLevel']),
       ),
       score: serializer.fromJson<int?>(json['score']),
+      blockerKey: serializer.fromJson<String?>(json['blockerKey']),
+      solutionKey: serializer.fromJson<String?>(json['solutionKey']),
     );
   }
   @override
@@ -1586,6 +1651,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
         $DeclarationsTable.$converterregretLeveln.toJson(regretLevel),
       ),
       'score': serializer.toJson<int?>(score),
+      'blockerKey': serializer.toJson<String?>(blockerKey),
+      'solutionKey': serializer.toJson<String?>(solutionKey),
     };
   }
 
@@ -1603,6 +1670,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     Value<int?> parentId = const Value.absent(),
     Value<RegretLevel?> regretLevel = const Value.absent(),
     Value<int?> score = const Value.absent(),
+    Value<String?> blockerKey = const Value.absent(),
+    Value<String?> solutionKey = const Value.absent(),
   }) => Declaration(
     id: id ?? this.id,
     logId: logId ?? this.logId,
@@ -1617,6 +1686,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     parentId: parentId.present ? parentId.value : this.parentId,
     regretLevel: regretLevel.present ? regretLevel.value : this.regretLevel,
     score: score.present ? score.value : this.score,
+    blockerKey: blockerKey.present ? blockerKey.value : this.blockerKey,
+    solutionKey: solutionKey.present ? solutionKey.value : this.solutionKey,
   );
   Declaration copyWithCompanion(DeclarationsCompanion data) {
     return Declaration(
@@ -1645,6 +1716,12 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           ? data.regretLevel.value
           : this.regretLevel,
       score: data.score.present ? data.score.value : this.score,
+      blockerKey: data.blockerKey.present
+          ? data.blockerKey.value
+          : this.blockerKey,
+      solutionKey: data.solutionKey.present
+          ? data.solutionKey.value
+          : this.solutionKey,
     );
   }
 
@@ -1663,7 +1740,9 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           ..write('status: $status, ')
           ..write('parentId: $parentId, ')
           ..write('regretLevel: $regretLevel, ')
-          ..write('score: $score')
+          ..write('score: $score, ')
+          ..write('blockerKey: $blockerKey, ')
+          ..write('solutionKey: $solutionKey')
           ..write(')'))
         .toString();
   }
@@ -1683,6 +1762,8 @@ class Declaration extends DataClass implements Insertable<Declaration> {
     parentId,
     regretLevel,
     score,
+    blockerKey,
+    solutionKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -1700,7 +1781,9 @@ class Declaration extends DataClass implements Insertable<Declaration> {
           other.status == this.status &&
           other.parentId == this.parentId &&
           other.regretLevel == this.regretLevel &&
-          other.score == this.score);
+          other.score == this.score &&
+          other.blockerKey == this.blockerKey &&
+          other.solutionKey == this.solutionKey);
 }
 
 class DeclarationsCompanion extends UpdateCompanion<Declaration> {
@@ -1717,6 +1800,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
   final Value<int?> parentId;
   final Value<RegretLevel?> regretLevel;
   final Value<int?> score;
+  final Value<String?> blockerKey;
+  final Value<String?> solutionKey;
   const DeclarationsCompanion({
     this.id = const Value.absent(),
     this.logId = const Value.absent(),
@@ -1731,6 +1816,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     this.parentId = const Value.absent(),
     this.regretLevel = const Value.absent(),
     this.score = const Value.absent(),
+    this.blockerKey = const Value.absent(),
+    this.solutionKey = const Value.absent(),
   });
   DeclarationsCompanion.insert({
     this.id = const Value.absent(),
@@ -1746,6 +1833,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     this.parentId = const Value.absent(),
     this.regretLevel = const Value.absent(),
     this.score = const Value.absent(),
+    this.blockerKey = const Value.absent(),
+    this.solutionKey = const Value.absent(),
   }) : logId = Value(logId),
        originalText = Value(originalText),
        reasonLabel = Value(reasonLabel),
@@ -1767,6 +1856,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Expression<int>? parentId,
     Expression<int>? regretLevel,
     Expression<int>? score,
+    Expression<String>? blockerKey,
+    Expression<String>? solutionKey,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1782,6 +1873,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       if (parentId != null) 'parent_id': parentId,
       if (regretLevel != null) 'regret_level': regretLevel,
       if (score != null) 'score': score,
+      if (blockerKey != null) 'blocker_key': blockerKey,
+      if (solutionKey != null) 'solution_key': solutionKey,
     });
   }
 
@@ -1799,6 +1892,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     Value<int?>? parentId,
     Value<RegretLevel?>? regretLevel,
     Value<int?>? score,
+    Value<String?>? blockerKey,
+    Value<String?>? solutionKey,
   }) {
     return DeclarationsCompanion(
       id: id ?? this.id,
@@ -1814,6 +1909,8 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
       parentId: parentId ?? this.parentId,
       regretLevel: regretLevel ?? this.regretLevel,
       score: score ?? this.score,
+      blockerKey: blockerKey ?? this.blockerKey,
+      solutionKey: solutionKey ?? this.solutionKey,
     );
   }
 
@@ -1863,6 +1960,12 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
     if (score.present) {
       map['score'] = Variable<int>(score.value);
     }
+    if (blockerKey.present) {
+      map['blocker_key'] = Variable<String>(blockerKey.value);
+    }
+    if (solutionKey.present) {
+      map['solution_key'] = Variable<String>(solutionKey.value);
+    }
     return map;
   }
 
@@ -1881,7 +1984,9 @@ class DeclarationsCompanion extends UpdateCompanion<Declaration> {
           ..write('status: $status, ')
           ..write('parentId: $parentId, ')
           ..write('regretLevel: $regretLevel, ')
-          ..write('score: $score')
+          ..write('score: $score, ')
+          ..write('blockerKey: $blockerKey, ')
+          ..write('solutionKey: $solutionKey')
           ..write(')'))
         .toString();
   }
@@ -2503,6 +2608,8 @@ typedef $$DeclarationsTableCreateCompanionBuilder =
       Value<int?> parentId,
       Value<RegretLevel?> regretLevel,
       Value<int?> score,
+      Value<String?> blockerKey,
+      Value<String?> solutionKey,
     });
 typedef $$DeclarationsTableUpdateCompanionBuilder =
     DeclarationsCompanion Function({
@@ -2519,6 +2626,8 @@ typedef $$DeclarationsTableUpdateCompanionBuilder =
       Value<int?> parentId,
       Value<RegretLevel?> regretLevel,
       Value<int?> score,
+      Value<String?> blockerKey,
+      Value<String?> solutionKey,
     });
 
 final class $$DeclarationsTableReferences
@@ -2616,6 +2725,16 @@ class $$DeclarationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get blockerKey => $composableBuilder(
+    column: $table.blockerKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get solutionKey => $composableBuilder(
+    column: $table.solutionKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$DecisionsTableFilterComposer get logId {
     final $$DecisionsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2709,6 +2828,16 @@ class $$DeclarationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get blockerKey => $composableBuilder(
+    column: $table.blockerKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get solutionKey => $composableBuilder(
+    column: $table.solutionKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DecisionsTableOrderingComposer get logId {
     final $$DecisionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2791,6 +2920,16 @@ class $$DeclarationsTableAnnotationComposer
   GeneratedColumn<int> get score =>
       $composableBuilder(column: $table.score, builder: (column) => column);
 
+  GeneratedColumn<String> get blockerKey => $composableBuilder(
+    column: $table.blockerKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get solutionKey => $composableBuilder(
+    column: $table.solutionKey,
+    builder: (column) => column,
+  );
+
   $$DecisionsTableAnnotationComposer get logId {
     final $$DecisionsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -2856,6 +2995,8 @@ class $$DeclarationsTableTableManager
                 Value<int?> parentId = const Value.absent(),
                 Value<RegretLevel?> regretLevel = const Value.absent(),
                 Value<int?> score = const Value.absent(),
+                Value<String?> blockerKey = const Value.absent(),
+                Value<String?> solutionKey = const Value.absent(),
               }) => DeclarationsCompanion(
                 id: id,
                 logId: logId,
@@ -2870,6 +3011,8 @@ class $$DeclarationsTableTableManager
                 parentId: parentId,
                 regretLevel: regretLevel,
                 score: score,
+                blockerKey: blockerKey,
+                solutionKey: solutionKey,
               ),
           createCompanionCallback:
               ({
@@ -2886,6 +3029,8 @@ class $$DeclarationsTableTableManager
                 Value<int?> parentId = const Value.absent(),
                 Value<RegretLevel?> regretLevel = const Value.absent(),
                 Value<int?> score = const Value.absent(),
+                Value<String?> blockerKey = const Value.absent(),
+                Value<String?> solutionKey = const Value.absent(),
               }) => DeclarationsCompanion.insert(
                 id: id,
                 logId: logId,
@@ -2900,6 +3045,8 @@ class $$DeclarationsTableTableManager
                 parentId: parentId,
                 regretLevel: regretLevel,
                 score: score,
+                blockerKey: blockerKey,
+                solutionKey: solutionKey,
               ),
           withReferenceMapper: (p0) => p0
               .map(

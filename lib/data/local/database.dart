@@ -57,6 +57,8 @@ class Declarations extends Table {
   // Unified Retro for Declarations
   IntColumn get regretLevel => intEnum<RegretLevel>().nullable()();
   IntColumn get score => integer().nullable()(); // 1, 3, 5
+  TextColumn get blockerKey => text().nullable()();
+  TextColumn get solutionKey => text().nullable()();
 }
 
 @DriftDatabase(tables: [Decisions, Declarations])
@@ -64,7 +66,8 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
+
 
   @override
   MigrationStrategy get migration {

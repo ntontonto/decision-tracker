@@ -229,6 +229,8 @@ class DecisionRepository {
   Future<void> completeDeclaration({
     required int id,
     required RegretLevel regretLevel,
+    String? blockerKey,
+    String? solutionKey,
     DeclarationStatus nextStatus = DeclarationStatus.completed,
   }) async {
     await (db.update(db.declarations)..where((t) => t.id.equals(id))).write(
@@ -237,6 +239,8 @@ class DecisionRepository {
         status: Value(nextStatus),
         regretLevel: Value(regretLevel),
         score: Value(regretLevel.score),
+        blockerKey: Value(blockerKey),
+        solutionKey: Value(solutionKey),
       ),
     );
   }
