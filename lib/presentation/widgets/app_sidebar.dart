@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_design.dart';
 import '../pages/settings_page.dart';
+import '../pages/calendar_page.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -63,6 +64,20 @@ class AppSidebar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SettingsPage()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_month, color: AppDesign.textSecondary),
+                  title: const Text(
+                    'カレンダー（β）',
+                    style: TextStyle(color: AppDesign.textPrimary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CalendarPage()),
                     );
                   },
                 ),
