@@ -214,7 +214,11 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
   void prevStep() => state = state.copyWith(currentStep: (state.currentStep - 1).clamp(0, 3));
   void updateCurrentStep(int step) => state = state.copyWith(currentStep: step);
 
-  Future<void> complete({bool shouldReDeclare = false}) async {
+  Future<void> complete({
+    bool shouldReDeclare = false,
+    String? reasonLabel,
+    String? solutionText,
+  }) async {
     final declaration = state.declaration;
     if (declaration == null || state.regretLevel == null) return;
 
@@ -225,6 +229,8 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
       await repo.completeDeclaration(
         id: declaration.id,
         regretLevel: state.regretLevel!,
+        blockerKey: state.blockerKey,
+        solutionKey: state.solutionKey,
         nextStatus: DeclarationStatus.superseded,
       );
 
@@ -232,8 +238,8 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
       await repo.createDeclaration(
         logId: declaration.logId,
         originalText: declaration.originalText,
-        reasonLabel: declaration.reasonLabel,
-        solutionText: declaration.solutionText,
+        reasonLabel: reasonLabel ?? declaration.reasonLabel,
+        solutionText: solutionText ?? declaration.solutionText,
         declarationText: state.nextDeclarationText,
         reviewAt: state.nextReviewAt!,
         parentId: declaration.id,
@@ -243,9 +249,12 @@ class ActionReviewNotifier extends StateNotifier<ActionReviewState> {
       await repo.completeDeclaration(
         id: declaration.id,
         regretLevel: state.regretLevel!,
+        blockerKey: state.blockerKey,
+        solutionKey: state.solutionKey,
         nextStatus: DeclarationStatus.completed,
       );
     }
+
 
     // Invalidate to refresh UI
     ref.invalidate(pendingDeclarationsProvider);

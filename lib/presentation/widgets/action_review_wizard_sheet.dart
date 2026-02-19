@@ -101,17 +101,33 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     final state = ref.read(actionReviewProvider);
     final isNoRegret = state.regretLevel == RegretLevel.none;
     
-    // Save the review
+    // Resolve labels BEFORE complete() resets the state
+    String? resolvedReason;
+    String? resolvedSolution;
+    final map = ref.read(practiceReviewMapProvider).value;
+    if (map != null && state.blockerKey != null && state.solutionKey != null) {
+      try {
+        final blocker = map.blockers.firstWhere((b) => b.key == state.blockerKey);
+        final solution = blocker.solutions.firstWhere((s) => s.key == state.solutionKey);
+        resolvedReason = blocker.label;
+        resolvedSolution = solution.label;
+      } catch (_) {}
+    }
+
+    // Save the review (this will reset state)
     await ref.read(actionReviewProvider.notifier).complete(
-      shouldReDeclare: false // We handle re-declaration branching via Q4
+      shouldReDeclare: false 
     );
 
     if (mounted) {
       Navigator.pop(context);
       
       if (!isNoRegret && state.shouldDeclareNextAction) {
-        // Trigger existing declaration flow
-        _showDeclarationWizard();
+        // Use resolved labels for the next action's context
+        _showDeclarationWizard(
+          reasonLabel: resolvedReason,
+          solutionText: resolvedSolution,
+        );
       } else {
         ref.read(successNotificationProvider.notifier).show(
           message: isNoRegret ? '素晴らしい！その調子です 🎉' : 'お疲れ様でした！',
@@ -120,22 +136,16 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
     }
   }
 
-  void _showDeclarationWizard() {
+  void _showDeclarationWizard({String? reasonLabel, String? solutionText}) {
     final declaration = widget.declaration;
-    // We need to fetch the original decision to pass it to the wizard
-    // For now, we use a simplified approach since we don't have the full Decision object here easily
-    // In a real app, you might want to fetch it from repo or pass it through
-    
-    // Re-using the logic from RetroWizardSheet bridge
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const DeclarationWizardSheet(),
     );
-    
-    // Initialize the wizard state (note: this requires the decision object)
-    // Looking at declaration, it has logId.
+
     ref.read(declarationWizardProvider.notifier).init(
       decision: Decision(
         id: declaration.logId,
@@ -147,8 +157,8 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
         status: DecisionStatus.reviewed,
         lastUsedAt: DateTime.now(),
       ),
-      reasonLabel: declaration.reasonLabel,
-      solutionText: declaration.solutionText,
+      reasonLabel: reasonLabel ?? declaration.reasonLabel,
+      solutionText: solutionText ?? declaration.solutionText,
       parentId: declaration.id,
     );
   }
