@@ -32,11 +32,11 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   // Navigation State
   String? _selectedNodeId;
   String? _focusedChainId;
-  List<ConstellationNode> _focusedChainNodes = [];
+  List<ConstellationNode> _swipeNodes = [];
   late PageController _pageController;
   bool _isAnimatingCamera = false;
-  bool _isCardExpanded = false;
   bool _isCardVisible = false;
+  bool _isCardExpanded = false;
   
   // Animation state for newly reviewed stars
   final Map<String, double> _glowProgress = {};
@@ -456,15 +456,9 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
             }
 
             if (changed) {
-              // Refresh focused chain nodes if we have a focus
-              if (_focusedChainId != null) {
-                _focusedChainNodes = _nodes
-                    .where((n) => n.chainId == _focusedChainId)
-                    .toList()
-                  ..sort((a, b) => a.generation.compareTo(b.generation));
-              }
-
-              // We need to trigger a repaint
+              _recalculateSwipeNodes();
+              // refreshing swipe nodes might require resetting the page controller if focus is lost or changed
+              // for now we just trigger a repaint
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) setState(() {});
               });
@@ -628,17 +622,14 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       _selectedNodeId = node.id;
       if (_focusedChainId != node.chainId) {
         _focusedChainId = node.chainId;
-        _focusedChainNodes = _nodes
-            .where((n) => n.chainId == node.chainId)
-            .toList()
-          ..sort((a, b) => a.generation.compareTo(b.generation));
       }
+      _recalculateSwipeNodes();
       _isCardExpanded = false;
       _isCardVisible = true;
     });
 
     // Sync PageView
-    final pageIndex = _focusedChainNodes.indexWhere((n) => n.id == node.id);
+    final pageIndex = _swipeNodes.indexWhere((n) => n.id == node.id);
     if (pageIndex != -1) {
       if (_pageController.hasClients) {
         if (_pageController.page?.round() != pageIndex) {
@@ -672,10 +663,38 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         setState(() {
           _selectedNodeId = null;
           _focusedChainId = null;
-          _focusedChainNodes = [];
+          _swipeNodes = [];
         });
       }
     });
+  }
+
+  void _recalculateSwipeNodes() {
+    if (_nodes.isEmpty) {
+      _swipeNodes = [];
+      return;
+    }
+
+    // 1. Group nodes by chainId
+    final Map<String, List<ConstellationNode>> chains = {};
+    for (final node in _nodes) {
+      chains.putIfAbsent(node.chainId, () => []).add(node);
+    }
+
+    // 2. Sort each chain by generation
+    for (final chain in chains.values) {
+      chain.sort((a, b) => a.generation.compareTo(b.generation));
+    }
+
+    // 3. Get all chains and sort them by the date of their root node (generation 0)
+    final sortedChains = chains.values.toList()..sort((a, b) {
+      final rootA = a.firstWhere((n) => n.generation == 0, orElse: () => a.first);
+      final rootB = b.firstWhere((n) => n.generation == 0, orElse: () => b.first);
+      return rootA.date.compareTo(rootB.date);
+    });
+
+    // 4. Flatten into a single list
+    _swipeNodes = sortedChains.expand((chain) => chain).toList();
   }
 
   void _animateCameraToNode(ConstellationNode node, {Offset? targetPosOverride}) {
@@ -883,7 +902,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
 
-    final isShowing = _isCardVisible && _focusedChainNodes.isNotEmpty;
+    final isShowing = _isCardVisible && _swipeNodes.isNotEmpty;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
@@ -928,24 +947,25 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                   ],
                 ),
               ),
-              child: _focusedChainNodes.isEmpty 
+              child: _swipeNodes.isEmpty 
                 ? const SizedBox.shrink()
                 : PageView.builder(
                     controller: _pageController,
                     physics: const BouncingScrollPhysics(), // Always allow horizontal swiping
-                    itemCount: _focusedChainNodes.length,
+                    itemCount: _swipeNodes.length,
                     onPageChanged: (index) {
                       if (_pageController.hasClients && _pageController.page?.round() == index) {
                         if (!_isAnimatingCamera) {
-                          _animateCameraToNode(_focusedChainNodes[index]);
+                          _animateCameraToNode(_swipeNodes[index]);
                           setState(() {
-                            _selectedNodeId = _focusedChainNodes[index].id;
+                            _selectedNodeId = _swipeNodes[index].id;
+                            _focusedChainId = _swipeNodes[index].chainId;
                           });
                         }
                       }
                     },
                     itemBuilder: (context, index) {
-                      final node = _focusedChainNodes[index];
+                      final node = _swipeNodes[index];
                       return ConstellationNodeCard(
                         node: node,
                         isExpanded: _isCardExpanded,
@@ -990,7 +1010,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final currentIndex = _sortedChainIds.indexOf(_focusedChainId ?? '');
     final canGoUp = currentIndex > 0;
     final canGoDown = currentIndex != -1 && currentIndex < _sortedChainIds.length - 1;
-    final hasSortArrows = _sortMode != ConstellationSortMode.none && _focusedChainNodes.isNotEmpty;
+    final hasSortArrows = _sortMode != ConstellationSortMode.none && _swipeNodes.isNotEmpty;
 
     return AnimatedPositioned(
       key: const ValueKey('vert_nav_buttons'),
