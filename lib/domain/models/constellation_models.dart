@@ -56,6 +56,8 @@ class ConstellationNode {
     Offset? velocity,
     bool? isReviewed,
     int? score,
+    String? label,
+    dynamic originalData,
   }) {
     return ConstellationNode(
       id: id,
@@ -63,8 +65,8 @@ class ConstellationNode {
       position: position ?? this.position,
       velocity: velocity ?? this.velocity,
       date: date,
-      label: label,
-      originalData: originalData,
+      label: label ?? this.label,
+      originalData: originalData ?? this.originalData,
       generation: generation,
       chainId: chainId,
       isReviewed: isReviewed ?? this.isReviewed,
