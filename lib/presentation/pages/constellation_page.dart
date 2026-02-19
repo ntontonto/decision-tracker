@@ -1646,13 +1646,30 @@ class ConstellationPhysicsPainter extends CustomPainter {
       );
       canvas.drawCircle(node.position, baseRadius * (isReviewed ? 0.5 : 0.4), centerPaint);
 
-      // 5. Interaction / Selection Ring (Subtle)
+      // 5. Atmospheric Ripple (Sonar Pulse) for Focus - Refined (Subtler)
       if (isSelected) {
-        final selectRingPaint = Paint()
-          ..color = Colors.white.withValues(alpha: 0.2 * nodeOpacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.5;
-        canvas.drawCircle(node.position, (baseRadius * 6.0) + 5, selectRingPaint);
+        const double rippleDuration = 4.5;
+        const int rippleCount = 2;
+        
+        for (int r = 0; r < rippleCount; r++) {
+          // Stagger the ripples
+          final double rippleOffset = r * (rippleDuration / rippleCount);
+          final double rippleProgress = ((time + rippleOffset) % rippleDuration) / rippleDuration;
+          
+          // Cubic ease-out expansion
+          final double easeOutProgress = 1.0 - math.pow(1.0 - rippleProgress, 3).toDouble();
+          
+          final double rippleRadius = baseRadius + (easeOutProgress * baseRadius * 12.0);
+          final double rippleOpacity = (1.0 - rippleProgress) * 0.35 * nodeOpacity;
+          
+          final ripplePaint = Paint()
+            ..color = Colors.cyanAccent.withValues(alpha: rippleOpacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0 * (1.0 - rippleProgress)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 1.5 * (1.0 - rippleProgress));
+            
+          canvas.drawCircle(node.position, rippleRadius, ripplePaint);
+        }
       }
 
       // 6. Review Transition Pulse (Glow Effect)
