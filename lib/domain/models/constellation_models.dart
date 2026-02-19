@@ -10,7 +10,8 @@ enum ConstellationSortMode {
   none,
   unreviewedFirst,
   decisionDate,
-  latestActionDate;
+  latestActionDate,
+  reflectionDate;
 
   String get label {
     switch (this) {
@@ -18,6 +19,7 @@ enum ConstellationSortMode {
       case ConstellationSortMode.unreviewedFirst: return '振り返り未実施↑';
       case ConstellationSortMode.decisionDate: return 'イベントを入力した日↑';
       case ConstellationSortMode.latestActionDate: return '行動を宣言した日↑';
+      case ConstellationSortMode.reflectionDate: return '振り返り予定日↑';
     }
   }
 }
@@ -34,6 +36,8 @@ class ConstellationNode {
   final String chainId; 
   final bool isReviewed;
   final int score; // 1, 3, 5 or 0 if not reviewed
+  final DateTime? reflectionDate;
+  final DateTime? scheduledReflectionDate;
   final double hue; // Deterministic color hue
 
   ConstellationNode({
@@ -48,6 +52,8 @@ class ConstellationNode {
     required this.chainId,
     this.isReviewed = false,
     this.score = 0,
+    this.reflectionDate,
+    this.scheduledReflectionDate,
     required this.hue,
   });
 
@@ -56,6 +62,8 @@ class ConstellationNode {
     Offset? velocity,
     bool? isReviewed,
     int? score,
+    DateTime? reflectionDate,
+    DateTime? scheduledReflectionDate,
     String? label,
     dynamic originalData,
   }) {
@@ -71,6 +79,8 @@ class ConstellationNode {
       chainId: chainId,
       isReviewed: isReviewed ?? this.isReviewed,
       score: score ?? this.score,
+      reflectionDate: reflectionDate ?? this.reflectionDate,
+      scheduledReflectionDate: scheduledReflectionDate ?? this.scheduledReflectionDate,
       hue: hue,
     );
   }

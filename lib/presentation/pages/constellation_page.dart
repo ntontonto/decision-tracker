@@ -1133,6 +1133,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       DateTime latestDate = rootNode.date;
       ConstellationNode latestNode = rootNode;
       ConstellationNode? firstUnreviewedNode;
+      DateTime? latestScheduledReflectionDate;
+      ConstellationNode? latestScheduledReflectionNode;
 
       // Ensure nodes are sorted by generation to find "first" unreviewed correctly
       nodesInChain.sort((a, b) => a.generation.compareTo(b.generation));
@@ -1145,6 +1147,12 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         if (firstUnreviewedNode == null && !node.isReviewed) {
           firstUnreviewedNode = node;
         }
+        if (node.scheduledReflectionDate != null) {
+          if (latestScheduledReflectionDate == null || node.scheduledReflectionDate!.isAfter(latestScheduledReflectionDate)) {
+            latestScheduledReflectionDate = node.scheduledReflectionDate;
+            latestScheduledReflectionNode = node;
+          }
+        }
       }
 
       final hasUnreviewed = firstUnreviewedNode != null;
@@ -1155,6 +1163,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         focusNodeId = firstUnreviewedNode.id;
       } else if (_sortMode == ConstellationSortMode.latestActionDate) {
         focusNodeId = latestNode.id;
+      } else if (_sortMode == ConstellationSortMode.reflectionDate && latestScheduledReflectionNode != null) {
+        focusNodeId = latestScheduledReflectionNode.id;
       }
 
       sortedMetas.add(_ChainMeta(
@@ -1163,6 +1173,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         latestDate: latestDate,
         hasUnreviewed: hasUnreviewed,
         focusNodeId: focusNodeId,
+        latestScheduledReflectionDate: latestScheduledReflectionDate,
       ));
     });
 
@@ -1186,6 +1197,17 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       sortedMetas.sort((a, b) => _isSortDescending 
         ? b.latestDate.compareTo(a.latestDate)
         : a.latestDate.compareTo(b.latestDate));
+    } else if (_sortMode == ConstellationSortMode.reflectionDate) {
+      sortedMetas.sort((a, b) {
+        final dateA = a.latestScheduledReflectionDate;
+        final dateB = b.latestScheduledReflectionDate;
+        if (dateA == null && dateB == null) return 0;
+        if (dateA == null) return 1;
+        if (dateB == null) return -1;
+        return _isSortDescending 
+          ? dateB.compareTo(dateA)
+          : dateA.compareTo(dateB);
+      });
     }
 
     // List Visibility: tighter spacing (list view style)
@@ -1293,6 +1315,7 @@ class _ChainMeta {
   final DateTime rootDate;
   final DateTime latestDate;
   final bool hasUnreviewed;
+  final DateTime? latestScheduledReflectionDate;
   final double? targetY;
   final double? targetX;
 
@@ -1302,6 +1325,7 @@ class _ChainMeta {
     required this.rootDate,
     required this.latestDate,
     required this.hasUnreviewed,
+    this.latestScheduledReflectionDate,
     this.targetY,
     this.targetX,
   });
@@ -1313,6 +1337,7 @@ class _ChainMeta {
       rootDate: rootDate,
       latestDate: latestDate,
       hasUnreviewed: hasUnreviewed,
+      latestScheduledReflectionDate: latestScheduledReflectionDate,
       targetY: targetY ?? this.targetY,
       targetX: targetX ?? this.targetX,
     );
@@ -1647,21 +1672,9 @@ class ConstellationPhysicsPainter extends CustomPainter {
       }
 
       // 7. Sort-specific Labels (Date or Review Status)
-      final bool shouldShowDate = 
-          (sortMode == ConstellationSortMode.decisionDate && node.generation == 0) ||
-          (sortMode == ConstellationSortMode.latestActionDate && focusNodeIds.contains(node.id));
-      
-      final bool shouldShowReviewStatus = 
-          (sortMode == ConstellationSortMode.unreviewedFirst && focusNodeIds.contains(node.id));
+      final labelText = _getSortLabel(node);
 
-      if (shouldShowDate || shouldShowReviewStatus) {
-        String labelText = '';
-        if (shouldShowDate) {
-          labelText = '${node.date.month}/${node.date.day}';
-        } else if (shouldShowReviewStatus) {
-          labelText = node.isReviewed ? '振り返り済み' : '未振り返り';
-        }
-
+      if (labelText != null) {
         datePainter.text = TextSpan(
           text: labelText,
           style: TextStyle(
@@ -1676,6 +1689,35 @@ class ConstellationPhysicsPainter extends CustomPainter {
         datePainter.paint(canvas, node.position + Offset(-datePainter.width - 20, -datePainter.height / 2));
       }
     }
+  }
+
+  String? _getSortLabel(ConstellationNode node) {
+    switch (sortMode) {
+      case ConstellationSortMode.decisionDate:
+        if (node.generation == 0) {
+          return '${node.date.month}/${node.date.day}';
+        }
+        break;
+      case ConstellationSortMode.latestActionDate:
+        if (focusNodeIds.contains(node.id)) {
+          return '${node.date.month}/${node.date.day}';
+        }
+        break;
+      case ConstellationSortMode.unreviewedFirst:
+        if (focusNodeIds.contains(node.id)) {
+          return node.isReviewed ? '振り返り済み' : '未振り返り';
+        }
+        break;
+      case ConstellationSortMode.reflectionDate:
+        if (focusNodeIds.contains(node.id) && node.scheduledReflectionDate != null) {
+          final d = node.scheduledReflectionDate!;
+          return '${d.month}/${d.day}';
+        }
+        break;
+      case ConstellationSortMode.none:
+        break;
+    }
+    return null;
   }
 
 

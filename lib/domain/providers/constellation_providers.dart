@@ -74,6 +74,8 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
       chainId: chainId,
       isReviewed: isReviewed,
       score: decision.score ?? 0,
+      reflectionDate: decision.reviewedAt,
+      scheduledReflectionDate: decision.retroAt,
       hue: (getBaseHue(decision.driver) + getJitter(decision.id, 40)) % 360,
     ));
 
@@ -107,6 +109,8 @@ final constellationProvider = FutureProvider<LearningGraph>((ref) async {
         chainId: chainId,
         isReviewed: isDeclCompleted,
         score: currentDecl.score ?? 0,
+        reflectionDate: currentDecl.completedAt,
+        scheduledReflectionDate: currentDecl.reviewAt,
         // Significant shift from parent (120 degrees + larger jitter)
         hue: (parentHue + 120 + getJitter(currentDecl.id.toString(), 100)) % 360,
       ));
