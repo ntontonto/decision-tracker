@@ -102,13 +102,13 @@ class _DeclarationWizardSheetState extends ConsumerState<DeclarationWizardSheet>
   }
 
   Future<void> _complete() async {
+    final currentContext = context;
     await ref.read(declarationWizardProvider.notifier).save();
-    if (mounted) {
-      Navigator.pop(context);
-      ref.read(successNotificationProvider.notifier).show(
-        message: '宣言を保存しました',
-      );
-    }
+    if (!currentContext.mounted) return;
+    Navigator.pop(currentContext);
+    ref.read(successNotificationProvider.notifier).show(
+      message: '宣言を保存しました',
+    );
   }
 
   Future<bool> _confirmDiscard() async {
@@ -138,10 +138,12 @@ class _DeclarationWizardSheetState extends ConsumerState<DeclarationWizardSheet>
   }
 
   Future<void> _skip() async {
+    final currentContext = context;
     final confirmed = await _confirmDiscard();
-    if (confirmed && mounted) {
+    if (confirmed) {
       ref.read(declarationWizardProvider.notifier).reset();
-      Navigator.pop(context);
+      if (!currentContext.mounted) return;
+      Navigator.pop(currentContext);
     }
   }
 
@@ -166,10 +168,13 @@ class _DeclarationWizardSheetState extends ConsumerState<DeclarationWizardSheet>
           if (state.currentStep > 0) {
             _back();
           } else {
+            final currentContext = context;
             final confirmed = await _confirmDiscard();
-            if (confirmed && mounted) {
+            if (confirmed) {
               ref.read(declarationWizardProvider.notifier).reset();
-              Navigator.pop(context);
+              if (currentContext.mounted) {
+                Navigator.pop(currentContext);
+              }
             }
           }
         },

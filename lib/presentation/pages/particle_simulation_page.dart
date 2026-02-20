@@ -468,14 +468,16 @@ class _ParticleSimulationPageState extends ConsumerState<ParticleSimulationPage>
     metricsAsync.whenData((metrics) {
       if (_currentMetrics != metrics) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() {
-            _currentMetrics = metrics;
-            _vortexStrength = metrics.reviewCompletionRate * 0.6;
-            _targetActivity = metrics.intrinsicMotivationRatio * 3.0;
-            final inputRatio = metrics.inputFrequency / 7.0;
-            _heartbeatInterval = 60000.0 - (inputRatio * 59000.0);
-            _heartbeatStrength = ((metrics.satisfactionScoreAverage - 1.0) / 4.0) * 0.5;
-          });
+          if (mounted) {
+            setState(() {
+              _currentMetrics = metrics;
+              _vortexStrength = metrics.reviewCompletionRate * 0.6;
+              _targetActivity = metrics.intrinsicMotivationRatio * 3.0;
+              final inputRatio = metrics.inputFrequency / 7.0;
+              _heartbeatInterval = 60000.0 - (inputRatio * 59000.0);
+              _heartbeatStrength = ((metrics.satisfactionScoreAverage - 1.0) / 4.0) * 0.5;
+            });
+          }
         });
       }
     });

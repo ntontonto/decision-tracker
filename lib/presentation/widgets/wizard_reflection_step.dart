@@ -139,7 +139,7 @@ class _WizardReflectionStepState extends State<WizardReflectionStep> with Ticker
 
     return Column(
       children: [
-        Text(title, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         DragTarget<ValueItem>(
           onWillAcceptWithDetails: (details) {
@@ -171,15 +171,15 @@ class _WizardReflectionStepState extends State<WizardReflectionStep> with Ticker
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? color.withOpacity(0.2) : (isActive ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.05)),
+                    color: isSelected ? color.withValues(alpha: 0.2) : (isActive ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05)),
                     border: Border.all(
-                      color: isSelected ? color : (isActive ? color.withOpacity(0.5) : (isHovering ? Colors.white : Colors.white24)),
+                      color: isSelected ? color : (isActive ? color.withValues(alpha: 0.5) : (isHovering ? Colors.white : Colors.white24)),
                       width: isSelected || isHovering || isActive ? 3 : 1,
                     ),
                     boxShadow: [
                       if (isHovering || isSelected || isActive)
                         BoxShadow(
-                          color: isSelected ? color.withOpacity(0.3) : (isActive ? color.withOpacity(0.2) : Colors.white.withOpacity(0.2)),
+                          color: isSelected ? color.withValues(alpha: 0.3) : (isActive ? color.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.2)),
                           blurRadius: isSelected ? 20 : (isActive ? 15 : 10),
                           spreadRadius: isSelected ? 5 : (isActive ? 2 : 0),
                         ),
@@ -325,13 +325,13 @@ class _ItemChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: isSelected ? color.withOpacity(0.3) : AppDesign.glassBackgroundColor,
+        color: isSelected ? color.withValues(alpha: 0.3) : AppDesign.glassBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isSelected ? color : Colors.white12),
         boxShadow: [
           if (dragging || isSelected)
             BoxShadow(
-              color: isSelected ? color.withOpacity(0.2) : Colors.black.withOpacity(0.3),
+              color: isSelected ? color.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),

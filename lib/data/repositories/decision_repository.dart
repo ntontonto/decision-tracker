@@ -58,7 +58,7 @@ class DecisionRepository {
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
-    print('DEBUG: Database insert starting for id: $id');
+    debugPrint('DEBUG: Database insert starting for id: $id');
     await db.into(db.decisions).insert(
           DecisionsCompanion.insert(
             id: id,
@@ -74,7 +74,7 @@ class DecisionRepository {
             lastUsedAt: now,
           ),
         );
-    print('DEBUG: Database insert completed for id: $id');
+    debugPrint('DEBUG: Database insert completed for id: $id');
     
     // Schedule notification for this retro date
     if (areNotificationsEnabled()) {

@@ -105,38 +105,38 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     
     await notifier.save();
     
-    if (mounted) {
-      Navigator.pop(context); // Close Retro Wizard
-      
-      if (state.regretLevel == RegretLevel.none) {
-        // Show the unique success message for no-regret flow
-        ref.read(successNotificationProvider.notifier).show(
-          message: 'いいね！その調子！',
-        );
-      } else if (state.registerNextAction) {
-        // Bridge to Declaration Wizard
-        ref.read(successNotificationProvider.notifier).show(
-          message: '記録しました',
-        );
+    final currentContext = context;
+    if (!currentContext.mounted) return;
+    Navigator.pop(currentContext); // Close Retro Wizard
+    
+    if (state.regretLevel == RegretLevel.none) {
+      // Show the unique success message for no-regret flow
+      ref.read(successNotificationProvider.notifier).show(
+        message: 'いいね！その調子！',
+      );
+    } else if (state.registerNextAction) {
+      // Bridge to Declaration Wizard
+      ref.read(successNotificationProvider.notifier).show(
+        message: '記録しました',
+      );
 
-        // Initialize the declaration provider with current context
-        ref.read(declarationWizardProvider.notifier).init(
-          decision: state.decision!,
-          reasonLabel: state.selectedReason?.label ?? '',
-          solutionText: state.solution ?? '',
-        );
+      // Initialize the declaration provider with current context
+      ref.read(declarationWizardProvider.notifier).init(
+        decision: state.decision!,
+        reasonLabel: state.selectedReason?.label ?? '',
+        solutionText: state.solution ?? '',
+      );
 
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => const DeclarationWizardSheet(),
-        );
-      } else {
-        ref.read(successNotificationProvider.notifier).show(
-          message: '記録しました',
-        );
-      }
+      showModalBottomSheet(
+        context: currentContext,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => const DeclarationWizardSheet(),
+      );
+    } else {
+      ref.read(successNotificationProvider.notifier).show(
+        message: '記録しました',
+      );
     }
   }
 
@@ -193,19 +193,21 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
           if (state.currentStep > 0) {
             _back();
           } else {
+            final currentContext = context;
             final confirmed = await _confirmDiscard();
-            if (confirmed && mounted) {
+            if (confirmed) {
               ref.read(retroWizardProvider.notifier).reset();
-              Navigator.pop(context);
+              if (currentContext.mounted) Navigator.pop(currentContext);
             }
           }
         },
         onNext: _next,
         onClose: () async {
+          final currentContext = context;
           final confirmed = await _confirmDiscard();
-          if (confirmed && mounted) {
+          if (confirmed) {
             ref.read(retroWizardProvider.notifier).reset();
-            Navigator.pop(context);
+            if (currentContext.mounted) Navigator.pop(currentContext);
           }
         },
         pageController: _pageController,
@@ -400,10 +402,11 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
                   ),
                 ) ?? false;
 
-                if (confirmed && mounted) {
+                if (confirmed) {
+                  final currentContext = context;
                   await ref.read(retroWizardProvider.notifier).skip();
-                  if (mounted) {
-                    Navigator.pop(context);
+                  if (currentContext.mounted) {
+                    Navigator.pop(currentContext);
                     ref.read(successNotificationProvider.notifier).show(
                       message: '次回は振り返りしてくれると嬉しいな',
                       icon: Icons.sentiment_neutral,
