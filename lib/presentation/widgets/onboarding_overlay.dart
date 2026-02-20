@@ -4,13 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/settings_provider.dart';
 
 class OnboardingOverlay extends ConsumerStatefulWidget {
-  final GlobalKey addButtonKey;
-  final GlobalKey constellationButtonKey;
+  final GlobalKey? addButtonKey;
+  final GlobalKey? constellationButtonKey;
+  final bool isConstellationView;
 
   const OnboardingOverlay({
     super.key,
-    required this.addButtonKey,
-    required this.constellationButtonKey,
+    this.addButtonKey,
+    this.constellationButtonKey,
+    this.isConstellationView = false,
   });
 
   @override
@@ -34,9 +36,15 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
       
       final step = ref.read(settingsProvider).onboardingStep;
       
-      // Always try to get both button rects for gray-out logic in Step 1/3
-      final newAddRect = _getWidgetRect(widget.addButtonKey);
-      final newConstellationRect = _getWidgetRect(widget.constellationButtonKey);
+      Rect? newAddRect;
+      if (widget.addButtonKey != null) {
+        newAddRect = _getWidgetRect(widget.addButtonKey!);
+      }
+      
+      Rect? newConstellationRect;
+      if (widget.constellationButtonKey != null) {
+        newConstellationRect = _getWidgetRect(widget.constellationButtonKey!);
+      }
       
       Rect? newTargetRect;
       if (step == 0) {
@@ -54,9 +62,9 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
       }
       
       // Continue updating if necessary
-      if ((step == 0 && newAddRect == null) || 
-          (step == 2 && newConstellationRect == null) ||
-          ((step == 1 || step == 3) && (newAddRect == null || newConstellationRect == null))) {
+      if ((step == 0 && newAddRect == null && widget.addButtonKey != null) || 
+          (step == 2 && newConstellationRect == null && widget.constellationButtonKey != null) ||
+          ((step == 1 || step == 3) && (newAddRect == null && widget.addButtonKey != null || newConstellationRect == null && widget.constellationButtonKey != null))) {
         Future.delayed(const Duration(milliseconds: 200), _updateRects);
       }
     });
@@ -79,6 +87,11 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     if (settings.hasSeenOnboarding) return const SizedBox.shrink();
+
+    // Step 3 is only for Constellation View. On Home screen, hide it to avoid flashes during transition.
+    if (settings.onboardingStep == 3 && !widget.isConstellationView) {
+      return const SizedBox.shrink();
+    }
 
     ref.listen(settingsProvider.select((s) => s.onboardingStep), (previous, current) {
       _updateRects();
@@ -104,7 +117,13 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   }
 
   Widget _buildVisualBackground(int step) {
-    // Step 1 and 3: Only gray out the buttons, no global dimming
+    // Step 1: Only gray out the buttons, no global dimming
+    // Step 3 (Home): Only gray out the buttons
+    // Step 3 (Constellation): NO dimming at all to highlight the star
+    if (step == 3 && widget.isConstellationView) {
+      return const SizedBox.shrink();
+    }
+
     if (step == 1 || step == 3) {
       return Stack(
         children: [
@@ -170,21 +189,26 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
 
     switch (step) {
       case 0:
-        message = 'ようこそ！まずは右下の「＋」ボタンを押して、今の出来事や決断を記録してみましょう。';
+        message = 'ようこそ！振り返りに特化した日記アプリ「ホシログ」です。まずは右下のボタンを押して、今日の出来事を記録してみましょう';
         showTail = true;
         break;
       case 1:
-        message = 'いいですね！画面中央に現れた粒子が、あなたの新しい記録です。\n（画面をタップして次へ）';
+        message = 'いいですね！この粒子はあなたの記録・振り返りの状況によって動きが変わります';
         alignment = Alignment.bottomCenter;
         verticalOffset = -140;
         break;
       case 2:
-        message = '次に、こちらの「星」ボタンを押して、記録がどのように星座になっていくか見てみましょう。';
+        message = '次に、こちらのボタンを押して、記録の一覧画面を開いてみましょう';
         showTail = true;
         break;
       case 3:
-        message = 'おめでとうございます！記録を振り返ることで星はより輝き、それらが繋がって美しい星座になっていきます。\n（画面をタップして開始）';
-        alignment = Alignment.center;
+        message = 'ここにはあなたの出来事が星として灯ります。振り返ればさらに輝き、新たな取り組みをすれば星座のように繋がっていきます。';
+        if (widget.isConstellationView) {
+          alignment = Alignment.topCenter;
+          verticalOffset = MediaQuery.of(context).padding.top + 60;
+        } else {
+          alignment = Alignment.center;
+        }
         break;
     }
 

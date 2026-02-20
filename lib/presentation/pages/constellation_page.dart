@@ -7,9 +7,11 @@ import 'package:hoshi_log/domain/models/constellation_models.dart';
 import 'package:hoshi_log/data/local/database.dart';
 import 'package:hoshi_log/domain/providers/constellation_providers.dart';
 import 'package:hoshi_log/domain/providers/app_providers.dart';
+import 'package:hoshi_log/domain/providers/settings_provider.dart';
 import '../widgets/decision_detail_sheet.dart';
 import '../widgets/constellation_node_card.dart';
 import '../widgets/log_wizard_sheet.dart';
+import '../widgets/onboarding_overlay.dart';
 import '../theme/app_design.dart';
 import 'dart:ui';
 
@@ -123,6 +125,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         _transformationController.value = Matrix4.identity()
           ..setTranslationRaw(currentX, currentY, 0)
           ..scale(currentScale, currentScale, 1.0);
+      }
+    });
+
+    _revelationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        final settings = ref.read(settingsProvider);
+        if (!settings.hasSeenOnboarding && settings.onboardingStep == 3 && _nodes.isNotEmpty) {
+          _focusNode(_nodes.last);
+        }
       }
     });
   }
@@ -543,6 +554,9 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
               _buildVerticalNavigationButtons(),
               if (!_showGalaxy || _revelationController.isAnimating || filteredNodes.isEmpty) 
                 _buildOverlayInstructions(filteredNodes.isEmpty),
+              
+              // Onboarding Overlay (Top Layer)
+              OnboardingOverlay(isConstellationView: true),
             ],
           );
         },
