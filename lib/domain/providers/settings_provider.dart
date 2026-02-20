@@ -23,7 +23,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
         final json = jsonDecode(settingsJson) as Map<String, dynamic>;
         state = AppSettings.fromJson(json);
       } catch (e) {
-        print('Error loading settings: $e');
+        debugPrint('Error loading settings: $e');
         // Keep default settings if loading fails
       }
     }
@@ -66,6 +66,16 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> markPermissionRequested() async {
     state = state.copyWith(hasRequestedPermission: true);
+    await _saveSettings();
+  }
+
+  Future<void> setOnboardingSeen(bool seen) async {
+    state = state.copyWith(hasSeenOnboarding: seen);
+    await _saveSettings();
+  }
+
+  Future<void> updateOnboardingStep(int step) async {
+    state = state.copyWith(onboardingStep: step);
     await _saveSettings();
   }
 }

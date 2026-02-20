@@ -7,9 +7,11 @@ import 'package:hoshi_log/domain/models/constellation_models.dart';
 import 'package:hoshi_log/data/local/database.dart';
 import 'package:hoshi_log/domain/providers/constellation_providers.dart';
 import 'package:hoshi_log/domain/providers/app_providers.dart';
+import 'package:hoshi_log/domain/providers/settings_provider.dart';
 import '../widgets/decision_detail_sheet.dart';
 import '../widgets/constellation_node_card.dart';
 import '../widgets/log_wizard_sheet.dart';
+import '../widgets/onboarding_overlay.dart';
 import '../theme/app_design.dart';
 import 'dart:ui';
 
@@ -22,6 +24,8 @@ class ConstellationPage extends ConsumerStatefulWidget {
 
 class _ConstellationPageState extends ConsumerState<ConstellationPage> with TickerProviderStateMixin {
   late Ticker _ticker;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey _backButtonKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
 
   // Animation State
@@ -123,6 +127,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         _transformationController.value = Matrix4.identity()
           ..setTranslationRaw(currentX, currentY, 0)
           ..scale(currentScale, currentScale, 1.0);
+      }
+    });
+
+    _revelationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        final settings = ref.read(settingsProvider);
+        if (!settings.hasSeenOnboarding && settings.onboardingStep == 3 && _nodes.isNotEmpty) {
+          _focusNode(_nodes.last);
+        }
       }
     });
   }
@@ -538,12 +551,18 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                   },
                 ),
               ),
-              _buildHeader(),
-              _buildDetailOverlay(),
-              _buildVerticalNavigationButtons(),
-              if (!_showGalaxy || _revelationController.isAnimating || filteredNodes.isEmpty) 
-                _buildOverlayInstructions(filteredNodes.isEmpty),
-            ],
+                _buildHeader(),
+                _buildDetailOverlay(),
+                _buildVerticalNavigationButtons(),
+                if (!_showGalaxy || _revelationController.isAnimating || filteredNodes.isEmpty) 
+                  _buildOverlayInstructions(filteredNodes.isEmpty),
+                
+                // Onboarding Overlay (Top Layer)
+                OnboardingOverlay(
+                  isConstellationView: true,
+                  backButtonKey: _backButtonKey,
+                ),
+              ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.white24)),
@@ -971,7 +990,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
 
-    final isShowing = _isCardVisible && _swipeNodes.isNotEmpty;
+    final settings = ref.read(settingsProvider);
+    final isShowing = _isCardVisible && _swipeNodes.isNotEmpty && (settings.hasSeenOnboarding || (settings.onboardingStep != 3 && settings.onboardingStep != 4));
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
@@ -1094,8 +1114,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         child: Column(
           children: [
             _buildGlassNavButton(
+              key: _backButtonKey,
               icon: Icons.auto_awesome,
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                final settings = ref.read(settingsProvider);
+                if (!settings.hasSeenOnboarding && settings.onboardingStep == 4) {
+                  ref.read(settingsProvider.notifier).updateOnboardingStep(5);
+                }
+                Navigator.pop(context);
+              },
               enabled: true,
             ),
             AnimatedSwitcher(
@@ -1140,11 +1167,13 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   }
 
   Widget _buildGlassNavButton({
+    Key? key,
     required IconData icon,
     required VoidCallback? onPressed,
     bool enabled = true,
   }) {
     return ClipRRect(
+      key: key,
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
