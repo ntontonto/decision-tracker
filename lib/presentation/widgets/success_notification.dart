@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
-import '../theme/app_design.dart';
 
 class SuccessNotification extends ConsumerStatefulWidget {
   const SuccessNotification({super.key});

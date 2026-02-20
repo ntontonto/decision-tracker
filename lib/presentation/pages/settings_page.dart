@@ -55,7 +55,7 @@ class SettingsPage extends ConsumerWidget {
                       onChanged: (value) {
                         ref.read(settingsProvider.notifier).setNotificationsEnabled(value);
                       },
-                      activeColor: Colors.purpleAccent,
+                      activeThumbColor: Colors.purpleAccent,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -146,7 +146,9 @@ class SettingsPage extends ConsumerWidget {
               surface: Color(0xFF1A1A2E),
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF1A1A2E),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF1A1A2E),
+            ),
           ),
           child: child!,
         );

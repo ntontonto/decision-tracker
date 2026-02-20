@@ -105,7 +105,7 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
 
     try {
       if (state.editingId != null) {
-        print('DEBUG: Calling repository.updateDecision for id: ${state.editingId}');
+        debugPrint('DEBUG: Calling repository.updateDecision for id: ${state.editingId}');
         await repository.updateDecision(
           id: state.editingId!,
           text: state.text,
@@ -117,9 +117,9 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
           retroAt: retroAt,
         );
         id = state.editingId;
-        print('DEBUG: repository.updateDecision completed for id: $id');
+        debugPrint('DEBUG: repository.updateDecision completed for id: $id');
       } else {
-        print('DEBUG: Calling repository.createDecision with text: ${state.text}');
+        debugPrint('DEBUG: Calling repository.createDecision with text: ${state.text}');
         id = await repository.createDecision(
           text: state.text,
           driver: state.driver!,
@@ -129,21 +129,21 @@ class LogWizardNotifier extends StateNotifier<LogWizardState> {
           retroOffset: state.retroOffset!,
           retroAt: retroAt,
         );
-        print('DEBUG: repository.createDecision returned id: $id');
+        debugPrint('DEBUG: repository.createDecision returned id: $id');
       }
       
-      print('DEBUG: Invalidating providers...');
+      debugPrint('DEBUG: Invalidating providers...');
       // Invalidate providers to refresh other screens
       ref.invalidate(allDecisionsProvider);
       ref.invalidate(pendingDecisionsProvider);
       
-      print('DEBUG: Resetting wizard state...');
+      debugPrint('DEBUG: Resetting wizard state...');
       reset();
-      print('DEBUG: Save process complete. Returning id: $id');
+      debugPrint('DEBUG: Save process complete. Returning id: $id');
       return id;
     } catch (e, stack) {
-      print('DEBUG: ERROR DURING SAVE: $e');
-      print('DEBUG: STACK TRACE: $stack');
+      debugPrint('DEBUG: ERROR DURING SAVE: $e');
+      debugPrint('DEBUG: STACK TRACE: $stack');
       rethrow;
     }
   }
@@ -211,7 +211,7 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
       final relativeDate = AppDateUtils.getRelativeDateString(d.createdAt);
       return ReviewProposal(
         id: d.id,
-        title: '${relativeDate}の出来事を振り返る？',
+        title: '$relativeDateの出来事を振り返る？',
         description: d.textContent,
         targetDate: d.retroAt,
         type: ProposalType.decisionRetro,
@@ -222,7 +222,7 @@ final unifiedProposalsProvider = FutureProvider<List<ReviewProposal>>((ref) asyn
       final relativeDate = AppDateUtils.getRelativeDateString(d.createdAt);
       return ReviewProposal(
         id: d.id.toString(),
-        title: '${relativeDate}に決めた実践を振り返る？',
+        title: '$relativeDateに決めた実践を振り返る？',
         description: d.declarationText,
         targetDate: d.reviewAt,
         type: ProposalType.actionReview,

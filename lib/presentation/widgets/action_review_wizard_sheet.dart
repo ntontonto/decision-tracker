@@ -220,7 +220,7 @@ class _ActionReviewWizardSheetState extends ConsumerState<ActionReviewWizardShee
             _back();
           } else {
             final confirmed = await _confirmDiscard();
-            if (confirmed && mounted) {
+            if (confirmed && context.mounted) {
               ref.read(actionReviewProvider.notifier).reset();
               Navigator.pop(context);
             }

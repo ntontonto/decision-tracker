@@ -183,10 +183,11 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         curve: Curves.easeInOut,
       );
     } else {
+      final currentContext = context;
       final confirmed = await _confirmDiscard();
-      if (confirmed && mounted) {
+      if (confirmed) {
         ref.read(logWizardProvider.notifier).reset();
-        Navigator.of(context).pop();
+        if (currentContext.mounted) Navigator.of(currentContext).pop();
       }
     }
   }
@@ -248,17 +249,19 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
       await ref.read(settingsProvider.notifier).markPermissionRequested();
     }
     
-    if (mounted) {
-      // Increment onboarding step if we were on step 2 (Guidance to register)
-      if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
-        ref.read(settingsProvider.notifier).updateOnboardingStep(3);
-      }
+    final currentContext = context;
+    if (!currentContext.mounted) return;
+    
+    // Increment onboarding step if we were on step 2 (Guidance to register)
+    if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
+      ref.read(settingsProvider.notifier).updateOnboardingStep(3);
+    }
 
-      // With canPop: _isSaving, this will pop without triggering confirmation
-      Navigator.of(context).pop();
-      
-      // Show Home Toast
-      ref.read(successNotificationProvider.notifier).show(
+    // With canPop: _isSaving, this will pop without triggering confirmation
+    Navigator.of(currentContext).pop();
+    
+    // Show Home Toast
+    ref.read(successNotificationProvider.notifier).show(
         message: '入力が完了しました。',
         onFix: (BuildContext shellContext, WidgetRef activeRef) {
           // Restore state using the activeRef (which is still alive)
@@ -275,7 +278,6 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
         },
       );
     }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -302,10 +304,11 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
           }
         },
         onClose: () async {
+          final currentContext = context;
           final confirmed = await _confirmDiscard();
-          if (confirmed && mounted) {
+          if (confirmed) {
             ref.read(logWizardProvider.notifier).reset();
-            Navigator.pop(context);
+            if (currentContext.mounted) Navigator.pop(currentContext);
           }
         },
         pageController: _pageController,

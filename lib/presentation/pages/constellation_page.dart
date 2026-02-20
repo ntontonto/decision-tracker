@@ -8,11 +8,9 @@ import 'package:hoshi_log/data/local/database.dart';
 import 'package:hoshi_log/domain/providers/constellation_providers.dart';
 import 'package:hoshi_log/domain/providers/app_providers.dart';
 import 'package:hoshi_log/domain/providers/settings_provider.dart';
-import '../widgets/decision_detail_sheet.dart';
 import '../widgets/constellation_node_card.dart';
 import '../widgets/log_wizard_sheet.dart';
 import '../widgets/onboarding_overlay.dart';
-import '../theme/app_design.dart';
 import 'dart:ui';
 
 class ConstellationPage extends ConsumerStatefulWidget {
@@ -24,7 +22,6 @@ class ConstellationPage extends ConsumerStatefulWidget {
 
 class _ConstellationPageState extends ConsumerState<ConstellationPage> with TickerProviderStateMixin {
   late Ticker _ticker;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _backButtonKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
 
@@ -54,7 +51,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
   
   // Sorting & Direction State
   ConstellationSortMode _sortMode = ConstellationSortMode.none;
-  List<_ChainMeta> _chainMetasRaw = []; // Helper for indices
   List<String> _sortedChainIds = [];
   ConstellationSortMode? _lastSortMode;
   bool _isSortDescending = true;
@@ -126,7 +122,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
         
         _transformationController.value = Matrix4.identity()
           ..setTranslationRaw(currentX, currentY, 0)
-          ..scale(currentScale, currentScale, 1.0);
+          ..scaleByDouble(currentScale, currentScale, 1.0, 1.0);
       }
     });
 
@@ -337,7 +333,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     _transformationController.value = Matrix4.identity()
       ..setTranslationRaw(xTranslation, yTranslation, 0)
-      ..scale(startScale, startScale, 1.0);
+      ..scaleByDouble(startScale, startScale, 1.0, 1.0);
 
     _initialized = true;
   }
@@ -529,8 +525,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
                       // Calculate the new translation to keep the scene point under the pointer
                       setState(() {
                         _transformationController.value = Matrix4.identity()
-                          ..translate(viewportPos.dx - scenePos.dx * newScale, viewportPos.dy - scenePos.dy * newScale)
-                          ..scale(newScale);
+                          ..setTranslationRaw(viewportPos.dx - scenePos.dx * newScale, viewportPos.dy - scenePos.dy * newScale, 0.0)
+                          ..scaleByDouble(newScale, newScale, 1.0, 1.0);
                       });
                     }
                   },
@@ -732,7 +728,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
 
     final endMatrix = Matrix4.identity()
       ..setTranslationRaw(targetX, targetY, 0)
-      ..scale(targetScale, targetScale, 1.0);
+      ..scaleByDouble(targetScale, targetScale, 1.0, 1.0);
 
     final startMatrix = _transformationController.value;
     _cameraAnimationController = AnimationController(
@@ -1325,7 +1321,6 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     setState(() {
       _chainMetas = {for (var m in sortedMetas) m.chainId: m};
       _sortedChainIds = sortedMetas.map((m) => m.chainId).toList();
-      _chainMetasRaw = sortedMetas;
     });
   }
 
@@ -1621,7 +1616,7 @@ class ConstellationPhysicsPainter extends CustomPainter {
       final double starSpeedMult = 0.7 + (random.nextDouble() * 0.8);
       
       // Twinkle Phase (used for diffraction spikes)
-      final double twinkle = (math.sin(time * 2.5 * starSpeedMult + (seed % 100)) + 1) / 2;
+      // final double twinkle = (math.sin(time * 2.5 * starSpeedMult + (seed % 100)) + 1) / 2;
 
       // Flicker Factor for unreviewed nodes (Staccato / Broken Bulb)
       double flickerFactor = 1.0;
