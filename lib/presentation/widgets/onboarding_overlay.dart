@@ -2,16 +2,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/settings_provider.dart';
+import '../../domain/providers/reaction_providers.dart'; // Added import
 
 class OnboardingOverlay extends ConsumerStatefulWidget {
   final GlobalKey? addButtonKey;
   final GlobalKey? constellationButtonKey;
+  final GlobalKey? backButtonKey; // Added backButtonKey
   final bool isConstellationView;
 
   const OnboardingOverlay({
     super.key,
     this.addButtonKey,
     this.constellationButtonKey,
+    this.backButtonKey, // Added backButtonKey
     this.isConstellationView = false,
   });
 
@@ -23,6 +26,7 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   Rect? _targetRect;
   Rect? _addRect;
   Rect? _constellationRect;
+  Rect? _backRect; // Added _backRect
 
   @override
   void initState() {
@@ -45,19 +49,29 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
       if (widget.constellationButtonKey != null) {
         newConstellationRect = _getWidgetRect(widget.constellationButtonKey!);
       }
+
+      Rect? newBackRect; // Added newBackRect calculation
+      if (widget.backButtonKey != null) {
+        newBackRect = _getWidgetRect(widget.backButtonKey!);
+      }
       
       Rect? newTargetRect;
       if (step == 0) {
         newTargetRect = newAddRect;
       } else if (step == 2) {
         newTargetRect = newConstellationRect;
+      } else if (step == 4) {
+        newTargetRect = newBackRect;
+      } else {
+        newTargetRect = null;
       }
 
-      if (newTargetRect != _targetRect || newAddRect != _addRect || newConstellationRect != _constellationRect) {
+      if (newTargetRect != _targetRect || newAddRect != _addRect || newConstellationRect != _constellationRect || newBackRect != _backRect) { // Updated condition
         setState(() {
           _targetRect = newTargetRect;
           _addRect = newAddRect;
           _constellationRect = newConstellationRect;
+          _backRect = newBackRect; // Updated _backRect
         });
       }
       
@@ -107,10 +121,30 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
         // 2. Interaction Blocker (Logic)
         _buildInteractionBlocker(settings.onboardingStep),
 
-        // 3. Instruction Text (Speech Bubble)
-        IgnorePointer(
-          ignoring: settings.onboardingStep == 0 || settings.onboardingStep == 2,
-          child: _buildInstruction(settings.onboardingStep),
+        // 3. Instruction Text (Premium Card)
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final offsetAnimation = Tween<Offset>(
+              begin: const Offset(0, 0.1),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutBack,
+            ));
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: offsetAnimation,
+                child: child,
+              ),
+            );
+          },
+          child: IgnorePointer(
+            key: ValueKey(settings.onboardingStep),
+            ignoring: settings.onboardingStep == 0 || settings.onboardingStep == 2,
+            child: _buildInstruction(settings.onboardingStep),
+          ),
         ),
       ],
     );
@@ -181,6 +215,8 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   }
 
   Widget _buildInstruction(int step) {
+    String tag = 'INFO';
+    String title = '';
     String message = '';
     bool showTail = false;
     double tailX = 0;
@@ -189,26 +225,43 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
 
     switch (step) {
       case 0:
-        message = 'ようこそ！振り返りに特化した日記アプリ「ホシログ」です。まずは右下のボタンを押して、今日の出来事を記録してみましょう';
+        title = 'ようこそ';
+        message = '振り返りに特化した日記アプリ「ホシログ」です。まずは右下のボタンを押して、今日の出来事を記録してみましょう';
         showTail = true;
         break;
       case 1:
+        title = '記録の粒子';
         message = 'いいですね！この粒子はあなたの記録・振り返りの状況によって動きが変わります';
         alignment = Alignment.bottomCenter;
         verticalOffset = -140;
         break;
       case 2:
+        title = '星座の一覧';
         message = '次に、こちらのボタンを押して、記録の一覧画面を開いてみましょう';
         showTail = true;
         break;
       case 3:
+        title = '学びの星座';
         message = 'ここにはあなたの出来事が星として灯ります。振り返ればさらに輝き、新たな取り組みをすれば星座のように繋がっていきます。';
         if (widget.isConstellationView) {
           alignment = Alignment.topCenter;
-          verticalOffset = MediaQuery.of(context).padding.top + 60;
-        } else {
-          alignment = Alignment.center;
+          verticalOffset = MediaQuery.of(context).padding.top + 20;
         }
+        break;
+      case 4:
+        title = 'ホームへの帰還';
+        message = '右下のボタンを押すことでホームに戻れます。';
+        if (widget.isConstellationView) {
+          alignment = Alignment.topCenter;
+          verticalOffset = MediaQuery.of(context).padding.top + 60;
+          showTail = true;
+        }
+        break;
+      case 5:
+        title = '自分との対話';
+        message = 'おかえりなさい！これですべての準備が整いました。日々の小さな出来事も、振り返ることでかけがえのない経験に変わります。あなたの物語を、星として灯し続けていきましょう。';
+        alignment = Alignment.center;
+        tag = 'FINISH';
         break;
     }
 
@@ -219,95 +272,66 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
     return Stack(
       children: [
         if (showTail && _targetRect != null)
-          _buildBubbleWithTail(message, tailX)
+          _buildCardWithTail(tag, title, message, tailX)
         else
-          _buildPositionedBubble(message, alignment, verticalOffset),
+          _buildPositionedCard(step, tag, title, message, alignment, verticalOffset),
       ],
     );
   }
 
-  Widget _buildPositionedBubble(String message, Alignment alignment, double verticalOffset) {
+  Widget _buildPositionedCard(int step, String tag, String title, String message, Alignment alignment, double verticalOffset) {
     return Align(
       alignment: alignment,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Transform.translate(
           offset: Offset(0, verticalOffset),
-          child: _buildFrostedBubble(message, false, 0),
+          child: OnboardingCard(
+            tag: tag,
+            title: title,
+            message: message,
+            showHint: true,
+            padding: step == 3 ? const EdgeInsets.symmetric(vertical: 16, horizontal: 24) : null,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBubbleWithTail(String message, double targetX) {
+  Widget _buildCardWithTail(String tag, String title, String message, double targetX) {
     final bubbleBottom = (_targetRect?.top ?? 0) - 24;
     
     return Positioned(
       bottom: MediaQuery.of(context).size.height - bubbleBottom,
       left: 20,
       right: 20,
-      child: _buildFrostedBubble(message, true, targetX),
-    );
-  }
-
-  Widget _buildFrostedBubble(String message, bool hasTail, double targetX) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: hasTail ? SpeechBubbleClipper(targetX: targetX) : null,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: hasTail ? null : BorderRadius.circular(24),
-              ),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  height: 1.6,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          OnboardingCard(
+            tag: tag,
+            title: title,
+            message: message,
+            hasTail: true,
+            targetX: targetX,
           ),
-        ),
-        if (hasTail)
-          Positioned.fill(
-            child: CustomPaint(
-              painter: SpeechBubbleBorderPainter(targetX: targetX),
-            ),
-          )
-        else
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.5),
-                ),
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildInteractionBlocker(int step) {
-    if (step == 1 || step == 3) {
+    if (step == 1 || step == 3 || step == 5) {
       return Positioned.fill(
         child: GestureDetector(
           onTap: () {
             if (step == 1) {
               ref.read(settingsProvider.notifier).updateOnboardingStep(2);
             } else if (step == 3) {
+              ref.read(settingsProvider.notifier).updateOnboardingStep(4);
+            } else if (step == 5) {
               ref.read(settingsProvider.notifier).setOnboardingSeen(true);
+              ref.read(reactionProvider.notifier).trigger(ParticleReaction.celebrate);
             }
           },
           behavior: HitTestBehavior.opaque,
@@ -363,14 +387,150 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   }
 }
 
-class SpeechBubbleClipper extends CustomClipper<Path> {
+class OnboardingCard extends StatelessWidget {
+  final String tag;
+  final String title;
+  final String message;
+  final bool showHint;
+  final bool hasTail;
+  final double? targetX;
+  final EdgeInsetsGeometry? padding;
+
+  const OnboardingCard({
+    super.key,
+    required this.tag,
+    required this.title,
+    required this.message,
+    this.showHint = false,
+    this.hasTail = false,
+    this.targetX,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // 1. Shadow Blur Layer
+        if (!hasTail)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 40,
+                    spreadRadius: -10,
+                    offset: const Offset(0, 20),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // 2. Glass Body
+        ClipPath(
+          clipper: (hasTail && targetX != null) ? OnboardingCardClipper(targetX: targetX!) : null,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: padding ?? const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: hasTail ? null : BorderRadius.circular(28),
+                border: hasTail ? null : Border.all(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 0.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tag
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.cyanAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      tag.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.cyanAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Title
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Body
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 15,
+                      height: 1.6,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  if (showHint) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.touch_app, size: 14, color: Colors.white.withValues(alpha: 0.4)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '画面をタップして進む',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 3. Border Glow for Tail
+        if (hasTail && targetX != null)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: OnboardingCardBorderPainter(targetX: targetX!),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class OnboardingCardClipper extends CustomClipper<Path> {
   final double targetX;
-  SpeechBubbleClipper({required this.targetX});
+  OnboardingCardClipper({required this.targetX});
 
   @override
   Path getClip(Size size) {
     final path = Path();
-    const radius = 24.0;
+    const radius = 28.0;
     double localX = (targetX - 20).clamp(radius + 20, size.width - radius - 20);
 
     path.addRRect(RRect.fromRectAndRadius(
@@ -392,19 +552,19 @@ class SpeechBubbleClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }
 
-class SpeechBubbleBorderPainter extends CustomPainter {
+class OnboardingCardBorderPainter extends CustomPainter {
   final double targetX;
-  SpeechBubbleBorderPainter({required this.targetX});
+  OnboardingCardBorderPainter({required this.targetX});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
+      ..color = Colors.white.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
 
     final path = Path();
-    const radius = 24.0;
+    const radius = 28.0;
     double localX = (targetX - 20).clamp(radius + 20, size.width - radius - 20);
 
     path.addRRect(RRect.fromRectAndRadius(
