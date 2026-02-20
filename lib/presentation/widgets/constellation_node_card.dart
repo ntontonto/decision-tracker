@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:decision_tracker/domain/models/constellation_models.dart';
-import 'package:decision_tracker/data/local/database.dart';
-import 'package:decision_tracker/domain/models/enums.dart';
+import 'package:hoshi_log/domain/models/constellation_models.dart';
+import 'package:hoshi_log/data/local/database.dart';
+import 'package:hoshi_log/domain/models/enums.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:decision_tracker/domain/providers/retro_providers.dart';
-import 'package:decision_tracker/presentation/widgets/retro_wizard_sheet.dart';
-import 'package:decision_tracker/presentation/widgets/action_review_wizard_sheet.dart';
-import 'package:decision_tracker/domain/providers/declaration_providers.dart';
+import 'package:hoshi_log/domain/providers/retro_providers.dart';
+import 'package:hoshi_log/presentation/widgets/retro_wizard_sheet.dart';
+import 'package:hoshi_log/presentation/widgets/action_review_wizard_sheet.dart';
+import 'package:hoshi_log/domain/providers/declaration_providers.dart';
 
 
 class ConstellationNodeCard extends ConsumerWidget {

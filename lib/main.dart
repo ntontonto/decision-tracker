@@ -3,20 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'presentation/pages/main_page.dart';
 
 import 'core/services/notification_service.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  
   await NotificationService().init();
-  runApp(const ProviderScope(child: DecisionTrackerApp()));
+  runApp(const ProviderScope(child: HoshiLogApp()));
 }
 
-class DecisionTrackerApp extends StatelessWidget {
-  const DecisionTrackerApp({super.key});
+class HoshiLogApp extends StatelessWidget {
+  const HoshiLogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Remove splash screen after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
+
     return MaterialApp(
-      title: 'Decision Tracker',
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.dark,
+      color: Colors.black,
+      title: 'ホシログ',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

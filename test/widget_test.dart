@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:decision_tracker/main.dart';
+import 'package:hoshi_log/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {

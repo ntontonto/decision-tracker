@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:decision_tracker/domain/models/enums.dart';
+import 'package:hoshi_log/domain/models/enums.dart';
 
 void main() {
   group('RetroAt Calculation Tests', () {
