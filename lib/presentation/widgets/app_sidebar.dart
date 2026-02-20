@@ -48,7 +48,7 @@ class AppSidebar extends StatelessWidget {
                   ),
                   child: const Center(
                     child: Text(
-                      'Decision Tracker',
+                      'ホシログ',
                       style: AppDesign.titleStyle,
                     ),
                   ),

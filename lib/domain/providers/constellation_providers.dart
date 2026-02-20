@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:decision_tracker/domain/models/constellation_models.dart';
-import 'package:decision_tracker/domain/providers/app_providers.dart';
-import 'package:decision_tracker/domain/providers/declaration_providers.dart';
-import 'package:decision_tracker/domain/models/enums.dart';
-import 'package:decision_tracker/data/local/database.dart';
+import 'package:hoshi_log/domain/models/constellation_models.dart';
+import 'package:hoshi_log/domain/providers/app_providers.dart';
+import 'package:hoshi_log/domain/providers/declaration_providers.dart';
+import 'package:hoshi_log/domain/models/enums.dart';
+import 'package:hoshi_log/data/local/database.dart';
 
 final constellationProvider = FutureProvider<LearningGraph>((ref) async {
   final decisions = await ref.watch(allDecisionsProvider.future);
