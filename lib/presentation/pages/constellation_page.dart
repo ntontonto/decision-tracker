@@ -133,7 +133,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     _revelationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         final settings = ref.read(settingsProvider);
-        if (!settings.hasSeenOnboarding && settings.onboardingStep == 3 && _nodes.isNotEmpty) {
+        if (!settings.hasSeenOnboarding && settings.onboardingStep == 5 && _nodes.isNotEmpty) {
           _focusNode(_nodes.last);
         }
       }
