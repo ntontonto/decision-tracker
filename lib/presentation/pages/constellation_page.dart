@@ -9,6 +9,7 @@ import 'package:hoshi_log/domain/providers/constellation_providers.dart';
 import 'package:hoshi_log/domain/providers/app_providers.dart';
 import '../widgets/decision_detail_sheet.dart';
 import '../widgets/constellation_node_card.dart';
+import '../widgets/log_wizard_sheet.dart';
 import '../theme/app_design.dart';
 import 'dart:ui';
 
@@ -540,8 +541,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
               _buildHeader(),
               _buildDetailOverlay(),
               _buildVerticalNavigationButtons(),
-              if (!_showGalaxy || _revelationController.isAnimating) 
-                _buildOverlayInstructions(),
+              if (!_showGalaxy || _revelationController.isAnimating || filteredNodes.isEmpty) 
+                _buildOverlayInstructions(filteredNodes.isEmpty),
             ],
           );
         },
@@ -872,7 +873,75 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     );
   }
 
-  Widget _buildOverlayInstructions() {
+  Widget _buildOverlayInstructions(bool isEmptyState) {
+    if (isEmptyState) {
+      return Positioned.fill(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white24, size: 48),
+              const SizedBox(height: 24),
+              const Text(
+                'あなたの夜空に、最初の光を灯しましょう',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const LogWizardSheet(),
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, color: Colors.white, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                '今日のできごとを記録する',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Positioned(
       bottom: 60,
       left: 0,
@@ -1004,7 +1073,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final collapsedHeight = 220.0;
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
-    final isShowing = _isCardVisible;
+    final isShowingCard = _isCardVisible;
+    final isEmptyState = _nodes.isEmpty;
 
     // Determine if we can go up or down
     final currentIndex = _sortedChainIds.indexOf(_focusedChainId ?? '');
@@ -1016,15 +1086,15 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
       key: const ValueKey('vert_nav_buttons'),
       duration: const Duration(milliseconds: 400),
       curve: Curves.fastOutSlowIn,
-      bottom: isShowing ? currentHeight + 16 : 32 + MediaQuery.of(context).padding.bottom,
+      bottom: isShowingCard ? currentHeight + 16 : 32 + MediaQuery.of(context).padding.bottom,
       right: 20,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
-        opacity: _showGalaxy ? 1.0 : 0.0,
+        opacity: (_showGalaxy || isEmptyState) ? 1.0 : 0.0,
         child: Column(
           children: [
             _buildGlassNavButton(
-              icon: Icons.blur_on,
+              icon: Icons.auto_awesome,
               onPressed: () => Navigator.pop(context),
               enabled: true,
             ),
