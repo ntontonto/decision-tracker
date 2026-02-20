@@ -56,11 +56,11 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
       }
       
       Rect? newTargetRect;
-      if (step == 0) {
+      if (step == 2) {
         newTargetRect = newAddRect;
-      } else if (step == 2) {
-        newTargetRect = newConstellationRect;
       } else if (step == 4) {
+        newTargetRect = newConstellationRect;
+      } else if (step == 6) {
         newTargetRect = newBackRect;
       } else {
         newTargetRect = null;
@@ -102,8 +102,12 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
     final settings = ref.watch(settingsProvider);
     if (settings.hasSeenOnboarding) return const SizedBox.shrink();
 
-    // Step 3 is only for Constellation View. On Home screen, hide it to avoid flashes during transition.
-    if (settings.onboardingStep == 3 && !widget.isConstellationView) {
+    // On Home screen, hide constellation-specific steps (5, 6)
+    if (!widget.isConstellationView && (settings.onboardingStep == 5 || settings.onboardingStep == 6)) {
+      return const SizedBox.shrink();
+    }
+    // On Constellation screen, hide home-specific steps (0, 1, 2, 3, 4, 7)
+    if (widget.isConstellationView && (settings.onboardingStep < 5 || settings.onboardingStep == 7)) {
       return const SizedBox.shrink();
     }
 
@@ -151,10 +155,8 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   }
 
   Widget _buildVisualBackground(int step) {
-    // Step 1: Only gray out the buttons, no global dimming
-    // Step 3 (Home): Only gray out the buttons
-    // Step 3 (Constellation): NO dimming at all to highlight the star
-    if (step == 3 && widget.isConstellationView) {
+    // Step 5 (Constellation - Concept): NO dimming at all to highlight the star
+    if (step == 5 && widget.isConstellationView) {
       return const SizedBox.shrink();
     }
 
@@ -226,21 +228,29 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
     switch (step) {
       case 0:
         title = 'ようこそ';
-        message = '振り返りに特化した日記アプリ「ホシログ」です。まずは右下のボタンを押して、今日の出来事を記録してみましょう';
-        showTail = true;
+        message = '振り返りに特化した日記アプリ「ホシログ」です。';
         break;
       case 1:
-        title = '記録の粒子';
-        message = 'いいですね！この粒子はあなたの記録・振り返りの状況によって動きが変わります';
-        alignment = Alignment.bottomCenter;
-        verticalOffset = -140;
+        title = 'ホシログの想い';
+        message = 'このアプリでは、今日あった出来事を振り返る「余白」を作ります。';
         break;
       case 2:
-        title = '星座の一覧';
-        message = '次に、こちらのボタンを押して、記録の一覧画面を開いてみましょう';
+        title = '最初の記録';
+        message = 'きょうのできごとで、何か記憶に残ったものはありますか？右下のボタンから登録してみましょう。';
         showTail = true;
         break;
       case 3:
+        title = '記録の粒子';
+        message = 'いいですね！この粒子はあなたの記録・振り返りの状況によって動きが変わります。';
+        alignment = Alignment.bottomCenter;
+        verticalOffset = -140;
+        break;
+      case 4:
+        title = '星座の一覧';
+        message = '次に、こちらのボタンを押して、記録の一覧画面を開いてみましょう。';
+        showTail = true;
+        break;
+      case 5:
         title = '学びの星座';
         message = 'ここにはあなたの出来事が星として灯ります。振り返ればさらに輝き、新たな取り組みをすれば星座のように繋がっていきます。';
         if (widget.isConstellationView) {
@@ -248,7 +258,7 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
           verticalOffset = MediaQuery.of(context).padding.top + 20;
         }
         break;
-      case 4:
+      case 6:
         title = 'ホームへの帰還';
         message = '右下のボタンを押すことでホームに戻れます。';
         if (widget.isConstellationView) {
@@ -257,7 +267,7 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
           showTail = true;
         }
         break;
-      case 5:
+      case 7:
         title = '自分との対話';
         message = 'おかえりなさい！これですべての準備が整いました。日々の小さな出来事も、振り返ることでかけがえのない経験に変わります。あなたの物語を、星として灯し続けていきましょう。';
         alignment = Alignment.center;
@@ -291,7 +301,7 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
             title: title,
             message: message,
             showHint: true,
-            padding: step == 3 ? const EdgeInsets.symmetric(vertical: 16, horizontal: 24) : null,
+            padding: (step == 3 || step == 5) ? const EdgeInsets.symmetric(vertical: 16, horizontal: 24) : null,
           ),
         ),
       ),
@@ -321,15 +331,19 @@ class _OnboardingOverlayState extends ConsumerState<OnboardingOverlay> {
   }
 
   Widget _buildInteractionBlocker(int step) {
-    if (step == 1 || step == 3 || step == 5) {
+    if (step == 0 || step == 1 || step == 3 || step == 5 || step == 7) {
       return Positioned.fill(
         child: GestureDetector(
           onTap: () {
-            if (step == 1) {
+            if (step == 0) {
+              ref.read(settingsProvider.notifier).updateOnboardingStep(1);
+            } else if (step == 1) {
               ref.read(settingsProvider.notifier).updateOnboardingStep(2);
             } else if (step == 3) {
               ref.read(settingsProvider.notifier).updateOnboardingStep(4);
             } else if (step == 5) {
+              ref.read(settingsProvider.notifier).updateOnboardingStep(6);
+            } else if (step == 7) {
               ref.read(settingsProvider.notifier).setOnboardingSeen(true);
               ref.read(reactionProvider.notifier).trigger(ParticleReaction.celebrate);
             }

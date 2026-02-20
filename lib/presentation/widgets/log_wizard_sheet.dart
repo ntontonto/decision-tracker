@@ -190,6 +190,11 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     }
     
     if (mounted) {
+      // Increment onboarding step if we were on step 2 (Guidance to register)
+      if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
+        ref.read(settingsProvider.notifier).updateOnboardingStep(3);
+      }
+
       // With canPop: _isSaving, this will pop without triggering confirmation
       Navigator.of(context).pop();
       
