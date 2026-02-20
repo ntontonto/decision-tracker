@@ -704,7 +704,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
         ref.read(retroWizardProvider.notifier).setRegretLevel(val);
         if (val != null) _next();
       },
-      labelBuilder: (v) => '${v.label} (${v.score}pt)',
+      labelBuilder: (v) => v.label,
       scrollController: ScrollController(),
     );
   }
@@ -713,7 +713,7 @@ class _RetroWizardSheetState extends ConsumerState<RetroWizardSheet> {
     if (state.regretLevel == RegretLevel.none) {
       final factors = [
         '目的が明確だった', '情報が十分だった', '見積もりが適切だった', '自分の価値観に合っていた',
-        '人との関係が良かった', 'コンディションが良かった', '期待値が適切だった', 'タイミングが良かった'
+        'コンディションが良かった'
       ];
       return WizardSelectionStep<String>(
         title: '2B. 何が良かった？',
