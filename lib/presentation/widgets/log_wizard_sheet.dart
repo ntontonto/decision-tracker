@@ -31,6 +31,18 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
   late FocusNode _q1FocusNode;
   late FocusNode _q6FocusNode;
 
+  final List<String> _hintExamples = [
+    '朝散歩に行った',
+    '会社の会議に参加した',
+    '映画を見に行った',
+    '一人で外食をした',
+  ];
+  int _currentHintIndex = 0;
+  String _currentTypewriterText = '';
+  Timer? _typewriterTimer;
+  int _typewriterCharIndex = 0;
+  bool _isTypewriterDeleting = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,10 +69,57 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
       
       _startIdleTimer();
     });
+
+    if (widget.initialHint == null) {
+      _currentTypewriterText = '例: ';
+      _startTypewriter();
+    } else {
+      _currentTypewriterText = widget.initialHint!;
+    }
+  }
+
+  void _startTypewriter() {
+    _typewriterTimer?.cancel();
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final targetText = _hintExamples[_currentHintIndex];
+      
+      setState(() {
+        if (_isTypewriterDeleting) {
+          if (_typewriterCharIndex > 0) {
+            _typewriterCharIndex--;
+            _currentTypewriterText = '例: ${targetText.substring(0, _typewriterCharIndex)}|';
+          } else {
+            _isTypewriterDeleting = false;
+            _currentHintIndex = (_currentHintIndex + 1) % _hintExamples.length;
+            timer.cancel();
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) _startTypewriter();
+            });
+          }
+        } else {
+          if (_typewriterCharIndex < targetText.length) {
+            _typewriterCharIndex++;
+            _currentTypewriterText = '例: ${targetText.substring(0, _typewriterCharIndex)}|';
+          } else {
+            _isTypewriterDeleting = true;
+            _currentTypewriterText = '例: ${targetText.substring(0, _typewriterCharIndex)}';
+            timer.cancel();
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) _startTypewriter();
+            });
+          }
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _typewriterTimer?.cancel();
     _stopIdleTimer();
     _pageController.dispose();
     _textController.dispose();
@@ -324,7 +383,7 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
             focusNode: _q1FocusNode,
             style: const TextStyle(color: Colors.white, fontSize: 18),
             decoration: AppDesign.inputDecoration(
-              hintText: widget.initialHint ?? '例: 30分読書する、新しい靴を買う...',
+              hintText: _currentTypewriterText,
             ),
             onChanged: (val) => ref.read(logWizardProvider.notifier).updateText(val),
             onSubmitted: (_) {
