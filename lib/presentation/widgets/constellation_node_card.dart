@@ -134,7 +134,8 @@ class ConstellationNodeCard extends ConsumerWidget {
             style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ),
-        Flexible(
+        const SizedBox(width: 8),
+        Expanded(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -150,7 +151,6 @@ class ConstellationNodeCard extends ConsumerWidget {
             ],
           ),
         ),
-        const Spacer(),
         Icon(Icons.edit_calendar, size: 12, color: Colors.white.withValues(alpha: 0.3)),
         const SizedBox(width: 4),
         Text(
