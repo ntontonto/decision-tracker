@@ -991,7 +991,7 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
 
     final settings = ref.read(settingsProvider);
-    final isShowing = _isCardVisible && _swipeNodes.isNotEmpty && (settings.hasSeenOnboarding || (settings.onboardingStep != 3 && settings.onboardingStep != 4));
+    final isShowing = _isCardVisible && _swipeNodes.isNotEmpty && (settings.hasSeenOnboarding || (settings.onboardingStep != 5 && settings.onboardingStep != 6));
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
@@ -1118,8 +1118,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
               icon: Icons.auto_awesome,
               onPressed: () {
                 final settings = ref.read(settingsProvider);
-                if (!settings.hasSeenOnboarding && settings.onboardingStep == 4) {
-                  ref.read(settingsProvider.notifier).updateOnboardingStep(5);
+                if (!settings.hasSeenOnboarding && settings.onboardingStep == 6) {
+                  ref.read(settingsProvider.notifier).updateOnboardingStep(7);
                 }
                 Navigator.pop(context);
               },

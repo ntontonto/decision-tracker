@@ -120,13 +120,7 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
       width: 56,
       height: 56,
       child: FloatingActionButton(
-        onPressed: () {
-          final settings = ref.read(settingsProvider);
-          if (!settings.hasSeenOnboarding && settings.onboardingStep == 0) {
-            ref.read(settingsProvider.notifier).updateOnboardingStep(1);
-          }
-          _showLogWizard(context);
-        },
+        onPressed: () => _showLogWizard(context),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -143,8 +137,8 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
         key: widget.constellationButtonKey,
         onTap: () {
           final settings = ref.read(settingsProvider);
-          if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
-            ref.read(settingsProvider.notifier).updateOnboardingStep(3);
+          if (!settings.hasSeenOnboarding && settings.onboardingStep == 4) {
+            ref.read(settingsProvider.notifier).updateOnboardingStep(5);
           }
           widget.onConstellationTap?.call();
         },
