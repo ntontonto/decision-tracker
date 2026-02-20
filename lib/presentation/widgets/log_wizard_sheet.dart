@@ -242,15 +242,10 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
     setState(() => _isSaving = true);
     final savedId = await ref.read(logWizardProvider.notifier).save();
     
-    // Request notification permission on first save
-    final settings = ref.read(settingsProvider);
-    if (!settings.hasRequestedPermission) {
-      await NotificationService().requestPermission();
-      await ref.read(settingsProvider.notifier).markPermissionRequested();
-    }
-    
     final currentContext = context;
     if (!currentContext.mounted) return;
+    
+    final settings = ref.read(settingsProvider);
     
     // Increment onboarding step if we were on step 2 (Guidance to register)
     if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
@@ -347,7 +342,16 @@ class _LogWizardSheetState extends ConsumerState<LogWizardSheet> with SingleTick
             '振り返るタイミングを選択してください',
             RetroOffsetType.values,
             state.retroOffset,
-            (val) => ref.read(logWizardProvider.notifier).updateRetroOffset(val),
+            (val) async {
+              ref.read(logWizardProvider.notifier).updateRetroOffset(val);
+              if (val != null) {
+                final settings = ref.read(settingsProvider);
+                if (!settings.hasRequestedPermission) {
+                  await NotificationService().requestPermission();
+                  await ref.read(settingsProvider.notifier).markPermissionRequested();
+                }
+              }
+            },
           ),
           _buildQ6Content(state),
         ],

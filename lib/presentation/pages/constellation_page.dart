@@ -1089,7 +1089,8 @@ class _ConstellationPageState extends ConsumerState<ConstellationPage> with Tick
     final collapsedHeight = 220.0;
     final expandedHeight = screenHeight * 0.7;
     final currentHeight = _isCardExpanded ? expandedHeight : collapsedHeight;
-    final isShowingCard = _isCardVisible;
+    final settings = ref.read(settingsProvider);
+    final isShowingCard = _isCardVisible && _swipeNodes.isNotEmpty && (settings.hasSeenOnboarding || (settings.onboardingStep != 5 && settings.onboardingStep != 6));
     final isEmptyState = _nodes.isEmpty;
 
     // Determine if we can go up or down
