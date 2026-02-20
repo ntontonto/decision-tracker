@@ -2,17 +2,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/settings_provider.dart';
 import '../../domain/models/review_proposal.dart';
 import 'log_wizard_sheet.dart';
 import '../widgets/retro_wizard_sheet.dart';
 import '../widgets/action_review_wizard_sheet.dart';
 import '../widgets/review_proposal_card.dart';
-import '../theme/app_design.dart';
-import 'dart:ui';
 
 class HomeOverlayUI extends ConsumerStatefulWidget {
   final VoidCallback? onConstellationTap;
-  const HomeOverlayUI({super.key, this.onConstellationTap});
+  final GlobalKey? addButtonKey;
+  final GlobalKey? constellationButtonKey;
+  
+  const HomeOverlayUI({
+    super.key, 
+    this.onConstellationTap,
+    this.addButtonKey,
+    this.constellationButtonKey,
+  });
 
   @override
   ConsumerState<HomeOverlayUI> createState() => _HomeOverlayUIState();
@@ -109,10 +116,17 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
 
   Widget _buildAddButton() {
     return SizedBox(
+      key: widget.addButtonKey,
       width: 56,
       height: 56,
       child: FloatingActionButton(
-        onPressed: () => _showLogWizard(context),
+        onPressed: () {
+          final settings = ref.read(settingsProvider);
+          if (!settings.hasSeenOnboarding && settings.onboardingStep == 0) {
+            ref.read(settingsProvider.notifier).updateOnboardingStep(1);
+          }
+          _showLogWizard(context);
+        },
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -126,7 +140,14 @@ class _HomeOverlayUIState extends ConsumerState<HomeOverlayUI> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.onConstellationTap,
+        key: widget.constellationButtonKey,
+        onTap: () {
+          final settings = ref.read(settingsProvider);
+          if (!settings.hasSeenOnboarding && settings.onboardingStep == 2) {
+            ref.read(settingsProvider.notifier).updateOnboardingStep(3);
+          }
+          widget.onConstellationTap?.call();
+        },
         borderRadius: BorderRadius.circular(16),
         child: const Padding(
           padding: EdgeInsets.all(8.0),

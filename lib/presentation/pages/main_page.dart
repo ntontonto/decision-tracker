@@ -6,6 +6,7 @@ import 'particle_simulation_page.dart';
 import '../widgets/home_overlay_ui.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/success_notification.dart';
+import '../widgets/onboarding_overlay.dart';
 
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
@@ -16,6 +17,8 @@ class MainPage extends ConsumerStatefulWidget {
 
 class _MainPageState extends ConsumerState<MainPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey _addButtonKey = GlobalKey();
+  final GlobalKey _constellationButtonKey = GlobalKey();
 
   void _navigateToConstellation() {
     Navigator.of(context).push(
@@ -125,10 +128,20 @@ class _MainPageState extends ConsumerState<MainPage> {
             ),
             
             // Overlay UI: Proposal Card + FAB
-            HomeOverlayUI(onConstellationTap: _navigateToConstellation),
+            HomeOverlayUI(
+              onConstellationTap: _navigateToConstellation,
+              addButtonKey: _addButtonKey,
+              constellationButtonKey: _constellationButtonKey,
+            ),
   
             // Success Notification Toast (TOPMOST Layer)
             const SuccessNotification(),
+
+            // Onboarding Overlay
+            OnboardingOverlay(
+              addButtonKey: _addButtonKey,
+              constellationButtonKey: _constellationButtonKey,
+            ),
           ],
         ),
       ),
